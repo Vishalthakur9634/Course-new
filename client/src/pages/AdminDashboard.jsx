@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { Plus, Upload, Video, Trash2, Users, BookOpen, HardDrive, Edit, Search, TrendingUp } from 'lucide-react';
+import { Plus, Upload, Video, Trash2, Users, BookOpen, HardDrive, Edit, Search, TrendingUp, Star, Calendar, AlertCircle, Award, DollarSign, MessageSquare, Bell } from 'lucide-react';
 
 const AdminDashboard = () => {
     const [courses, setCourses] = useState([]);
@@ -9,6 +9,11 @@ const AdminDashboard = () => {
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [searchTerm, setSearchTerm] = useState('');
+
+    const [payments, setPayments] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [announcements, setAnnouncements] = useState([]);
+    const [certificates, setCertificates] = useState([]);
 
     // Create Course State
     const [courseForm, setCourseForm] = useState({
@@ -25,6 +30,10 @@ const AdminDashboard = () => {
         fetchStats();
         fetchCourses();
         fetchUsers();
+        fetchPayments();
+        fetchReviews();
+        fetchAnnouncements();
+        fetchCertificates();
     }, []);
 
     const fetchStats = async () => {
@@ -60,6 +69,42 @@ const AdminDashboard = () => {
             setUsers(data);
         } catch (error) {
             console.error('Error fetching users');
+        }
+    };
+
+    const fetchPayments = async () => {
+        try {
+            const { data } = await api.get('/admin/payments');
+            setPayments(data);
+        } catch (error) {
+            console.error('Error fetching payments:', error);
+        }
+    };
+
+    const fetchReviews = async () => {
+        try {
+            const { data } = await api.get('/admin/reviews');
+            setReviews(data);
+        } catch (error) {
+            console.error('Error fetching reviews:', error);
+        }
+    };
+
+    const fetchAnnouncements = async () => {
+        try {
+            const { data } = await api.get('/admin/announcements');
+            setAnnouncements(data);
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+        }
+    };
+
+    const fetchCertificates = async () => {
+        try {
+            const { data } = await api.get('/admin/certificates');
+            setCertificates(data);
+        } catch (error) {
+            console.error('Error fetching certificates:', error);
         }
     };
 
@@ -150,7 +195,7 @@ const AdminDashboard = () => {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`px-4 py-2 rounded ${activeTab === 'overview' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
@@ -168,6 +213,30 @@ const AdminDashboard = () => {
                         className={`px-4 py-2 rounded ${activeTab === 'users' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
                     >
                         Users
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('payments')}
+                        className={`px-4 py-2 rounded ${activeTab === 'payments' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
+                    >
+                        Payments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('reviews')}
+                        className={`px-4 py-2 rounded ${activeTab === 'reviews' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
+                    >
+                        Reviews
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('announcements')}
+                        className={`px-4 py-2 rounded ${activeTab === 'announcements' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
+                    >
+                        Announcements
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('certificates')}
+                        className={`px-4 py-2 rounded ${activeTab === 'certificates' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-text'}`}
+                    >
+                        Certificates
                     </button>
                 </div>
             </div>
@@ -415,6 +484,318 @@ const AdminDashboard = () => {
                             </div>
                         ))}
                     </div>
+                </div>
+            )}
+
+            {/* Payments Management */}
+            {activeTab === 'payments' && (
+                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <DollarSign size={24} className="text-green-500" />
+                        Payment History
+                    </h2>
+
+                    {payments.length === 0 ? (
+                        <div className="text-center py-12 text-dark-muted">
+                            <DollarSign size={48} className="mx-auto mb-4 opacity-50" />
+                            <p>No payments recorded yet</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-dark-layer2 text-left">
+                                        <th className="pb-3 font-semibold">User</th>
+                                        <th className="pb-3 font-semibold">Course</th>
+                                        <th className="pb-3 font-semibold">Amount</th>
+                                        <th className="pb-3 font-semibold">Status</th>
+                                        <th className="pb-3 font-semibold">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payments.map(payment => (
+                                        <tr key={payment._id} className="border-b border-dark-layer2/50">
+                                            <td className="py-4">
+                                                <p className="font-medium">{payment.userId?.name || 'Unknown'}</p>
+                                                <p className="text-xs text-dark-muted">{payment.userId?.email}</p>
+                                            </td>
+                                            <td className="py-4 text-dark-muted">
+                                                {payment.courseId?.title || 'N/A'}
+                                            </td>
+                                            <td className="py-4 font-semibold text-green-500">
+                                                ${payment.amount}
+                                            </td>
+                                            <td className="py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${payment.status === 'success' ? 'bg-green-500/20 text-green-500' :
+                                                        payment.status === 'refunded' ? 'bg-yellow-500/20 text-yellow-500' :
+                                                            'bg-red-500/20 text-red-500'
+                                                    }`}>
+                                                    {payment.status}
+                                                </span>
+                                            </td>
+                                            <td className="py-4 text-dark-muted text-sm">
+                                                {new Date(payment.paymentDate).toLocaleDateString()}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Reviews Management */}
+            {activeTab === 'reviews' && (
+                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Star size={24} className="text-yellow-500" />
+                        Course Reviews
+                    </h2>
+
+                    {reviews.length === 0 ? (
+                        <div className="text-center py-12 text-dark-muted">
+                            <Star size={48} className="mx-auto mb-4 opacity-50" />
+                            <p>No reviews yet</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {reviews.map(review => (
+                                <div key={review._id} className="bg-dark-layer2 p-4 rounded-lg">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <div className="flex items-center gap-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            size={16}
+                                                            className={i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-dark-muted'}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-sm font-semibold">{review.rating}/5</span>
+                                            </div>
+                                            <p className="text-dark-text mb-2">{review.comment}</p>
+                                            <div className="flex items-center gap-4 text-xs text-dark-muted">
+                                                <span>👤 {review.user?.name || 'Unknown User'}</span>
+                                                <span>📚 {review.course?.title || 'Unknown Course'}</span>
+                                                <span>📅 {new Date(review.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (confirm('Delete this review?')) {
+                                                    try {
+                                                        await api.delete(`/admin/reviews/${review._id}`);
+                                                        fetchReviews();
+                                                        alert('Review deleted successfully');
+                                                    } catch (error) {
+                                                        alert('Failed to delete review');
+                                                    }
+                                                }
+                                            }}
+                                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors ml-4"
+                                        >
+                                            <Trash2 size={14} /> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Announcements Management */}
+            {activeTab === 'announcements' && (
+                <div className="space-y-6">
+                    {/* Create Announcement Form */}
+                    <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <Bell size={24} className="text-blue-500" />
+                            Create Announcement
+                        </h2>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            try {
+                                await api.post('/admin/announcements', {
+                                    courseId: formData.get('courseId'),
+                                    title: formData.get('title'),
+                                    message: formData.get('message'),
+                                    priority: formData.get('priority')
+                                });
+                                e.target.reset();
+                                fetchAnnouncements();
+                                alert('Announcement created successfully');
+                            } catch (error) {
+                                alert('Failed to create announcement');
+                            }
+                        }} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-dark-muted mb-2">Course</label>
+                                    <select
+                                        name="courseId"
+                                        required
+                                        className="w-full bg-dark-layer2 border border-dark-layer2 p-2 rounded text-dark-text"
+                                    >
+                                        <option value="">-- Select Course --</option>
+                                        {courses.map(course => (
+                                            <option key={course._id} value={course._id}>{course.title}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-dark-muted mb-2">Priority</label>
+                                    <select
+                                        name="priority"
+                                        className="w-full bg-dark-layer2 border border-dark-layer2 p-2 rounded text-dark-text"
+                                    >
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-dark-muted mb-2">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    required
+                                    placeholder="Announcement title"
+                                    className="w-full bg-dark-layer2 border border-dark-layer2 p-2 rounded text-dark-text"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-dark-muted mb-2">Message</label>
+                                <textarea
+                                    name="message"
+                                    required
+                                    rows="4"
+                                    placeholder="Announcement message..."
+                                    className="w-full bg-dark-layer2 border border-dark-layer2 p-2 rounded text-dark-text"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="bg-brand-primary hover:bg-brand-hover text-white px-6 py-2 rounded font-medium transition-colors"
+                            >
+                                Create Announcement
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Announcements List */}
+                    <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                        <h2 className="text-xl font-bold mb-4">All Announcements</h2>
+                        {announcements.length === 0 ? (
+                            <div className="text-center py-12 text-dark-muted">
+                                <Bell size={48} className="mx-auto mb-4 opacity-50" />
+                                <p>No announcements yet</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {announcements.map(announcement => (
+                                    <div key={announcement._id} className="bg-dark-layer2 p-4 rounded-lg">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <h3 className="font-bold text-lg">{announcement.title}</h3>
+                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${announcement.priority === 'high' ? 'bg-red-500/20 text-red-500' :
+                                                            announcement.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                                                                'bg-blue-500/20 text-blue-500'
+                                                        }`}>
+                                                        {announcement.priority}
+                                                    </span>
+                                                </div>
+                                                <p className="text-dark-text mb-2">{announcement.message}</p>
+                                                <div className="flex items-center gap-4 text-xs text-dark-muted">
+                                                    <span>📚 {announcement.courseId?.title || 'N/A'}</span>
+                                                    <span>📅 {new Date(announcement.createdAt).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Delete this announcement?')) {
+                                                        try {
+                                                            await api.delete(`/admin/announcements/${announcement._id}`);
+                                                            fetchAnnouncements();
+                                                            alert('Announcement deleted successfully');
+                                                        } catch (error) {
+                                                            alert('Failed to delete announcement');
+                                                        }
+                                                    }
+                                                }}
+                                                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1 transition-colors ml-4"
+                                            >
+                                                <Trash2 size={14} /> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Certificates Management */}
+            {activeTab === 'certificates' && (
+                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                        <Award size={24} className="text-purple-500" />
+                        Issued Certificates
+                    </h2>
+
+                    {certificates.length === 0 ? (
+                        <div className="text-center py-12 text-dark-muted">
+                            <Award size={48} className="mx-auto mb-4 opacity-50" />
+                            <p>No certificates issued yet</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b border-dark-layer2 text-left">
+                                        <th className="pb-3 font-semibold">User</th>
+                                        <th className="pb-3 font-semibold">Course</th>
+                                        <th className="pb-3 font-semibold">Certificate Code</th>
+                                        <th className="pb-3 font-semibold">Issue Date</th>
+                                        <th className="pb-3 font-semibold">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {certificates.map(cert => (
+                                        <tr key={cert._id} className="border-b border-dark-layer2/50">
+                                            <td className="py-4">
+                                                <p className="font-medium">{cert.userId?.name || 'Unknown'}</p>
+                                                <p className="text-xs text-dark-muted">{cert.userId?.email}</p>
+                                            </td>
+                                            <td className="py-4 text-dark-muted">
+                                                {cert.courseId?.title || 'N/A'}
+                                            </td>
+                                            <td className="py-4">
+                                                <code className="bg-dark-layer2 px-2 py-1 rounded text-sm font-mono text-brand-primary">
+                                                    {cert.certificateCode}
+                                                </code>
+                                            </td>
+                                            <td className="py-4 text-dark-muted text-sm">
+                                                {new Date(cert.issueDate).toLocaleDateString()}
+                                            </td>
+                                            <td className="py-4">
+                                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-500">
+                                                    {cert.completed ? 'Issued' : 'Pending'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

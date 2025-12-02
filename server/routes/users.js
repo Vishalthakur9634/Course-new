@@ -39,6 +39,12 @@ router.put('/profile/:userId', async (req, res) => {
         if (email) user.email = email;
         if (avatar) user.avatar = avatar;
 
+        if (req.body.password) {
+            const bcrypt = require('bcryptjs');
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(req.body.password, salt);
+        }
+
         await user.save();
         res.json({ message: 'Profile updated successfully', user });
     } catch (error) {

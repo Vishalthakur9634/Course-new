@@ -103,7 +103,7 @@ const VideoTabs = ({ video, course }) => {
                     className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'notes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
                         }`}
                 >
-                    <FileText size={16} /> Notes
+                    <FileText size={16} /> Summary
                 </button>
             </div>
 
@@ -242,9 +242,18 @@ const VideoTabs = ({ video, course }) => {
                 )}
 
                 {activeTab === 'notes' && (
-                    <div className="text-center text-dark-muted mt-20">
-                        <FileText size={40} className="mx-auto mb-4 opacity-20" />
-                        <p>Personal notes feature coming soon!</p>
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                            <FileText className="text-brand-primary" size={24} />
+                            <h2 className="text-xl font-bold text-white">Video Summary</h2>
+                        </div>
+                        <div className="bg-dark-layer2 p-6 rounded-lg border border-dark-layer2">
+                            {video.summary ? (
+                                <p className="text-dark-text leading-relaxed whitespace-pre-wrap">{video.summary}</p>
+                            ) : (
+                                <p className="text-dark-muted italic">No summary available for this video.</p>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

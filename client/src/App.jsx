@@ -8,6 +8,10 @@ import CourseDetail from './pages/CourseDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import MyLearning from './pages/MyLearning';
+import Wishlist from './pages/Wishlist';
+import Categories from './pages/Categories';
+import Certificates from './pages/Certificates';
+import AdminTest from './pages/AdminTest';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -15,9 +19,22 @@ const PrivateRoute = ({ children }) => {
 };
 
 const AdminRoute = ({ children }) => {
-    const token = localStorage.getItem('token');
-    // Temporarily allow all logged-in users to access admin
-    return token ? children : <Navigate to="/login" />;
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    console.log('AdminRoute Check:', { userStr, user, role: user?.role });
+
+    if (!user) {
+        console.log('No user found, redirecting to login');
+        return <Navigate to="/login" />;
+    }
+
+    if (user.role !== 'admin') {
+        console.log('User is not admin, role:', user.role);
+        return <Navigate to="/" />;
+    }
+
+    return children;
 };
 
 function App() {
@@ -32,8 +49,12 @@ function App() {
                         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
                         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
                         <Route path="/my-learning" element={<PrivateRoute><MyLearning /></PrivateRoute>} />
+                        <Route path="/wishlist" element={<PrivateRoute><Wishlist /></PrivateRoute>} />
+                        <Route path="/categories" element={<PrivateRoute><Categories /></PrivateRoute>} />
+                        <Route path="/certificates" element={<PrivateRoute><Certificates /></PrivateRoute>} />
                         <Route path="/course/:id" element={<PrivateRoute><CourseDetail /></PrivateRoute>} />
-                        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+                        <Route path="/admin-test" element={<PrivateRoute><AdminTest /></PrivateRoute>} />
+                        <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
                     </Routes>
                 </main>
             </div>

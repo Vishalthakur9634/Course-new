@@ -54,11 +54,27 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Update Course
+router.put('/:id', async (req, res) => {
+    try {
+        const { title, description, price, category, thumbnail } = req.body;
+        const course = await Course.findByIdAndUpdate(
+            req.params.id,
+            { title, description, price, category, thumbnail },
+            { new: true }
+        );
+        if (!course) return res.status(404).json({ message: 'Course not found' });
+        res.json(course);
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating course', error: error.message });
+    }
+});
+
 // Upload Video to Course
 router.post('/:courseId/videos', upload.single('video'), async (req, res) => {
     try {
         const { courseId } = req.params;
-        const { title, description } = req.body;
+        const { title, description, summary } = req.body;
         const videoFile = req.file;
 
         if (!videoFile) return res.status(400).json({ message: 'No video file uploaded' });
@@ -79,6 +95,7 @@ router.post('/:courseId/videos', upload.single('video'), async (req, res) => {
             _id: videoId,
             title,
             description,
+            summary,
             videoUrl,
             courseId,
             qualities: ['1080p', '720p', '480p', '360p', '144p']
@@ -89,12 +106,42 @@ router.post('/:courseId/videos', upload.single('video'), async (req, res) => {
         await course.save();
 
         // Cleanup temp file
-        fs.unlinkSync(videoFile.path);
+        if (fs.existsSync(videoFile.path)) {
+            fs.unlinkSync(videoFile.path);
+        }
 
         res.status(201).json(video);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Error uploading video', error });
+    }
+});
+
+// Delete Video (Admin)
+router.delete('/:courseId/videos/:videoId', async (req, res) => {
+    try {
+        const { courseId, videoId } = req.params;
+
+        // 1. Remove from Course
+        const course = await Course.findById(courseId);
+        if (course) {
+            course.videos = course.videos.filter(v => v.toString() !== videoId);
+            await course.save();
+        }
+
+        // 2. Delete Video Document
+        await Video.findByIdAndDelete(videoId);
+
+        // 3. Delete Files
+        const videoDir = path.join(__dirname, '../uploads/courses', courseId, videoId);
+        if (fs.existsSync(videoDir)) {
+            fs.rmSync(videoDir, { recursive: true, force: true });
+        }
+
+        res.json({ message: 'Video deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error deleting video', error: error.message });
     }
 });
 

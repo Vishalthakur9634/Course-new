@@ -12,9 +12,19 @@ const Login = () => {
         e.preventDefault();
         try {
             const { data } = await api.post('/auth/login', { email, password });
+            console.log('Login response:', data);
+            console.log('User role:', data.user.role);
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            navigate('/');
+            console.log('Stored in localStorage:', localStorage.getItem('user'));
+
+            // Redirect based on role
+            if (data.user.role === 'admin') {
+                console.log('Admin login detected, redirecting to /admin');
+                navigate('/admin');
+            } else {
+                navigate('/');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed');
         }

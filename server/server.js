@@ -43,6 +43,10 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/payment', require('./routes/payment'));
+app.use('/api/wishlist', require('./routes/wishlist'));
+app.use('/api/certificates', require('./routes/certificates'));
+app.use('/api/announcements', require('./routes/announcements'));
 
 app.get('/', (req, res) => {
     res.send('Course Selling API is running');

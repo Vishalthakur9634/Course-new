@@ -170,4 +170,117 @@ router.delete('/courses/:courseId/videos/:videoId', async (req, res) => {
     }
 });
 
+// Get Payment History
+router.get('/payments', async (req, res) => {
+    try {
+        const Payment = require('../models/Payment');
+        const payments = await Payment.find()
+            .populate('userId', 'name email')
+            .populate('courseId', 'title')
+            .sort({ createdAt: -1 });
+        res.json(payments);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching payments', error: error.message });
+    }
+});
+
+// Get all reviews
+router.get('/reviews', async (req, res) => {
+    try {
+        const Review = require('../models/Review');
+        const reviews = await Review.find()
+            .populate('user', 'name email')
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        res.status(500).json({ message: 'Error fetching reviews', error: error.message });
+    }
+});
+
+// Delete review
+router.delete('/reviews/:reviewId', async (req, res) => {
+    try {
+        const Review = require('../models/Review');
+        const review = await Review.findByIdAndDelete(req.params.reviewId);
+        if (!review) return res.status(404).json({ message: 'Review not found' });
+        res.json({ message: 'Review deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting review:', error);
+        res.status(500).json({ message: 'Error deleting review', error: error.message });
+    }
+});
+
+// Get all announcements
+router.get('/announcements', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        const announcements = await Announcement.find()
+            .populate('courseId', 'title')
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+        res.json(announcements);
+    } catch (error) {
+        console.error('Error fetching announcements:', error);
+        res.status(500).json({ message: 'Error fetching announcements', error: error.message });
+    }
+});
+
+// Create announcement
+router.post('/announcements', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        const { courseId, title, message, priority } = req.body;
+
+        const announcement = new Announcement({
+            courseId,
+            title,
+            message,
+            priority: priority || 'medium',
+            createdBy: req.user?.id // If auth is implemented
+        });
+
+        await announcement.save();
+
+        // Populate for return
+        const populated = await Announcement.findById(announcement._id)
+            .populate('courseId', 'title')
+            .populate('createdBy', 'name email');
+
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error('Error creating announcement:', error);
+        res.status(500).json({ message: 'Error creating announcement', error: error.message });
+    }
+});
+
+// Delete announcement
+router.delete('/announcements/:announcementId', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        const announcement = await Announcement.findByIdAndDelete(req.params.announcementId);
+        if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
+        res.json({ message: 'Announcement deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting announcement:', error);
+        res.status(500).json({ message: 'Error deleting announcement', error: error.message });
+    }
+});
+
+// Get all certificates
+router.get('/certificates', async (req, res) => {
+    try {
+        const Certificate = require('../models/Certificate');
+        const certificates = await Certificate.find()
+            .populate('userId', 'name email')
+            .populate('courseId', 'title')
+            .sort({ issueDate: -1 });
+        res.json(certificates);
+    } catch (error) {
+        console.error('Error fetching certificates:', error);
+        res.status(500).json({ message: 'Error fetching certificates', error: error.message });
+    }
+});
+
 module.exports = router;

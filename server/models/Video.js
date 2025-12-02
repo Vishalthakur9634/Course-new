@@ -9,6 +9,9 @@ const videoSchema = new mongoose.Schema({
     description: {
         type: String
     },
+    summary: {
+        type: String
+    },
     videoUrl: {
         type: String, // Path to the master .m3u8 file
         required: true
