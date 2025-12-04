@@ -17,6 +17,7 @@ const RoleSidebar = ({ user, onLogout }) => {
     const studentNav = [
         { icon: Home, label: 'Dashboard', path: '/' },
         { icon: BookOpen, label: 'Browse Courses', path: '/browse' },
+        { icon: Users, label: 'Instructors', path: '/instructors' },
         { icon: PlayCircle, label: 'My Learning', path: '/my-learning' },
         { icon: Heart, label: 'Wishlist', path: '/wishlist' },
         { icon: Award, label: 'Certificates', path: '/certificates' },
@@ -27,6 +28,7 @@ const RoleSidebar = ({ user, onLogout }) => {
     // Instructor navigation items
     const instructorNav = [
         { icon: BarChart3, label: 'Dashboard', path: '/instructor' },
+        { icon: ShieldCheck, label: 'Admin Panel', path: '/instructor/admin' }, // NEW: Admin panel for course launcher
         { icon: BookOpen, label: 'My Courses', path: '/instructor/courses' },
         { icon: Upload, label: 'Upload Content', path: '/instructor/upload' },
         { icon: Users, label: 'Students', path: '/instructor/students' },

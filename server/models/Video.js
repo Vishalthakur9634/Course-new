@@ -29,6 +29,14 @@ const videoSchema = new mongoose.Schema({
     },
     qualities: [{
         type: String // e.g., '1080p', '720p'
+    }],
+    resources: [{
+        title: String,
+        filename: String,
+        url: String,
+        fileType: String, // pdf, doc, zip, etc.
+        fileSize: Number, // in bytes
+        uploadedAt: { type: Date, default: Date.now }
     }]
 }, { timestamps: true });
 

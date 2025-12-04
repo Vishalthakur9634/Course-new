@@ -7,6 +7,7 @@ const authenticate = async (req, res, next) => {
         const token = req.headers.authorization?.split(' ')[1];
 
         if (!token) {
+            console.log('Auth Middleware: No token provided');
             return res.status(401).json({ message: 'Authentication required' });
         }
 
@@ -14,6 +15,7 @@ const authenticate = async (req, res, next) => {
         const user = await User.findById(decoded.id).select('-password');
 
         if (!user) {
+            console.log('Auth Middleware: User not found for ID', decoded.id);
             return res.status(401).json({ message: 'User not found' });
         }
 
@@ -24,6 +26,7 @@ const authenticate = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
+        console.log('Auth Middleware Error:', error.message);
         res.status(401).json({ message: 'Invalid or expired token' });
     }
 };
@@ -37,7 +40,7 @@ const requireStudent = (req, res, next) => {
 };
 
 const requireInstructor = (req, res, next) => {
-    if (req.user.role !== 'instructor') {
+    if (!['instructor', 'admin', 'superadmin'].includes(req.user.role)) {
         return res.status(403).json({ message: 'Access denied. Instructor role required.' });
     }
 

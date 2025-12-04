@@ -84,27 +84,43 @@ const VideoTabs = ({ video, course }) => {
         <div className="flex flex-col h-full bg-dark-layer1 border border-dark-layer2 rounded-lg overflow-hidden">
             {/* Tab Headers */}
             <div className="flex border-b border-dark-layer2">
-                <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'overview' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                        }`}
-                >
-                    <Info size={16} /> Overview
-                </button>
-                <button
-                    onClick={() => setActiveTab('qa')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'qa' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                        }`}
-                >
-                    <MessageSquare size={16} /> Q&A
-                </button>
-                <button
-                    onClick={() => setActiveTab('notes')}
-                    className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'notes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                        }`}
-                >
-                    <FileText size={16} /> Summary
-                </button>
+                {/* Only show tabs if enabled by instructor */}
+                {(course.instructorAdminSettings?.enableOverview !== false) && (
+                    <button
+                        onClick={() => setActiveTab('overview')}
+                        className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'overview' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
+                            }`}
+                    >
+                        <Info size={16} /> Overview
+                    </button>
+                )}
+                {(course.instructorAdminSettings?.enableQA !== false) && (
+                    <button
+                        onClick={() => setActiveTab('qa')}
+                        className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'qa' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
+                            }`}
+                    >
+                        <MessageSquare size={16} /> Q&A
+                    </button>
+                )}
+                {(course.instructorAdminSettings?.enableSummary !== false) && (
+                    <button
+                        onClick={() => setActiveTab('notes')}
+                        className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'notes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
+                            }`}
+                    >
+                        <FileText size={16} /> Summary
+                    </button>
+                )}
+                {(course.instructorAdminSettings?.enableNotes !== false) && (
+                    <button
+                        onClick={() => setActiveTab('studentNotes')}
+                        className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'studentNotes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
+                            }`}
+                    >
+                        <FileText size={16} /> Notes
+                    </button>
+                )}
             </div>
 
             {/* Tab Content */}
@@ -115,10 +131,68 @@ const VideoTabs = ({ video, course }) => {
                             <h2 className="text-xl font-bold text-white mb-2">{video.title}</h2>
                             <p className="text-dark-muted">{video.description || 'No description available for this video.'}</p>
                         </div>
+
+                        {/* Instructor Info */}
+                        {course.instructorId && (
+                            <div className="border-t border-dark-layer2 pt-4">
+                                <h3 className="font-semibold text-white mb-3">Instructor</h3>
+                                <div className="flex items-start gap-4">
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white font-bold text-xl">
+                                            {course.instructorId.name?.charAt(0).toUpperCase() || 'I'}
+                                        </span>
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-lg font-bold text-white">{course.instructorId.name}</p>
+                                        {course.instructorId.instructorProfile?.headline && (
+                                            <p className="text-sm text-dark-muted mt-1">
+                                                {course.instructorId.instructorProfile.headline}
+                                            </p>
+                                        )}
+                                        {course.instructorId.instructorProfile?.bio && (
+                                            <p className="text-sm text-dark-muted mt-2">
+                                                {course.instructorId.instructorProfile.bio}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="border-t border-dark-layer2 pt-4">
                             <h3 className="font-semibold text-white mb-2">About this Course</h3>
                             <p className="text-sm text-dark-muted">{course.description}</p>
                         </div>
+
+                        {/* Video Resources */}
+                        {video.resources && video.resources.length > 0 && (
+                            <div className="border-t border-dark-layer2 pt-4">
+                                <h3 className="font-semibold text-white mb-3">Downloadable Resources</h3>
+                                <div className="space-y-2">
+                                    {video.resources.map((resource, idx) => (
+                                        <a
+                                            key={idx}
+                                            href={resource.url}
+                                            download
+                                            className="flex items-center justify-between p-3 bg-dark-layer2 rounded hover:bg-dark-layer1 transition-colors group"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <FileText size={20} className="text-brand-primary" />
+                                                <div>
+                                                    <p className="text-white font-medium">{resource.title}</p>
+                                                    <p className="text-xs text-dark-muted">
+                                                        {resource.fileType} • {(resource.fileSize / 1024).toFixed(2)} KB
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span className="text-brand-primary group-hover:text-brand-hover">
+                                                Download
+                                            </span>
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

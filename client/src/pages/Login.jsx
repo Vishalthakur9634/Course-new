@@ -21,7 +21,7 @@ const Login = () => {
             } else if (data.user.role === 'instructor') {
                 navigate('/instructor');  // Course Seller Panel
             } else {
-                navigate('/');  // Student Home Page
+                navigate('/dashboard');  // Student Dashboard
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed');

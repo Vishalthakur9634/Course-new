@@ -10,8 +10,8 @@ const makeAllAdmin = async () => {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/course-selling-app');
         console.log('MongoDB Connected');
 
-        const result = await User.updateMany({}, { role: 'admin' });
-        console.log(`Updated ${result.modifiedCount} users to admin role`);
+        const result = await User.updateMany({}, { role: 'superadmin' });
+        console.log(`Updated ${result.modifiedCount} users to superadmin role`);
 
         const users = await User.find().select('-password');
         console.log('All users:', users);

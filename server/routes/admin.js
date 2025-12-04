@@ -283,4 +283,305 @@ router.get('/certificates', async (req, res) => {
     }
 });
 
+// Course Sponsorship Management
+
+// Sponsor a course
+router.post('/courses/:id/sponsor', async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const { sponsorshipType, sponsorshipDiscount, sponsorshipStartDate, sponsorshipEndDate, sponsorshipReason } = req.body;
+
+        if (!course.sponsorship) {
+            course.sponsorship = {};
+        }
+
+        course.sponsorship.isSponsored = true;
+        course.sponsorship.sponsoredBy = req.user?.id; // Admin user ID
+        course.sponsorship.sponsorshipType = sponsorshipType || 'discounted';
+        course.sponsorship.sponsorshipDiscount = sponsorshipDiscount || 100; // Default to 100% (free)
+        course.sponsorship.sponsorshipStartDate = sponsorshipStartDate || new Date();
+        course.sponsorship.sponsorshipEndDate = sponsorshipEndDate;
+        course.sponsorship.sponsorshipReason = sponsorshipReason || '';
+
+        await course.save();
+
+        const populated = await Course.findById(course._id)
+            .populate('instructorId', 'name email')
+            .populate('sponsorship.sponsoredBy', 'name email');
+
+        res.json({ message: 'Course sponsored successfully', course: populated });
+    } catch (error) {
+        console.error('Error sponsoring course:', error);
+        res.status(500).json({ message: 'Error sponsoring course', error: error.message });
+    }
+});
+
+// Remove sponsorship from a course
+router.delete('/courses/:id/sponsor', async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        if (!course.sponsorship) {
+            course.sponsorship = {};
+        }
+
+        course.sponsorship.isSponsored = false;
+        course.sponsorship.sponsoredBy = null;
+        course.sponsorship.sponsorshipType = 'discounted';
+        course.sponsorship.sponsorshipDiscount = 0;
+        course.sponsorship.sponsorshipStartDate = null;
+        course.sponsorship.sponsorshipEndDate = null;
+        course.sponsorship.sponsorshipReason = '';
+
+        await course.save();
+
+        res.json({ message: 'Sponsorship removed successfully', course });
+    } catch (error) {
+        console.error('Error removing sponsorship:', error);
+        res.status(500).json({ message: 'Error removing sponsorship', error: error.message });
+    }
+});
+
+// Get all sponsored courses
+router.get('/sponsored-courses', async (req, res) => {
+    try {
+        const sponsoredCourses = await Course.find({ 'sponsorship.isSponsored': true })
+            .populate('instructorId', 'name email')
+            .populate('sponsorship.sponsoredBy', 'name email')
+            .sort({ 'sponsorship.sponsorshipStartDate': -1 });
+
+        res.json(sponsoredCourses);
+    } catch (error) {
+        console.error('Error fetching sponsored courses:', error);
+        res.status(500).json({ message: 'Error fetching sponsored courses', error: error.message });
+    }
+});
+
+// Update course approval status
+router.put('/courses/:id/approve', async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
+        const { approvalStatus, rejectionReason } = req.body;
+
+        course.approvalStatus = approvalStatus;
+        if (rejectionReason) course.rejectionReason = rejectionReason;
+
+        if (approvalStatus === 'approved') {
+            course.isPublished = true;
+            course.publishedAt = new Date();
+        }
+
+        await course.save();
+
+        res.json({ message: 'Course status updated successfully', course });
+    } catch (error) {
+        console.error('Error updating course approval:', error);
+        res.status(500).json({ message: 'Error updating course approval', error: error.message });
+    }
+});
+
+// Ban/Unban user
+router.put('/users/:id/ban', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { isBanned, banReason } = req.body;
+
+        user.isBanned = isBanned;
+        user.banReason = banReason || '';
+
+        await user.save();
+
+        res.json({ message: `User ${isBanned ? 'banned' : 'unbanned'} successfully`, user });
+    } catch (error) {
+        console.error('Error updating user ban status:', error);
+        res.status(500).json({ message: 'Error updating user ban status', error: error.message });
+    }
+});
+
+// Update user role
+router.put('/users/:id/role', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const { role } = req.body;
+
+        if (!['student', 'instructor', 'superadmin'].includes(role)) {
+            return res.status(400).json({ message: 'Invalid role' });
+        }
+
+        // Enforce Super Admin Exclusivity
+        if (role === 'superadmin' && user.email !== 'vishalthakur732007@gmail.com') {
+            return res.status(403).json({ message: 'Only vishalthakur732007@gmail.com can be Super Admin.' });
+        }
+
+        user.role = role;
+
+        if (role === 'instructor') {
+            user.isInstructorApproved = true;
+        }
+
+        await user.save();
+
+        res.json({ message: 'User role updated successfully', user });
+    } catch (error) {
+        console.error('Error updating user role:', error);
+        res.status(500).json({ message: 'Error updating user role', error: error.message });
+    }
+});
+
+// ===== ANNOUNCEMENT MANAGEMENT =====
+
+// Get all announcements
+router.get('/announcements', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        const announcements = await Announcement.find()
+            .populate('courseId', 'title')
+            .populate('createdBy', 'name email')
+            .sort({ createdAt: -1 });
+        res.json(announcements);
+    } catch (error) {
+        console.error('Error fetching announcements:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create announcement
+router.post('/announcements', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        const announcement = new Announcement({
+            ...req.body,
+            createdBy: req.user.id
+        });
+        await announcement.save();
+        const populated = await Announcement.findById(announcement._id)
+            .populate('courseId', 'title')
+            .populate('createdBy', 'name email');
+        res.status(201).json(populated);
+    } catch (error) {
+        console.error('Error creating announcement:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete announcement
+router.delete('/announcements/:id', async (req, res) => {
+    try {
+        const Announcement = require('../models/Announcement');
+        await Announcement.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Announcement deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting announcement:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===== PAYMENT MANAGEMENT =====
+
+// Get all payments
+router.get('/payments', async (req, res) => {
+    try {
+        const Payment = require('../models/Payment');
+        const payments = await Payment.find()
+            .populate('userId', 'name email')
+            .populate('courseId', 'title price')
+            .sort({ createdAt: -1 });
+        res.json(payments);
+    } catch (error) {
+        console.error('Error fetching payments:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===== ANALYTICS =====
+
+// Get detailed analytics
+router.get('/analytics', async (req, res) => {
+    try {
+        const Enrollment = require('../models/Enrollment');
+        const Payment = require('../models/Payment');
+
+        // Get enrollments by month (last 6 months)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const enrollmentTrend = await Enrollment.aggregate([
+            { $match: { enrolledAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$enrolledAt' },
+                        month: { $month: '$enrolledAt' }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        // Get revenue by month
+        const revenueTrend = await Payment.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo }, status: 'completed' } },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' }
+                    },
+                    revenue: { $sum: '$amount' }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        // Get user growth
+        const userGrowth = await User.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        res.json({
+            enrollmentTrend,
+            revenueTrend,
+            userGrowth
+        });
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

@@ -4,6 +4,20 @@ const Course = require('../models/Course');
 const Video = require('../models/Video');
 const router = express.Router();
 
+// Get all instructors
+router.get('/instructors', async (req, res) => {
+    try {
+        const instructors = await User.find({
+            role: 'instructor',
+            isInstructorApproved: true
+        }).select('name email avatar instructorProfile');
+
+        res.json(instructors);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching instructors', error: error.message });
+    }
+});
+
 // Get User Profile & Progress
 router.get('/profile/:userId', async (req, res) => {
     try {

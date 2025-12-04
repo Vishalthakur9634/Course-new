@@ -113,6 +113,51 @@ const CourseDetail = () => {
         fetchCourseData(); // Refresh to get updated state
     };
 
+    // Resizable Sidebar State
+    const [sidebarWidth, setSidebarWidth] = useState(320);
+    const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+
+    // Resizable Video Player State
+    const [videoHeight, setVideoHeight] = useState(60); // vh
+    const [isResizingVideo, setIsResizingVideo] = useState(false);
+
+    const startResizingSidebar = (e) => {
+        setIsResizingSidebar(true);
+    };
+
+    const startResizingVideo = (e) => {
+        setIsResizingVideo(true);
+    };
+
+    const stopResizing = () => {
+        setIsResizingSidebar(false);
+        setIsResizingVideo(false);
+    };
+
+    const resize = (e) => {
+        if (isResizingSidebar) {
+            const newWidth = window.innerWidth - e.clientX;
+            if (newWidth > 200 && newWidth < 600) {
+                setSidebarWidth(newWidth);
+            }
+        }
+        if (isResizingVideo) {
+            const newHeight = (e.clientY / window.innerHeight) * 100;
+            if (newHeight > 30 && newHeight < 85) {
+                setVideoHeight(newHeight);
+            }
+        }
+    };
+
+    useEffect(() => {
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResizing);
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [isResizingSidebar, isResizingVideo]);
+
     if (loading) return <div className="text-center mt-10 text-white">Loading course...</div>;
     if (!course) return <div className="text-center mt-10 text-white">Course not found</div>;
 
@@ -127,9 +172,12 @@ const CourseDetail = () => {
             )}
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0" style={{ marginRight: sidebarOpen ? 0 : 0 }}>
                 {/* Video Player Area */}
-                <div className="bg-black w-full relative h-[60vh] flex-shrink-0 flex items-center justify-center">
+                <div
+                    className="bg-black w-full relative flex-shrink-0 flex items-center justify-center"
+                    style={{ height: `${videoHeight}vh` }}
+                >
                     {hasAccess ? (
                         activeVideo ? (
                             <VideoPlayer
@@ -170,15 +218,54 @@ const CourseDetail = () => {
                     )}
                 </div>
 
-                {/* Tabs Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                {/* Vertical Resizer Handle */}
+                <div
+                    className="h-1 bg-dark-layer2 hover:bg-brand-primary cursor-row-resize transition-colors w-full z-10"
+                    onMouseDown={startResizingVideo}
+                />
+
+                {/* Tabs & Instructor Area */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     {hasAccess ? (
                         <>
-                            {activeVideo && <VideoTabs video={activeVideo} course={course} />}
+                            <div className="flex flex-col lg:flex-row gap-8">
+                                <div className="flex-1 space-y-6">
+                                    {activeVideo && <VideoTabs video={activeVideo} course={course} />}
 
-                            {/* Reviews Section */}
-                            <div className="mt-6">
-                                <Reviews courseId={id} />
+                                    {/* Instructor Section */}
+                                    {course.instructorId && (
+                                        <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
+                                            <h3 className="text-xl font-bold text-white mb-4">Instructor</h3>
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                                                    {course.instructorId.avatar ? (
+                                                        <img src={course.instructorId.avatar} alt={course.instructorId.name} className="w-full h-full rounded-full object-cover" />
+                                                    ) : (
+                                                        course.instructorId.name?.charAt(0).toUpperCase()
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="text-lg font-bold text-white">{course.instructorId.name}</h4>
+                                                    {course.instructorId.instructorProfile?.headline && (
+                                                        <p className="text-brand-primary text-sm mb-2">{course.instructorId.instructorProfile.headline}</p>
+                                                    )}
+                                                    <p className="text-dark-muted text-sm line-clamp-2 mb-3">{course.instructorId.bio || 'No bio available.'}</p>
+                                                    <button
+                                                        onClick={() => navigate(`/instructor/profile/${course.instructorId._id}`)}
+                                                        className="text-white text-sm font-medium hover:text-brand-primary transition-colors"
+                                                    >
+                                                        View Full Profile
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Reviews Section */}
+                                    <div className="mt-6">
+                                        <Reviews courseId={id} />
+                                    </div>
+                                </div>
                             </div>
                         </>
                     ) : (
@@ -190,8 +277,19 @@ const CourseDetail = () => {
                 </div>
             </div>
 
+            {/* Resizer Handle */}
+            {sidebarOpen && (
+                <div
+                    className="w-1 bg-dark-layer2 hover:bg-brand-primary cursor-col-resize transition-colors z-50 hidden md:block"
+                    onMouseDown={startResizingSidebar}
+                />
+            )}
+
             {/* Sidebar (Playlist) */}
-            <div className={`fixed inset-y-0 right-0 z-40 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out w-80 bg-dark-layer1 border-l border-dark-layer2 flex flex-col`}>
+            <div
+                className={`fixed inset-y-0 right-0 z-40 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out bg-dark-layer1 border-l border-dark-layer2 flex flex-col`}
+                style={{ width: sidebarOpen ? (window.innerWidth >= 768 ? sidebarWidth : '100%') : 0 }}
+            >
                 <div className="p-4 border-b border-dark-layer2 flex justify-between items-center">
                     <h3 className="font-bold text-white">Course Content</h3>
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden text-dark-muted">

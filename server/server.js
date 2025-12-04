@@ -46,6 +46,8 @@ const superAdminRoutes = require('./routes/superadmin');
 const notificationRoutes = require('./routes/notifications');
 const messageRoutes = require('./routes/messages');
 const discussionRoutes = require('./routes/discussions');
+const instructorAdminRoutes = require('./routes/instructorAdmin');
+const notesRoutes = require('./routes/notes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -66,6 +68,8 @@ app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/discussions', discussionRoutes);
+app.use('/api/instructor-admin', instructorAdminRoutes);
+app.use('/api/notes', notesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -131,6 +131,26 @@ const courseSchema = new mongoose.Schema({
         default: true
     },
 
+    // Instructor Admin Settings (for course launcher controls)
+    instructorAdminSettings: {
+        enableOverview: { type: Boolean, default: true },
+        enableQA: { type: Boolean, default: true },
+        enableSummary: { type: Boolean, default: true },
+        enableNotes: { type: Boolean, default: true },
+        customOverviewContent: { type: String, default: '' }
+    },
+
+    // Course Sponsorship (managed by super admin)
+    sponsorship: {
+        isSponsored: { type: Boolean, default: false },
+        sponsoredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        sponsorshipType: { type: String, enum: ['free', 'discounted'], default: 'discounted' },
+        sponsorshipDiscount: { type: Number, default: 0, min: 0, max: 100 }, // percentage
+        sponsorshipStartDate: { type: Date },
+        sponsorshipEndDate: { type: Date },
+        sponsorshipReason: { type: String, default: '' }
+    },
+
     // SEO
     metaTitle: {
         type: String,
