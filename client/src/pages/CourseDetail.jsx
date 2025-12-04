@@ -47,11 +47,14 @@ const CourseDetail = () => {
 
             setCourse(courseRes.data);
 
-            // Check Access: Admin OR Purchased
-            const isPurchased = userRes.data.purchasedCourses.some(c => c._id === id || c === id);
-            const isAdmin = user.role === 'admin';
+            // Check Access: Admin OR Enrolled
+            const isEnrolled = userRes.data.enrolledCourses?.some(enrollment => {
+                const courseId = enrollment.courseId?._id || enrollment.courseId;
+                return courseId === id;
+            });
+            const isAdmin = user.role === 'superadmin';
 
-            if (isAdmin || isPurchased) {
+            if (isAdmin || isEnrolled) {
                 setHasAccess(true);
                 if (courseRes.data.videos.length > 0) {
                     setActiveVideo(courseRes.data.videos[0]);

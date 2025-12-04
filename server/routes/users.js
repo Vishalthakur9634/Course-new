@@ -11,6 +11,10 @@ router.get('/profile/:userId', async (req, res) => {
             .select('-password')
             .populate('purchasedCourses')
             .populate({
+                path: 'enrolledCourses.courseId',
+                select: 'title thumbnail instructorId'
+            })
+            .populate({
                 path: 'watchHistory.videoId',
                 select: 'title duration'
             })
@@ -23,6 +27,9 @@ router.get('/profile/:userId', async (req, res) => {
 
         res.json(user);
     } catch (error) {
+        if (error.kind === 'ObjectId') {
+            return res.status(400).json({ message: 'Invalid user ID format' });
+        }
         res.status(500).json({ message: 'Error fetching profile', error: error.message });
     }
 });

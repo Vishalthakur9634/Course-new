@@ -12,18 +12,16 @@ const Login = () => {
         e.preventDefault();
         try {
             const { data } = await api.post('/auth/login', { email, password });
-            console.log('Login response:', data);
-            console.log('User role:', data.user.role);
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            console.log('Stored in localStorage:', localStorage.getItem('user'));
 
-            // Redirect based on role
-            if (data.user.role === 'admin') {
-                console.log('Admin login detected, redirecting to /admin');
-                navigate('/admin');
+            // Redirect to proper home page
+            if (data.user.role === 'superadmin') {
+                navigate('/admin');  // Head Admin Panel
+            } else if (data.user.role === 'instructor') {
+                navigate('/instructor');  // Course Seller Panel
             } else {
-                navigate('/');
+                navigate('/');  // Student Home Page
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed');

@@ -50,6 +50,9 @@ router.get('/:id', async (req, res) => {
         const course = await Course.findById(req.params.id).populate('videos');
         res.json(course);
     } catch (error) {
+        if (error.kind === 'ObjectId') {
+            return res.status(400).json({ message: 'Invalid course ID format' });
+        }
         res.status(500).json({ message: 'Error fetching course', error: error.message });
     }
 });
