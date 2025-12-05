@@ -107,4 +107,52 @@ router.post('/progress', async (req, res) => {
     }
 });
 
+// Get User Wishlist
+router.get('/:userId/wishlist', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).populate({
+            path: 'wishlist',
+            select: 'title thumbnail price rating instructorId',
+            populate: {
+                path: 'instructorId',
+                select: 'name'
+            }
+        });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        res.json(user.wishlist);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching wishlist', error: error.message });
+    }
+});
+
+// Toggle Wishlist Item
+router.post('/:userId/wishlist/:courseId', async (req, res) => {
+    try {
+        const { userId, courseId } = req.params;
+        const user = await User.findById(userId);
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const index = user.wishlist.indexOf(courseId);
+        let action = '';
+
+        if (index > -1) {
+            // Remove
+            user.wishlist.splice(index, 1);
+            action = 'removed';
+        } else {
+            // Add
+            user.wishlist.push(courseId);
+            action = 'added';
+        }
+
+        await user.save();
+        res.json({ message: `Course ${action} from wishlist`, wishlist: user.wishlist, action });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating wishlist', error: error.message });
+    }
+});
+
 module.exports = router;

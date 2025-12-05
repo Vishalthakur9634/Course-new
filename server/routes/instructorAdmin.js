@@ -35,7 +35,8 @@ router.get('/dashboard', isInstructor, async (req, res) => {
         // Get enrollments for these courses
         const courseIds = courses.map(c => c._id);
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
-            .populate('userId', 'name email avatar');
+            .populate('userId', 'name email avatar')
+            .populate('courseId', 'title');
 
         // Calculate stats
         // Safety check: Filter out enrollments where userId is null (deleted users)

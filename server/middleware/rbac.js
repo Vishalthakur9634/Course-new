@@ -40,11 +40,19 @@ const requireStudent = (req, res, next) => {
 };
 
 const requireInstructor = (req, res, next) => {
+    console.log('requireInstructor Check:', {
+        userId: req.user?._id,
+        role: req.user?.role,
+        isInstructorApproved: req.user?.isInstructorApproved
+    });
+
     if (!['instructor', 'admin', 'superadmin'].includes(req.user.role)) {
+        console.log('Access Denied: Role not allowed');
         return res.status(403).json({ message: 'Access denied. Instructor role required.' });
     }
 
     if (!req.user.isInstructorApproved) {
+        console.log('Access Denied: Instructor not approved');
         return res.status(403).json({ message: 'Your instructor account is pending approval.' });
     }
 

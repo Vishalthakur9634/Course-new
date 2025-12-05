@@ -26,7 +26,7 @@ const UploadCourse = () => {
     };
 
     const addVideoSlot = () => {
-        setVideos([...videos, { title: '', description: '', file: null, order: videos.length + 1 }]);
+        setVideos([...videos, { title: '', description: '', file: null, notePdf: null, order: videos.length + 1 }]);
     };
 
     const removeVideoSlot = (index) => {
@@ -39,9 +39,9 @@ const UploadCourse = () => {
         setVideos(updated);
     };
 
-    const handleVideoFileChange = (index, file) => {
+    const handleVideoFileChange = (index, field, file) => {
         const updated = [...videos];
-        updated[index].file = file;
+        updated[index][field] = file;
         setVideos(updated);
     };
 
@@ -61,7 +61,7 @@ const UploadCourse = () => {
                 formData.append('thumbnail', courseData.thumbnail);
             }
 
-            const { data: course } = await api.post('/courses', formData, {
+            const { data: course } = await api.post('/instructor/courses', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
@@ -70,11 +70,14 @@ const UploadCourse = () => {
                 if (video.file) {
                     const videoFormData = new FormData();
                     videoFormData.append('video', video.file);
+                    if (video.notePdf) {
+                        videoFormData.append('notePdf', video.notePdf);
+                    }
                     videoFormData.append('title', video.title);
                     videoFormData.append('description', video.description);
                     videoFormData.append('order', video.order);
 
-                    await api.post(`/courses/${course._id}/videos`, videoFormData, {
+                    await api.post(`/instructor/courses/${course._id}/videos`, videoFormData, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     });
                 }
@@ -229,14 +232,30 @@ const UploadCourse = () => {
                                     <input
                                         type="file"
                                         accept="video/*"
-                                        onChange={(e) => handleVideoFileChange(index, e.target.files[0])}
+                                        onChange={(e) => handleVideoFileChange(index, 'file', e.target.files[0])}
                                         className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
                                     />
                                     {video.file && (
                                         <p className="text-xs text-dark-muted">
-                                            Selected: {video.file.name} ({(video.file.size / 1024 / 1024).toFixed(2)} MB)
+                                            Video: {video.file.name} ({(video.file.size / 1024 / 1024).toFixed(2)} MB)
                                         </p>
                                     )}
+
+                                    {/* PDF Note Upload */}
+                                    <div className="pt-2 border-t border-dark-layer2">
+                                        <label className="block text-xs font-medium text-dark-muted mb-1">Lecture Notes (PDF) - Optional</label>
+                                        <input
+                                            type="file"
+                                            accept=".pdf"
+                                            onChange={(e) => handleVideoFileChange(index, 'notePdf', e.target.files[0])}
+                                            className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
+                                        />
+                                        {video.notePdf && (
+                                            <p className="text-xs text-dark-muted mt-1">
+                                                Note: {video.notePdf.name} ({(video.notePdf.size / 1024).toFixed(2)} KB)
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -263,8 +282,8 @@ const UploadCourse = () => {
                         type="submit"
                         disabled={loading}
                         className={`flex items-center gap-2 px-6 py-3 rounded transition-colors ${loading
-                                ? 'bg-dark-layer2 text-dark-muted cursor-not-allowed'
-                                : 'bg-brand-primary hover:bg-brand-hover text-white'
+                            ? 'bg-dark-layer2 text-dark-muted cursor-not-allowed'
+                            : 'bg-brand-primary hover:bg-brand-hover text-white'
                             }`}
                     >
                         <Upload size={18} />

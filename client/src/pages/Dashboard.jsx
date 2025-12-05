@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import { PlayCircle, Search, Clock, Zap, Award } from 'lucide-react';
+import { PlayCircle, Search, Clock, Zap, Award, BookOpen, CheckCircle, Flame } from 'lucide-react';
 
 const Dashboard = () => {
     const [courses, setCourses] = useState([]);
+    const [enrollments, setEnrollments] = useState([]);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -17,12 +18,14 @@ const Dashboard = () => {
     const fetchData = async () => {
         try {
             const userId = JSON.parse(localStorage.getItem('user')).id;
-            const [coursesRes, userRes] = await Promise.all([
+            const [coursesRes, userRes, enrollmentsRes] = await Promise.all([
                 api.get('/courses'),
-                api.get(`/users/profile/${userId}`)
+                api.get(`/users/profile/${userId}`),
+                api.get('/enrollment/my-courses')
             ]);
             setCourses(coursesRes.data);
             setUser(userRes.data);
+            setEnrollments(enrollmentsRes.data);
         } catch (error) {
             console.error('Failed to fetch data', error);
         } finally {
@@ -31,6 +34,13 @@ const Dashboard = () => {
     };
 
     if (loading) return <div className="text-center mt-10 text-white">Loading...</div>;
+
+    // Calculate Stats
+    const totalTimeSpentSeconds = enrollments.reduce((acc, curr) => acc + (curr.totalTimeSpent || 0), 0);
+    const totalHours = Math.round(totalTimeSpentSeconds / 3600);
+    const completedCourses = enrollments.filter(e => e.progress === 100).length;
+    const certificatesEarned = enrollments.filter(e => e.certificateIssued).length;
+    const inProgressCount = enrollments.filter(e => e.progress > 0 && e.progress < 100).length;
 
     // Filter Logic
     const filteredCourses = courses.filter(course => {
@@ -42,58 +52,97 @@ const Dashboard = () => {
     // Categories (Dynamic)
     const categories = ['All', ...new Set(courses.map(c => c.category))];
 
-    // Continue Watching Logic
-    const inProgressCourses = user?.watchHistory
-        ?.filter(h => !h.completed && h.progress > 0)
-        .map(h => {
-            const course = courses.find(c => c._id === h.courseId._id);
-            return course ? { ...course, lastWatched: h.lastWatched, progress: h.progress } : null;
-        })
-        .filter(Boolean)
-        .sort((a, b) => new Date(b.lastWatched) - new Date(a.lastWatched))
-        .slice(0, 3) || []; // Top 3 recent
+    // Continue Watching Logic (from enrollments)
+    const recentEnrollments = enrollments
+        .filter(e => e.courseId && e.progress < 100)
+        .sort((a, b) => new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt))
+        .slice(0, 3);
 
     return (
-        <div className="space-y-12">
+        <div className="space-y-12 pb-12">
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-brand-primary to-purple-600 rounded-2xl p-8 md:p-12 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-r from-brand-primary to-purple-600 rounded-2xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
                 <div className="relative z-10 max-w-2xl">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">
                         Welcome back, {user?.name.split(' ')[0]}! 👋
                     </h1>
                     <p className="text-lg opacity-90 mb-8">
-                        Ready to continue your learning journey? You have {inProgressCourses.length} courses in progress.
+                        You've learned for <span className="font-bold">{totalHours} hours</span> and earned <span className="font-bold">{certificatesEarned} certificates</span>. Keep it up!
                     </p>
                     <div className="flex gap-4">
-                        <Link to="/my-learning" className="bg-white text-brand-primary px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors flex items-center gap-2">
+                        <Link to="/my-learning" className="bg-white text-brand-primary px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors flex items-center gap-2 shadow-lg">
                             <PlayCircle size={20} /> My Learning
                         </Link>
-                        <Link to="/profile" className="bg-black/20 text-white px-6 py-3 rounded-lg font-bold hover:bg-black/30 transition-colors backdrop-blur-sm">
+                        <Link to="/profile" className="bg-black/20 text-white px-6 py-3 rounded-lg font-bold hover:bg-black/30 transition-colors backdrop-blur-sm border border-white/10">
                             View Profile
                         </Link>
                     </div>
                 </div>
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 transform translate-x-12"></div>
+                <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-purple-500/30 rounded-full blur-3xl"></div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6 hover:border-brand-primary transition-colors group">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                            <Clock size={24} />
+                        </div>
+                        <span className="text-dark-muted font-medium">Learning Time</span>
+                    </div>
+                    <p className="text-3xl font-bold text-white">{totalHours}h</p>
+                </div>
+                <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6 hover:border-brand-primary transition-colors group">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-green-500/10 rounded-lg text-green-400 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                            <CheckCircle size={24} />
+                        </div>
+                        <span className="text-dark-muted font-medium">Completed</span>
+                    </div>
+                    <p className="text-3xl font-bold text-white">{completedCourses}</p>
+                </div>
+                <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6 hover:border-brand-primary transition-colors group">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-yellow-500/10 rounded-lg text-yellow-400 group-hover:bg-yellow-500 group-hover:text-white transition-colors">
+                            <Award size={24} />
+                        </div>
+                        <span className="text-dark-muted font-medium">Certificates</span>
+                    </div>
+                    <p className="text-3xl font-bold text-white">{certificatesEarned}</p>
+                </div>
+                <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6 hover:border-brand-primary transition-colors group">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-red-500/10 rounded-lg text-red-400 group-hover:bg-red-500 group-hover:text-white transition-colors">
+                            <Flame size={24} />
+                        </div>
+                        <span className="text-dark-muted font-medium">In Progress</span>
+                    </div>
+                    <p className="text-3xl font-bold text-white">{inProgressCount}</p>
+                </div>
             </div>
 
             {/* Continue Watching (if any) */}
-            {inProgressCourses.length > 0 && (
+            {recentEnrollments.length > 0 && (
                 <section>
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                        <Clock className="text-brand-primary" /> Continue Watching
+                        <Clock className="text-brand-primary" /> Continue Learning
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {inProgressCourses.map(course => (
-                            <Link to={`/course/${course._id}`} key={course._id} className="bg-dark-layer1 border border-dark-layer2 rounded-lg p-4 hover:border-brand-primary transition-all flex gap-4 items-center group">
-                                <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0 relative">
-                                    <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
+                        {recentEnrollments.map(enrollment => (
+                            <Link to={`/course/${enrollment.courseId._id}`} key={enrollment._id} className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-4 hover:border-brand-primary transition-all flex gap-4 items-center group">
+                                <div className="w-32 h-20 rounded-lg overflow-hidden flex-shrink-0 relative">
+                                    <img src={enrollment.courseId.thumbnail} alt="" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <PlayCircle size={20} className="text-white" />
+                                        <PlayCircle size={24} className="text-white" />
                                     </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-white line-clamp-1">{course.title}</h3>
-                                    <p className="text-xs text-brand-primary mt-1">Resume Learning</p>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-white line-clamp-1 mb-1">{enrollment.courseId.title}</h3>
+                                    <div className="w-full bg-dark-layer2 h-1.5 rounded-full overflow-hidden mb-2">
+                                        <div className="bg-brand-primary h-full" style={{ width: `${enrollment.progress}%` }}></div>
+                                    </div>
+                                    <p className="text-xs text-dark-muted">{Math.round(enrollment.progress)}% Complete</p>
                                 </div>
                             </Link>
                         ))}
@@ -126,8 +175,8 @@ const Dashboard = () => {
                             key={cat}
                             onClick={() => setSelectedCategory(cat)}
                             className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat
-                                    ? 'bg-brand-primary text-white'
-                                    : 'bg-dark-layer1 text-dark-muted hover:bg-dark-layer2 hover:text-white'
+                                ? 'bg-brand-primary text-white'
+                                : 'bg-dark-layer1 text-dark-muted hover:bg-dark-layer2 hover:text-white'
                                 }`}
                         >
                             {cat}
@@ -138,7 +187,7 @@ const Dashboard = () => {
                 {/* Course Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredCourses.map((course) => (
-                        <Link to={`/course/${course._id}`} key={course._id} className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden hover:border-brand-primary transition-all group hover:shadow-lg hover:shadow-brand-primary/10">
+                        <Link to={`/course/${course._id}`} key={course._id} className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden hover:border-brand-primary transition-all group hover:shadow-lg hover:shadow-brand-primary/10 flex flex-col h-full">
                             <div className="aspect-video bg-dark-layer2 relative overflow-hidden">
                                 <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
@@ -148,7 +197,7 @@ const Dashboard = () => {
                                     {course.videos.length} Videos
                                 </div>
                             </div>
-                            <div className="p-5">
+                            <div className="p-5 flex-1 flex flex-col">
                                 <div className="flex justify-between items-start mb-3">
                                     <span className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-1 rounded font-bold uppercase tracking-wider">
                                         {course.category}
@@ -159,7 +208,7 @@ const Dashboard = () => {
                                 </div>
                                 <h3 className="text-xl font-bold text-white line-clamp-1 mb-2 group-hover:text-brand-primary transition-colors">{course.title}</h3>
                                 <p className="text-dark-muted text-sm line-clamp-2 mb-4">{course.description}</p>
-                                <div className="flex justify-between items-center pt-4 border-t border-dark-layer2">
+                                <div className="mt-auto pt-4 border-t border-dark-layer2 flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500"></div>
                                         <span className="text-sm text-dark-muted">Instructor</span>

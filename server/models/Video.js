@@ -37,7 +37,10 @@ const videoSchema = new mongoose.Schema({
         fileType: String, // pdf, doc, zip, etc.
         fileSize: Number, // in bytes
         uploadedAt: { type: Date, default: Date.now }
-    }]
+    }],
+    notePdf: {
+        type: String // URL/Path to the PDF note
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Video', videoSchema);

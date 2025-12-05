@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, PictureInPicture } from 'lucide-react';
 
 const VideoPlayer = ({ src, poster, onProgress }) => {
     const videoRef = useRef(null);
@@ -61,25 +61,54 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
         };
     }, [src]);
 
+    // Genuine Watch Tracking
+    const [watchedDuration, setWatchedDuration] = useState(0);
+    const lastTimeRef = useRef(0);
+
     // Progress Tracking
     useEffect(() => {
         if (isPlaying && onProgress) {
             progressIntervalRef.current = setInterval(() => {
                 if (videoRef.current) {
-                    onProgress(videoRef.current.currentTime, videoRef.current.duration);
+                    // Increment watched duration (approx 1 sec per interval check if we ran it every sec, but here we run every 30s)
+                    // Better approach: Update watchedDuration every second
                 }
-            }, 30000); // Update every 30 seconds
-        } else {
-            if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
-            }
+            }, 1000);
         }
         return () => {
-            if (progressIntervalRef.current) {
-                clearInterval(progressIntervalRef.current);
-            }
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         };
-    }, [isPlaying, onProgress]);
+    }, [isPlaying]);
+
+    // Dedicated timer for genuine watch time
+    useEffect(() => {
+        let watchTimer;
+        if (isPlaying) {
+            watchTimer = setInterval(() => {
+                setWatchedDuration(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(watchTimer);
+    }, [isPlaying]);
+
+    // Report Progress
+    useEffect(() => {
+        if (isPlaying && onProgress) {
+            const reportTimer = setInterval(() => {
+                if (videoRef.current) {
+                    const current = videoRef.current.currentTime;
+                    const total = videoRef.current.duration;
+
+                    // Genuine Completion Logic: Must watch 60% of duration
+                    const isGenuineComplete = (watchedDuration / total) >= 0.6;
+
+                    // Pass extra flag to parent
+                    onProgress(current, total, isGenuineComplete);
+                }
+            }, 5000); // Report every 5 seconds
+            return () => clearInterval(reportTimer);
+        }
+    }, [isPlaying, onProgress, watchedDuration]);
 
     // Play/Pause
     const togglePlay = () => {
@@ -288,8 +317,40 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
                             )}
                         </div>
 
+                        <button
+                            onClick={() => document.pictureInPictureElement ? document.exitPictureInPicture() : videoRef.current.requestPictureInPicture()}
+                            className="hover:scale-110 transition"
+                            title="Picture in Picture"
+                        >
+                            <PictureInPicture size={20} />
+                        </button>
+
                         <button onClick={toggleFullscreen} className="hover:scale-110 transition">
                             <Maximize size={20} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Center Controls (Skip) */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="flex gap-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+                        <button
+                            onClick={(e) => { e.stopPropagation(); videoRef.current.currentTime -= 10; }}
+                            className="bg-black/50 p-3 rounded-full hover:bg-brand-primary/80 transition text-white"
+                        >
+                            <span className="text-xs font-bold">-10s</span>
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                            className="bg-brand-primary p-4 rounded-full hover:scale-110 transition shadow-lg"
+                        >
+                            {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
+                        </button>
+                        <button
+                            onClick={(e) => { e.stopPropagation(); videoRef.current.currentTime += 10; }}
+                            className="bg-black/50 p-3 rounded-full hover:bg-brand-primary/80 transition text-white"
+                        >
+                            <span className="text-xs font-bold">+10s</span>
                         </button>
                     </div>
                 </div>

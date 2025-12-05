@@ -36,6 +36,28 @@ const MyCourses = () => {
         }
     };
 
+    const [showSponsorModal, setShowSponsorModal] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const [sponsorReason, setSponsorReason] = useState('');
+
+    const handleRequestSponsorship = (course) => {
+        setSelectedCourse(course);
+        setSponsorReason('');
+        setShowSponsorModal(true);
+    };
+
+    const submitSponsorshipRequest = async () => {
+        try {
+            await api.post(`/courses/${selectedCourse._id}/sponsor-request`, { sponsorshipReason: sponsorReason });
+            await fetchCourses();
+            setShowSponsorModal(false);
+            alert('Sponsorship requested successfully!');
+        } catch (error) {
+            console.error('Error requesting sponsorship:', error);
+            alert('Failed to request sponsorship');
+        }
+    };
+
     if (loading) {
         return <div className="text-center mt-10 text-white">Loading your courses...</div>;
     }
@@ -66,13 +88,18 @@ const MyCourses = () => {
                                     <BookOpen size={48} className="text-white/50" />
                                 </div>
                             )}
-                            <div className="absolute top-3 right-3">
+                            <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${course.approvalStatus === 'approved' ? 'bg-green-500/20 text-green-400' :
-                                        course.approvalStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                            'bg-red-500/20 text-red-400'
+                                    course.approvalStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                        'bg-red-500/20 text-red-400'
                                     }`}>
                                     {course.approvalStatus}
                                 </span>
+                                {course.sponsorship?.isSponsored && (
+                                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                                        Sponsored
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -96,20 +123,36 @@ const MyCourses = () => {
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => navigate(`/course/${course._id}`)}
-                                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded transition-colors"
-                                >
-                                    <Eye size={16} />
-                                    View
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(course._id)}
-                                    className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => navigate(`/course/${course._id}`)}
+                                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded transition-colors"
+                                    >
+                                        <Eye size={16} />
+                                        View
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(course._id)}
+                                        className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+
+                                {/* Sponsorship Button */}
+                                {!course.sponsorship?.isSponsored && (
+                                    <button
+                                        onClick={() => handleRequestSponsorship(course)}
+                                        disabled={course.sponsorship?.requestStatus === 'pending'}
+                                        className={`w-full py-2 rounded text-sm font-medium transition-colors ${course.sponsorship?.requestStatus === 'pending'
+                                                ? 'bg-yellow-500/10 text-yellow-500 cursor-not-allowed'
+                                                : 'bg-dark-layer2 hover:bg-dark-layer1 text-white border border-dark-layer2'
+                                            }`}
+                                    >
+                                        {course.sponsorship?.requestStatus === 'pending' ? 'Sponsorship Pending' : 'Request Sponsorship'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -127,6 +170,42 @@ const MyCourses = () => {
                     >
                         Create Your First Course
                     </button>
+                </div>
+            )}
+
+            {/* Sponsorship Request Modal */}
+            {showSponsorModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+                    <div className="bg-dark-layer1 rounded-lg border border-dark-layer2 p-6 max-w-md w-full">
+                        <h2 className="text-2xl font-bold text-white mb-4">Request Sponsorship</h2>
+                        <p className="text-dark-muted mb-4">Course: {selectedCourse?.title}</p>
+
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-white mb-2">Reason for Sponsorship</label>
+                            <textarea
+                                value={sponsorReason}
+                                onChange={(e) => setSponsorReason(e.target.value)}
+                                className="w-full bg-dark-layer2 border border-dark-layer2 rounded-lg p-3 text-white focus:border-brand-primary focus:outline-none"
+                                rows={4}
+                                placeholder="Why should this course be sponsored? (e.g., High quality content, popular topic)"
+                            />
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={submitSponsorshipRequest}
+                                className="flex-1 bg-brand-primary hover:bg-brand-hover text-white py-2 rounded transition-colors"
+                            >
+                                Submit Request
+                            </button>
+                            <button
+                                onClick={() => setShowSponsorModal(false)}
+                                className="flex-1 bg-dark-layer2 hover:bg-dark-layer1 text-white py-2 rounded transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

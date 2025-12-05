@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { Search, Filter, Star, Users, DollarSign } from 'lucide-react';
+import { Search, Filter, Heart, Users, DollarSign, Star } from 'lucide-react';
 
 const CourseBrowse = () => {
     const [courses, setCourses] = useState([]);
@@ -19,9 +19,48 @@ const CourseBrowse = () => {
     const [instructors, setInstructors] = useState([]);
     const [showFilters, setShowFilters] = useState(false);
 
+    const [wishlist, setWishlist] = useState([]);
+
     useEffect(() => {
         fetchCourses();
+        fetchWishlist();
     }, []);
+
+    const fetchWishlist = async () => {
+        try {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                const { data } = await api.get(`/users/${user.id}/wishlist`);
+                setWishlist(data.map(c => c._id));
+            }
+        } catch (error) {
+            console.error('Error fetching wishlist:', error);
+        }
+    };
+
+    const toggleWishlist = async (e, courseId) => {
+        e.preventDefault(); // Prevent navigation
+        e.stopPropagation();
+
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
+            alert('Please login to add to wishlist');
+            return;
+        }
+
+        const user = JSON.parse(userStr);
+        try {
+            const { data } = await api.post(`/users/${user.id}/wishlist/${courseId}`);
+            if (data.action === 'added') {
+                setWishlist([...wishlist, courseId]);
+            } else {
+                setWishlist(wishlist.filter(id => id !== courseId));
+            }
+        } catch (error) {
+            console.error('Error updating wishlist:', error);
+        }
+    };
 
     const fetchCourses = async () => {
         try {
@@ -246,6 +285,8 @@ const CourseBrowse = () => {
                             ? originalPrice * (1 - discount / 100)
                             : originalPrice;
 
+                    const isWishlisted = wishlist.includes(course._id);
+
                     return (
                         <Link
                             key={course._id}
@@ -263,6 +304,16 @@ const CourseBrowse = () => {
                                         <span className="text-xs font-bold text-black">🎁 Sponsored</span>
                                     </div>
                                 )}
+                                {/* Wishlist Button */}
+                                <button
+                                    onClick={(e) => toggleWishlist(e, course._id)}
+                                    className="absolute bottom-2 right-2 p-2 rounded-full bg-black/50 hover:bg-brand-primary/80 transition-colors z-10"
+                                >
+                                    <Heart
+                                        size={18}
+                                        className={isWishlisted ? "text-red-500 fill-red-500" : "text-white"}
+                                    />
+                                </button>
                             </div>
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-2">
@@ -287,7 +338,7 @@ const CourseBrowse = () => {
                                             {course.instructorId.name?.charAt(0).toUpperCase() || 'I'}
                                         </div>
                                         <div className="flex-1">
-                                            <p className="text-xs text-dark-muted">Instructor</p>
+                                            <p className="text-xs text-dark-muted">Course Provider</p>
                                             <p className="text-sm text-white font-medium truncate hover:text-brand-primary">
                                                 {course.instructorId.name}
                                             </p>

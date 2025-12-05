@@ -103,10 +103,39 @@ const CourseManagement = () => {
         }
     };
 
-    const filteredCourses = courses.filter(course =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const handleApproveSponsorship = async (courseId, status) => {
+        try {
+            await api.put(`/admin/courses/${courseId}/sponsor-status`, {
+                status,
+                // Default values for approval
+                sponsorshipType: 'discounted',
+                sponsorshipDiscount: 50,
+                sponsorshipStartDate: new Date(),
+                sponsorshipEndDate: null
+            });
+            await fetchCourses();
+            alert(`Sponsorship ${status} successfully!`);
+        } catch (error) {
+            console.error('Error updating sponsorship status:', error);
+            alert('Failed to update sponsorship status');
+        }
+    };
+
+    const [filterStatus, setFilterStatus] = useState('all'); // all, pending, sponsored, sponsorship-pending
+
+    const filteredCourses = courses.filter(course => {
+        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            course.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (filterStatus === 'all') return true;
+        if (filterStatus === 'pending') return course.approvalStatus === 'pending';
+        if (filterStatus === 'sponsored') return course.sponsorship?.isSponsored;
+        if (filterStatus === 'sponsorship-pending') return course.sponsorship?.requestStatus === 'pending';
+
+        return true;
+    });
 
     if (loading) {
         return <div className="text-center mt-10 text-white">Loading courses...</div>;
@@ -116,6 +145,26 @@ const CourseManagement = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-white">Course Management</h1>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setFilterStatus('all')}
+                        className={`px-3 py-1 rounded text-sm ${filterStatus === 'all' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-muted'}`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('pending')}
+                        className={`px-3 py-1 rounded text-sm ${filterStatus === 'pending' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-muted'}`}
+                    >
+                        Pending Approval
+                    </button>
+                    <button
+                        onClick={() => setFilterStatus('sponsorship-pending')}
+                        className={`px-3 py-1 rounded text-sm ${filterStatus === 'sponsorship-pending' ? 'bg-brand-primary text-white' : 'bg-dark-layer2 text-dark-muted'}`}
+                    >
+                        Sponsorship Requests
+                    </button>
+                </div>
             </div>
 
             {/* Search */}
@@ -155,8 +204,16 @@ const CourseManagement = () => {
                                                     <Gift size={12} /> Sponsored
                                                 </span>
                                             )}
+                                            {course.sponsorship?.requestStatus === 'pending' && (
+                                                <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded flex items-center gap-1">
+                                                    <Gift size={12} /> Request Pending
+                                                </span>
+                                            )}
                                         </div>
                                         <p className="text-sm text-dark-muted">{course.category}</p>
+                                        {course.sponsorship?.requestStatus === 'pending' && (
+                                            <p className="text-xs text-purple-300 mt-1">Reason: {course.sponsorship.sponsorshipReason}</p>
+                                        )}
                                     </div>
                                 </td>
                                 <td className="p-4">
@@ -204,14 +261,34 @@ const CourseManagement = () => {
                                                 <button
                                                     onClick={() => handleApprove(course._id, 'approved')}
                                                     className="p-2 bg-green-500/20 text-green-400 rounded hover:bg-green-500/30 transition-colors"
-                                                    title="Approve"
+                                                    title="Approve Course"
                                                 >
                                                     <Check size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleApprove(course._id, 'rejected')}
                                                     className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
-                                                    title="Reject"
+                                                    title="Reject Course"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {/* Sponsorship Approval Actions */}
+                                        {course.sponsorship?.requestStatus === 'pending' && (
+                                            <>
+                                                <button
+                                                    onClick={() => handleSponsor(course)} // Open modal to approve with details
+                                                    className="p-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 transition-colors"
+                                                    title="Approve Sponsorship"
+                                                >
+                                                    <Check size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleApproveSponsorship(course._id, 'rejected')}
+                                                    className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
+                                                    title="Reject Sponsorship"
                                                 >
                                                     <X size={16} />
                                                 </button>
@@ -227,13 +304,15 @@ const CourseManagement = () => {
                                                 <Gift size={16} />
                                             </button>
                                         ) : (
-                                            <button
-                                                onClick={() => handleSponsor(course)}
-                                                className="p-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 transition-colors"
-                                                title="Sponsor Course"
-                                            >
-                                                <Gift size={16} />
-                                            </button>
+                                            !course.sponsorship?.requestStatus && (
+                                                <button
+                                                    onClick={() => handleSponsor(course)}
+                                                    className="p-2 bg-purple-500/20 text-purple-400 rounded hover:bg-purple-500/30 transition-colors"
+                                                    title="Sponsor Course"
+                                                >
+                                                    <Gift size={16} />
+                                                </button>
+                                            )
                                         )}
 
                                         <button

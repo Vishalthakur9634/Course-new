@@ -337,15 +337,27 @@ router.put('/courses/:id/feature', authenticate, requireSuperAdmin, async (req, 
 router.delete('/courses/:id', authenticate, requireSuperAdmin, async (req, res) => {
     try {
         const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ message: 'Course not found' });
 
         // Delete all videos
         const Video = require('../models/Video');
+        const fs = require('fs');
+        const path = require('path');
+
         for (const videoId of course.videos) {
             await Video.findByIdAndDelete(videoId);
         }
 
+        // Delete course from database
         await Course.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Course deleted successfully' });
+
+        // Delete course directory
+        const courseDir = path.join(__dirname, '../uploads/courses', req.params.id);
+        if (fs.existsSync(courseDir)) {
+            fs.rmSync(courseDir, { recursive: true, force: true });
+        }
+
+        res.json({ message: 'Course and all associated files deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting course', error: error.message });
     }

@@ -14,8 +14,15 @@ const MyLearning = () => {
     const fetchMyCourses = async () => {
         try {
             const userId = JSON.parse(localStorage.getItem('user')).id;
-            const { data } = await api.get(`/users/profile/${userId}`);
-            setCourses(data.purchasedCourses || []);
+            // Use the dedicated endpoint for enrolled courses which returns a cleaner structure
+            // Or use the profile endpoint and map it. 
+            // The enrollment.js has /my-courses endpoint which returns exactly what we need!
+            const { data } = await api.get('/enrollment/my-courses');
+            // The endpoint returns enrollments with populated courseId
+            setCourses(data.map(enrollment => ({
+                ...enrollment.courseId,
+                progress: enrollment.progress // Keep progress from enrollment
+            })) || []);
         } catch (error) {
             console.error('Error fetching courses', error);
         } finally {
@@ -51,9 +58,9 @@ const MyLearning = () => {
                             <div className="p-4">
                                 <h3 className="text-xl font-semibold line-clamp-1 text-white mb-2">{course.title}</h3>
                                 <div className="w-full bg-dark-layer2 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-brand-primary h-full w-0" style={{ width: '0%' }}></div> {/* Placeholder for progress */}
+                                    <div className="bg-brand-primary h-full" style={{ width: `${course.progress || 0}%` }}></div>
                                 </div>
-                                <p className="text-xs text-dark-muted mt-2">Start Learning</p>
+                                <p className="text-xs text-dark-muted mt-2">{Math.round(course.progress || 0)}% Completed</p>
                             </div>
                         </Link>
                     ))}

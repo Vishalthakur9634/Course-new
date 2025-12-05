@@ -148,7 +148,8 @@ const courseSchema = new mongoose.Schema({
         sponsorshipDiscount: { type: Number, default: 0, min: 0, max: 100 }, // percentage
         sponsorshipStartDate: { type: Date },
         sponsorshipEndDate: { type: Date },
-        sponsorshipReason: { type: String, default: '' }
+        sponsorshipReason: { type: String, default: '' },
+        requestStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' } // NEW
     },
 
     // SEO

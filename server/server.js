@@ -23,7 +23,11 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
 }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/course-launcher')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/course-launcher', {
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+    family: 4 // Use IPv4, skip IPv6
+})
     .then(() => console.log('✅ MongoDB Connected'))
     .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 

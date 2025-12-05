@@ -12,6 +12,7 @@ import InstructorLandingPage from './pages/InstructorLandingPage';
 import Dashboard from './pages/Dashboard';
 import CourseBrowse from './pages/student/CourseBrowse';
 import InstructorList from './pages/student/InstructorList';
+import MyInstructors from './pages/student/MyInstructors';
 import Profile from './pages/Profile';
 import InstructorProfile from './pages/InstructorProfile';
 import MyLearning from './pages/MyLearning';
@@ -19,6 +20,7 @@ import Wishlist from './pages/Wishlist';
 import Certificates from './pages/Certificates';
 import Categories from './pages/Categories';
 import CourseDetail from './pages/CourseDetail';
+import StudentAnnouncements from './pages/student/StudentAnnouncements';
 
 // Instructor Pages
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
@@ -30,6 +32,7 @@ import InstructorAnalytics from './pages/instructor/InstructorAnalytics';
 import InstructorReviews from './pages/instructor/InstructorReviews';
 import InstructorSettings from './pages/instructor/InstructorSettings';
 import UploadCourse from './pages/instructor/UploadCourse';
+import InstructorAnnouncements from './pages/instructor/InstructorAnnouncements';
 
 // Admin Pages
 import SuperAdminDashboard from './pages/admin/SuperAdminDashboard';
@@ -106,15 +109,39 @@ const RoleRoute = ({ children, allowedRoles }) => {
     console.log(`Access denied. User role: '${userRole}', Allowed: ${normalizedAllowedRoles.join(', ')}`);
 
     // Redirect logic based on actual role
-    if (userRole === 'superadmin' || userRole === 'admin') {
-        return <Navigate to="/admin" replace />;
-    }
-    if (userRole === 'instructor') {
-        return <Navigate to="/instructor" replace />;
-    }
-
-    // Default fallback
-    return <Navigate to="/dashboard" replace />;
+    // Instead of auto-redirecting, show a "Not Authorized" screen to prevent loops and confusion
+    return (
+        <div className="flex flex-col items-center justify-center h-screen bg-dark-bg text-white">
+            <div className="bg-dark-layer1 p-8 rounded-lg border border-dark-layer2 max-w-md text-center">
+                <h1 className="text-2xl font-bold text-red-500 mb-4">Access Denied</h1>
+                <p className="text-dark-muted mb-6">
+                    You do not have permission to view this page.
+                    <br />
+                    Required Role: <span className="font-mono text-brand-primary">{normalizedAllowedRoles.join(', ')}</span>
+                    <br />
+                    Your Role: <span className="font-mono text-yellow-500">{userRole}</span>
+                </p>
+                <div className="flex gap-4 justify-center">
+                    <button
+                        onClick={() => window.history.back()}
+                        className="px-4 py-2 bg-dark-layer2 hover:bg-dark-layer1 rounded transition-colors"
+                    >
+                        Go Back
+                    </button>
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            window.location.href = '/login';
+                        }}
+                        className="px-4 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded transition-colors"
+                    >
+                        Login with Different Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // Public Route (Redirects to dashboard if already logged in)
@@ -141,34 +168,6 @@ const PublicRoute = ({ children }) => {
     return children;
 };
 
-// Debug Overlay Component
-const DebugOverlay = ({ user }) => {
-    const token = localStorage.getItem('token');
-    const location = useLocation();
-    const [decoded, setDecoded] = useState(null);
-
-    useEffect(() => {
-        if (token) {
-            setDecoded(parseJwt(token));
-        }
-    }, [token]);
-
-    if (process.env.NODE_ENV === 'production') return null;
-
-    return (
-        <div className="fixed bottom-4 right-4 bg-black/80 text-green-400 p-4 rounded-lg text-xs font-mono z-[9999] border border-green-500/30 shadow-xl max-w-sm overflow-hidden pointer-events-none">
-            <h3 className="font-bold border-b border-green-500/30 mb-2 pb-1">Debug Info</h3>
-            <div className="space-y-1">
-                <p><span className="text-white">Path:</span> {location.pathname}</p>
-                <p><span className="text-white">Token:</span> {token ? 'Present' : 'Missing'}</p>
-                <p><span className="text-white">Token Role:</span> {decoded?.role || 'N/A'}</p>
-                <p><span className="text-white">LS Role:</span> {user?.role || 'N/A'}</p>
-                <p><span className="text-white">User ID:</span> {user?.id || 'N/A'}</p>
-            </div>
-        </div>
-    );
-};
-
 // Unified Layout with Sidebar for ALL users
 const AppLayout = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -187,7 +186,6 @@ const AppLayout = ({ children }) => {
 
     return (
         <div className="flex h-screen bg-dark-bg text-dark-text overflow-hidden">
-            <DebugOverlay user={user} />
             {user && <RoleSidebar user={user} onLogout={handleLogout} />}
             <main className="flex-1 overflow-y-auto p-8">{children}</main>
         </div>
@@ -209,9 +207,11 @@ function App() {
                 <Route path="/dashboard" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Dashboard /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/browse" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><CourseBrowse /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><InstructorList /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/my-instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyInstructors /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><AppLayout><Profile /></AppLayout></PrivateRoute>} />
                 <Route path="/my-learning" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyLearning /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/wishlist" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Wishlist /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><StudentAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/categories" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Categories /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/certificates" element={<PrivateRoute><AppLayout><Certificates /></AppLayout></PrivateRoute>} />
                 <Route path="/course/:id" element={<PrivateRoute><AppLayout><CourseDetail /></AppLayout></PrivateRoute>} />
@@ -221,6 +221,7 @@ function App() {
                 <Route path="/instructor/admin" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorAdmin /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/courses" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><MyCourses /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/upload" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><UploadCourse /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/edit-course/:id" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'admin', 'superadmin']}><AppLayout><UploadCourse /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/students" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><MyStudents /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/earnings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorEarnings /></AppLayout></RoleRoute></PrivateRoute>} />

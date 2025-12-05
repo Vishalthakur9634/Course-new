@@ -10,6 +10,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { processVideo } = require('../utils/videoProcessor');
+const mongoose = require('mongoose');
 
 // Multer setup
 const storage = multer.diskStorage({
@@ -95,15 +96,35 @@ router.get('/courses', authenticate, requireInstructor, async (req, res) => {
 });
 
 // Create new course
-router.post('/courses', authenticate, requireInstructor, async (req, res) => {
+router.post('/courses', authenticate, requireInstructor, upload.single('thumbnail'), async (req, res) => {
     try {
+        let thumbnail = '';
+        if (req.file) {
+            // Move thumbnail to permanent location
+            const courseId = new mongoose.Types.ObjectId();
+            const courseDir = path.join('uploads', 'courses', courseId.toString());
+            if (!fs.existsSync(courseDir)) fs.mkdirSync(courseDir, { recursive: true });
+
+            const ext = path.extname(req.file.originalname);
+            const newPath = path.join(courseDir, `thumbnail${ext}`);
+            fs.copyFileSync(req.file.path, newPath);
+            fs.unlinkSync(req.file.path);
+
+            thumbnail = `/uploads/courses/${courseId}/${path.basename(newPath)}`;
+
+            // We need to use this ID for the new course
+            req.body._id = courseId;
+        }
+
         const courseData = {
             ...req.body,
+            thumbnail, // Use the processed thumbnail path
             instructorId: req.user._id,
             approvalStatus: 'draft',
             isPublished: false
         };
 
+        // If we generated an ID, use it
         const course = new Course(courseData);
         await course.save();
 
@@ -114,6 +135,7 @@ router.post('/courses', authenticate, requireInstructor, async (req, res) => {
 
         res.status(201).json(course);
     } catch (error) {
+        console.error('Error creating course:', error);
         res.status(500).json({ message: 'Error creating course', error: error.message });
     }
 });
@@ -223,15 +245,16 @@ router.delete('/courses/:id', authenticate, requireInstructor, requireCourseOwne
 });
 
 // Upload video to course
-router.post('/courses/:courseId/videos', authenticate, requireInstructor, requireCourseOwnership, upload.single('video'), async (req, res) => {
+router.post('/courses/:courseId/videos', authenticate, requireInstructor, requireCourseOwnership, upload.fields([{ name: 'video', maxCount: 1 }, { name: 'notePdf', maxCount: 1 }]), async (req, res) => {
     try {
         const { courseId } = req.params;
         const { title, description, summary } = req.body;
-        const videoFile = req.file;
+
+        const videoFile = req.files['video'] ? req.files['video'][0] : null;
+        const notePdfFile = req.files['notePdf'] ? req.files['notePdf'][0] : null;
 
         if (!videoFile) return res.status(400).json({ message: 'No video file uploaded' });
 
-        const mongoose = require('mongoose');
         const videoId = new mongoose.Types.ObjectId();
         const outputDir = path.join('uploads', 'courses', courseId, videoId.toString());
 
@@ -239,12 +262,22 @@ router.post('/courses/:courseId/videos', authenticate, requireInstructor, requir
         const masterPlaylistPath = await processVideo(videoFile.path, outputDir, videoId);
         const videoUrl = `/uploads/courses/${courseId}/${videoId}/master.m3u8`;
 
+        let notePdfUrl = '';
+        if (notePdfFile) {
+            // Move PDF to the same directory
+            const pdfDest = path.join(outputDir, 'notes.pdf');
+            fs.copyFileSync(notePdfFile.path, pdfDest);
+            fs.unlinkSync(notePdfFile.path); // Remove temp file
+            notePdfUrl = `/uploads/courses/${courseId}/${videoId}/notes.pdf`;
+        }
+
         const video = new Video({
             _id: videoId,
             title,
             description,
             summary,
             videoUrl,
+            notePdf: notePdfUrl,
             courseId,
             qualities: ['1080p', '720p', '480p', '360p', '144p']
         });
@@ -254,7 +287,7 @@ router.post('/courses/:courseId/videos', authenticate, requireInstructor, requir
             $push: { videos: video._id }
         });
 
-        // Cleanup temp file
+        // Cleanup temp video file
         if (fs.existsSync(videoFile.path)) {
             fs.unlinkSync(videoFile.path);
         }

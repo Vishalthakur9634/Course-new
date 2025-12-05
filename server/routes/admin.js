@@ -127,6 +127,12 @@ router.delete('/courses/:courseId', async (req, res) => {
         // Delete course from database
         await Course.findByIdAndDelete(course._id);
 
+        // Delete course directory
+        const courseDir = path.join(__dirname, '../uploads/courses', req.params.courseId);
+        if (fs.existsSync(courseDir)) {
+            fs.rmSync(courseDir, { recursive: true, force: true });
+        }
+
         res.json({ message: 'Course and all associated videos deleted successfully' });
     } catch (error) {
         console.error('Error deleting course:', error);
@@ -285,7 +291,42 @@ router.get('/certificates', async (req, res) => {
 
 // Course Sponsorship Management
 
-// Sponsor a course
+// Update sponsorship status (Approve/Reject)
+router.put('/courses/:id/sponsor-status', async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+        if (!course) return res.status(404).json({ message: 'Course not found' });
+
+        const { status, sponsorshipType, sponsorshipDiscount, sponsorshipStartDate, sponsorshipEndDate } = req.body;
+
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status' });
+        }
+
+        course.sponsorship.requestStatus = status;
+
+        if (status === 'approved') {
+            course.sponsorship.isSponsored = true;
+            course.sponsorship.sponsoredBy = req.user?.id;
+            course.sponsorship.sponsorshipType = sponsorshipType || 'discounted';
+            course.sponsorship.sponsorshipDiscount = sponsorshipDiscount || 0;
+            course.sponsorship.sponsorshipStartDate = sponsorshipStartDate || new Date();
+            course.sponsorship.sponsorshipEndDate = sponsorshipEndDate;
+        } else {
+            // If rejected, ensure it's not marked as sponsored
+            course.sponsorship.isSponsored = false;
+        }
+
+        await course.save();
+
+        res.json({ message: `Sponsorship ${status} successfully`, course });
+    } catch (error) {
+        console.error('Error updating sponsorship status:', error);
+        res.status(500).json({ message: 'Error updating sponsorship status', error: error.message });
+    }
+});
+
+// Sponsor a course (Directly)
 router.post('/courses/:id/sponsor', async (req, res) => {
     try {
         const course = await Course.findById(req.params.id);
@@ -301,6 +342,7 @@ router.post('/courses/:id/sponsor', async (req, res) => {
         }
 
         course.sponsorship.isSponsored = true;
+        course.sponsorship.requestStatus = 'approved'; // Auto-approve direct sponsorship
         course.sponsorship.sponsoredBy = req.user?.id; // Admin user ID
         course.sponsorship.sponsorshipType = sponsorshipType || 'discounted';
         course.sponsorship.sponsorshipDiscount = sponsorshipDiscount || 100; // Default to 100% (free)

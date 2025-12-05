@@ -6,7 +6,7 @@ import CourseSidebar from '../components/CourseSidebar';
 import VideoTabs from '../components/VideoTabs';
 import Reviews from '../components/Reviews';
 import PaymentModal from '../components/PaymentModal';
-import { Menu, X, Lock, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart } from 'lucide-react';
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -22,13 +22,40 @@ const CourseDetail = () => {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
 
+    const [isWishlisted, setIsWishlisted] = useState(false);
+
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
             setCurrentUser(JSON.parse(userStr));
+            checkWishlistStatus(JSON.parse(userStr).id);
         }
         fetchCourseData();
     }, [id]);
+
+    const checkWishlistStatus = async (userId) => {
+        try {
+            const { data } = await api.get(`/users/${userId}/wishlist`);
+            const inWishlist = data.some(c => c._id === id);
+            setIsWishlisted(inWishlist);
+        } catch (error) {
+            console.error('Error checking wishlist:', error);
+        }
+    };
+
+    const toggleWishlist = async () => {
+        if (!currentUser) {
+            alert('Please login to add to wishlist');
+            return;
+        }
+
+        try {
+            const { data } = await api.post(`/users/${currentUser.id}/wishlist/${id}`);
+            setIsWishlisted(data.action === 'added');
+        } catch (error) {
+            console.error('Error toggling wishlist:', error);
+        }
+    };
 
     const fetchCourseData = async () => {
         try {
@@ -47,14 +74,15 @@ const CourseDetail = () => {
 
             setCourse(courseRes.data);
 
-            // Check Access: Admin OR Enrolled
+            // Check Access: Admin OR Enrolled OR Instructor (Owner)
             const isEnrolled = userRes.data.enrolledCourses?.some(enrollment => {
                 const courseId = enrollment.courseId?._id || enrollment.courseId;
                 return courseId === id;
             });
             const isAdmin = user.role === 'superadmin';
+            const isOwner = courseRes.data.instructorId?._id === userId || courseRes.data.instructorId === userId;
 
-            if (isAdmin || isEnrolled) {
+            if (isAdmin || isEnrolled || isOwner) {
                 setHasAccess(true);
                 if (courseRes.data.videos.length > 0) {
                     setActiveVideo(courseRes.data.videos[0]);
@@ -203,12 +231,23 @@ const CourseDetail = () => {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={() => setShowPaymentModal(true)}
-                                    className="w-full bg-brand-primary hover:bg-brand-hover text-white font-bold py-4 rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-brand-primary/25"
-                                >
-                                    Buy Now
-                                </button>
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setShowPaymentModal(true)}
+                                        className="flex-1 bg-brand-primary hover:bg-brand-hover text-white font-bold py-4 rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-brand-primary/25"
+                                    >
+                                        Buy Now
+                                    </button>
+                                    <button
+                                        onClick={toggleWishlist}
+                                        className={`px-4 rounded-xl border-2 transition-colors flex items-center justify-center ${isWishlisted
+                                            ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                                            : 'border-dark-layer2 hover:border-white text-white'
+                                            }`}
+                                    >
+                                        <Heart size={24} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
+                                    </button>
+                                </div>
 
                                 <p className="mt-4 text-xs text-dark-muted flex items-center justify-center gap-1">
                                     <ShieldCheck size={14} /> 30-Day Money-Back Guarantee
@@ -232,10 +271,29 @@ const CourseDetail = () => {
                                 <div className="flex-1 space-y-6">
                                     {activeVideo && <VideoTabs video={activeVideo} course={course} />}
 
+                                    {/* Course Progress Bar */}
+                                    <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <h3 className="text-white font-bold">Course Progress</h3>
+                                            <span className="text-brand-primary font-bold">
+                                                {Math.round((Object.values(progressMap).filter(p => p.completed).length / course.videos.length) * 100)}%
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-dark-layer2 rounded-full h-3">
+                                            <div
+                                                className="bg-brand-primary h-3 rounded-full transition-all duration-500 ease-out"
+                                                style={{ width: `${(Object.values(progressMap).filter(p => p.completed).length / course.videos.length) * 100}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-dark-muted text-sm mt-2">
+                                            {Object.values(progressMap).filter(p => p.completed).length} of {course.videos.length} lessons completed
+                                        </p>
+                                    </div>
+
                                     {/* Instructor Section */}
                                     {course.instructorId && (
                                         <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
-                                            <h3 className="text-xl font-bold text-white mb-4">Instructor</h3>
+                                            <h3 className="text-xl font-bold text-white mb-4">Course Provider</h3>
                                             <div className="flex items-start gap-4">
                                                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
                                                     {course.instructorId.avatar ? (

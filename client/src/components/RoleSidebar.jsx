@@ -17,9 +17,11 @@ const RoleSidebar = ({ user, onLogout }) => {
     const studentNav = [
         { icon: Home, label: 'Dashboard', path: '/' },
         { icon: BookOpen, label: 'Browse Courses', path: '/browse' },
-        { icon: Users, label: 'Instructors', path: '/instructors' },
+        { icon: Users, label: 'My Instructors', path: '/my-instructors' }, // Changed from Instructors to My Instructors
+        { icon: Users, label: 'All Instructors', path: '/instructors' },
         { icon: PlayCircle, label: 'My Learning', path: '/my-learning' },
         { icon: Heart, label: 'Wishlist', path: '/wishlist' },
+        { icon: Bell, label: 'Announcements', path: '/announcements' },
         { icon: Award, label: 'Certificates', path: '/certificates' },
         { icon: User, label: 'Profile', path: '/profile' },
         { icon: BookOpen, label: 'Categories', path: '/categories' },
@@ -31,6 +33,7 @@ const RoleSidebar = ({ user, onLogout }) => {
         { icon: ShieldCheck, label: 'Admin Panel', path: '/instructor/admin' }, // NEW: Admin panel for course launcher
         { icon: BookOpen, label: 'My Courses', path: '/instructor/courses' },
         { icon: Upload, label: 'Upload Content', path: '/instructor/upload' },
+        { icon: Bell, label: 'Announcements', path: '/instructor/announcements' },
         { icon: Users, label: 'Students', path: '/instructor/students' },
         { icon: DollarSign, label: 'Earnings', path: '/instructor/earnings' },
         { icon: BarChart3, label: 'Analytics', path: '/instructor/analytics' },

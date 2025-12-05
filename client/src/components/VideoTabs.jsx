@@ -124,7 +124,7 @@ const VideoTabs = ({ video, course }) => {
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4">
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
                         <div>
@@ -319,13 +319,37 @@ const VideoTabs = ({ video, course }) => {
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 mb-4">
                             <FileText className="text-brand-primary" size={24} />
-                            <h2 className="text-xl font-bold text-white">Video Summary</h2>
+                            <h2 className="text-xl font-bold text-white">Video Summary & Notes</h2>
                         </div>
+
+                        {/* PDF Note Download */}
+                        {video.notePdf && (
+                            <div className="bg-dark-layer2 p-4 rounded-lg border border-dark-layer2 mb-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-red-500/20 p-2 rounded text-red-400">
+                                        <FileText size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-white font-medium">Lecture Notes</h3>
+                                        <p className="text-xs text-dark-muted">PDF Document</p>
+                                    </div>
+                                </div>
+                                <a
+                                    href={video.notePdf}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-4 py-2 bg-brand-primary text-white text-sm rounded hover:bg-brand-hover transition-colors"
+                                >
+                                    View / Download
+                                </a>
+                            </div>
+                        )}
+
                         <div className="bg-dark-layer2 p-6 rounded-lg border border-dark-layer2">
                             {video.summary ? (
                                 <p className="text-dark-text leading-relaxed whitespace-pre-wrap">{video.summary}</p>
                             ) : (
-                                <p className="text-dark-muted italic">No summary available for this video.</p>
+                                <p className="text-dark-muted italic">No text summary available for this video.</p>
                             )}
                         </div>
                     </div>
