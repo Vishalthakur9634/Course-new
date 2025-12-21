@@ -39,7 +39,7 @@ router.post('/register', async (req, res) => {
             email,
             password: hashedPassword,
             role: userRole,
-            isInstructorApproved: userRole === 'instructor' ? isInstructorApproved : true,
+            isInstructorApproved: userRole === 'instructor' ? true : true, // Auto-approve for development
             instructorApplicationDate: userRole === 'instructor' ? new Date() : undefined
         });
 

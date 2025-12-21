@@ -66,15 +66,13 @@ router.get('/dashboard', authenticate, requireInstructor, async (req, res) => {
         }));
 
         res.json({
-            summary: {
-                totalCourses: courses.length,
-                publishedCourses: courses.filter(c => c.isPublished).length,
-                pendingCourses: courses.filter(c => c.approvalStatus === 'pending').length,
-                totalStudents: uniqueStudents,
-                totalEnrollments: totalStudents,
-                totalRevenue,
-                pendingPayout
-            },
+            totalCourses: courses.length,
+            publishedCourses: courses.filter(c => c.isPublished).length,
+            pendingCourses: courses.filter(c => c.approvalStatus === 'pending').length,
+            totalStudents: uniqueStudents,
+            totalEnrollments: totalStudents,
+            totalRevenue,
+            pendingPayout,
             courses: courseStats,
             recentEnrollments
         });
@@ -402,6 +400,52 @@ router.put('/profile', authenticate, requireInstructor, async (req, res) => {
         res.json(user);
     } catch (error) {
         res.status(500).json({ message: 'Error updating profile', error: error.message });
+    }
+});
+
+// Get generic analytics for all instructor courses
+router.get('/analytics', authenticate, requireInstructor, async (req, res) => {
+    try {
+        const instructorId = req.user._id;
+        const courses = await Course.find({ instructorId });
+        const courseIds = courses.map(c => c._id);
+
+        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } });
+
+        // Enrollment trend (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const enrollmentTrend = enrollments
+            .filter(e => e.enrolledAt >= thirtyDaysAgo)
+            .reduce((acc, e) => {
+                const date = e.enrolledAt.toISOString().split('T')[0];
+                acc[date] = (acc[date] || 0) + 1;
+                return acc;
+            }, {});
+
+        // Revenue trend (last 30 days)
+        const payments = await Payment.find({
+            instructorId,
+            status: 'completed',
+            createdAt: { $gte: thirtyDaysAgo }
+        });
+
+        const revenueTrend = payments.reduce((acc, p) => {
+            const date = p.createdAt.toISOString().split('T')[0];
+            acc[date] = (acc[date] || 0) + p.instructorEarning;
+            return acc;
+        }, {});
+
+        res.json({
+            enrollmentTrend: Object.entries(enrollmentTrend).map(([month, enrollments]) => ({ month, enrollments })),
+            revenueTrend: Object.entries(revenueTrend).map(([month, revenue]) => ({ month, revenue })),
+            topCourses: courses
+                .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
+                .slice(0, 5)
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching analytics', error: error.message });
     }
 });
 
