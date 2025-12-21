@@ -26,7 +26,7 @@ const UploadCourse = () => {
     };
 
     const addVideoSlot = () => {
-        setVideos([...videos, { title: '', description: '', file: null, notePdf: null, order: videos.length + 1 }]);
+        setVideos([...videos, { title: '', description: '', summary: '', file: null, notePdf: null, order: videos.length + 1 }]);
     };
 
     const removeVideoSlot = (index) => {
@@ -75,6 +75,7 @@ const UploadCourse = () => {
                     }
                     videoFormData.append('title', video.title);
                     videoFormData.append('description', video.description);
+                    videoFormData.append('summary', video.summary);
                     videoFormData.append('order', video.order);
 
                     await api.post(`/instructor/courses/${course._id}/videos`, videoFormData, {
@@ -222,12 +223,19 @@ const UploadCourse = () => {
                                         placeholder="Video title"
                                         className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
                                     />
-                                    <input
-                                        type="text"
+                                    <textarea
                                         value={video.description}
                                         onChange={(e) => handleVideoChange(index, 'description', e.target.value)}
                                         placeholder="Video description"
                                         className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
+                                        rows={2}
+                                    />
+                                    <textarea
+                                        value={video.summary}
+                                        onChange={(e) => handleVideoChange(index, 'summary', e.target.value)}
+                                        placeholder="Video summary (AI can help refine this later)"
+                                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
+                                        rows={3}
                                     />
                                     <input
                                         type="file"

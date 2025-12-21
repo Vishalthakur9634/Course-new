@@ -392,4 +392,65 @@ router.get('/:courseId/notes', authenticate, requireCourseAccess, async (req, re
     }
 });
 
+// Get leaderboard - top students by enrollment and completion
+router.get('/leaderboard', async (req, res) => {
+    try {
+        const enrollments = await Enrollment.aggregate([
+            {
+                $match: {
+                    userId: { $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: '$userId',
+                    coursesEnrolled: { $sum: 1 },
+                    coursesCompleted: {
+                        $sum: {
+                            $cond: [{ $gte: ['$progress', 100] }, 1, 0]
+                        }
+                    },
+                    totalProgress: { $avg: '$progress' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'userId'
+                }
+            },
+            {
+                $unwind: '$userId'
+            },
+            {
+                $project: {
+                    _id: 1,
+                    userId: {
+                        _id: '$userId._id',
+                        name: '$userId.name',
+                        avatar: '$userId.avatar'
+                    },
+                    coursesEnrolled: 1,
+                    coursesCompleted: 1,
+                    points: { $multiply: ['$coursesCompleted', 100] },
+                    rank: 1
+                }
+            },
+            {
+                $sort: { points: -1, coursesCompleted: -1 }
+            },
+            {
+                $limit: 50
+            }
+        ]);
+
+        res.json(enrollments);
+    } catch (error) {
+        console.error('Error fetching leaderboard:', error);
+        res.status(500).json({ message: 'Error fetching leaderboard', error: error.message });
+    }
+});
+
 module.exports = router;

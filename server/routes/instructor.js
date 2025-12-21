@@ -74,7 +74,10 @@ router.get('/dashboard', authenticate, requireInstructor, async (req, res) => {
             totalRevenue,
             pendingPayout,
             courses: courseStats,
-            recentEnrollments
+            recentEnrollments: recentEnrollments.map(e => ({
+                ...e.toObject(),
+                userId: e.studentId // Alias for frontend compatibility
+            }))
         });
     } catch (error) {
         res.status(500).json({ message: 'Error fetching dashboard', error: error.message });
@@ -437,9 +440,23 @@ router.get('/analytics', authenticate, requireInstructor, async (req, res) => {
             return acc;
         }, {});
 
+        // Helper to sort object by keys (dates)
+        const sortTrend = (obj) => Object.entries(obj)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, value]) => ({ month, [Object.keys(obj)[0] === 'enrollmentTrend' ? 'enrollments' : (typeof value === 'number' ? 'revenue' : 'enrollments')]: value }));
+
+        // Refined trend calculation for better consistency
+        const sortedEnrollments = Object.entries(enrollmentTrend)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, count]) => ({ month, enrollments: count }));
+
+        const sortedRevenue = Object.entries(revenueTrend)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([month, revenue]) => ({ month, revenue }));
+
         res.json({
-            enrollmentTrend: Object.entries(enrollmentTrend).map(([month, enrollments]) => ({ month, enrollments })),
-            revenueTrend: Object.entries(revenueTrend).map(([month, revenue]) => ({ month, revenue })),
+            enrollmentTrend: sortedEnrollments,
+            revenueTrend: sortedRevenue,
             topCourses: courses
                 .sort((a, b) => b.enrollmentCount - a.enrollmentCount)
                 .slice(0, 5)

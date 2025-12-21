@@ -8,15 +8,15 @@ export default {
         extend: {
             colors: {
                 dark: {
-                    bg: '#1a1a1a',
-                    layer1: '#282828',
-                    layer2: '#3e3e3e',
-                    text: '#eff1f6',
-                    muted: '#8a8a8a'
+                    bg: 'var(--orbit-bg)',
+                    layer1: 'var(--orbit-layer1)',
+                    layer2: 'var(--orbit-layer2)',
+                    text: 'var(--orbit-text)',
+                    muted: 'var(--orbit-muted)'
                 },
                 brand: {
-                    primary: '#ffa116', // LeetCode orange
-                    hover: '#e59114'
+                    primary: 'var(--brand-primary)',
+                    hover: 'var(--brand-hover)'
                 }
             }
         },

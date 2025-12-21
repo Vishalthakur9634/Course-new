@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const Note = require('../models/Note');
+const { authenticate } = require('../middleware/rbac');
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 // Get all notes for a video (user-specific)
 router.get('/video/:videoId', async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-
         const notes = await Note.find({
             userId: req.user.id,
             videoId: req.params.videoId
@@ -22,8 +24,6 @@ router.get('/video/:videoId', async (req, res) => {
 // Create a new note
 router.post('/', async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-
         const { videoId, courseId, content, timestamp, attachments } = req.body;
 
         const note = new Note({
@@ -46,8 +46,6 @@ router.post('/', async (req, res) => {
 // Update a note
 router.put('/:id', async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-
         const note = await Note.findOne({
             _id: req.params.id,
             userId: req.user.id
@@ -74,8 +72,6 @@ router.put('/:id', async (req, res) => {
 // Delete a note
 router.delete('/:id', async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-
         const note = await Note.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.id
@@ -95,8 +91,6 @@ router.delete('/:id', async (req, res) => {
 // Get all notes for a course (user-specific)
 router.get('/course/:courseId', async (req, res) => {
     try {
-        if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
-
         const notes = await Note.find({
             userId: req.user.id,
             courseId: req.params.courseId

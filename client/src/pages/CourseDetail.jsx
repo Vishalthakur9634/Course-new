@@ -6,7 +6,7 @@ import CourseSidebar from '../components/CourseSidebar';
 import VideoTabs from '../components/VideoTabs';
 import Reviews from '../components/Reviews';
 import PaymentModal from '../components/PaymentModal';
-import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart } from 'lucide-react';
+import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart, Check } from 'lucide-react';
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -16,6 +16,7 @@ const CourseDetail = () => {
     const [loading, setLoading] = useState(true);
     const [progressMap, setProgressMap] = useState({});
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [videoTime, setVideoTime] = useState(0);
 
     // Access Control State
     const [hasAccess, setHasAccess] = useState(false);
@@ -118,6 +119,7 @@ const CourseDetail = () => {
         const completed = (currentTime / duration) > 0.9;
 
         try {
+            setVideoTime(currentTime);
             const userId = JSON.parse(localStorage.getItem('user')).id;
             await api.post('/users/progress', {
                 userId,
@@ -209,7 +211,7 @@ const CourseDetail = () => {
                     {hasAccess ? (
                         activeVideo ? (
                             <VideoPlayer
-                                src={`http://localhost:5001${activeVideo.videoUrl}`}
+                                src={`${activeVideo.videoUrl}`}
                                 poster={activeVideo.thumbnailUrl}
                                 onProgress={handleProgress}
                             />
@@ -269,7 +271,13 @@ const CourseDetail = () => {
                         <>
                             <div className="flex flex-col lg:flex-row gap-8">
                                 <div className="flex-1 space-y-6">
-                                    {activeVideo && <VideoTabs video={activeVideo} course={course} />}
+                                    {activeVideo && (
+                                        <VideoTabs
+                                            video={activeVideo}
+                                            course={course}
+                                            currentTime={videoTime}
+                                        />
+                                    )}
 
                                     {/* Course Progress Bar */}
                                     <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
@@ -363,18 +371,31 @@ const CourseDetail = () => {
                             className={`p-4 border-b border-dark-layer2 cursor-pointer transition-colors flex gap-3 ${activeVideo?._id === video._id ? 'bg-brand-primary/10 border-l-4 border-l-brand-primary' : 'hover:bg-dark-layer2'
                                 } ${!hasAccess ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            <div className="mt-1">
+                            <div className="mt-1 flex-shrink-0">
                                 {hasAccess ? (
-                                    activeVideo?._id === video._id ? <PlayCircle size={16} className="text-brand-primary" /> : <div className="w-4 h-4 rounded-full border border-dark-muted" />
+                                    activeVideo?._id === video._id ? (
+                                        <PlayCircle size={16} className="text-brand-primary" />
+                                    ) : progressMap[video._id]?.completed ? (
+                                        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                                            <Check size={12} className="text-white" strokeWidth={4} />
+                                        </div>
+                                    ) : (
+                                        <div className="w-4 h-4 rounded-full border border-dark-muted" />
+                                    )
                                 ) : (
                                     <Lock size={16} className="text-dark-muted" />
                                 )}
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <h4 className={`text-sm font-medium ${activeVideo?._id === video._id ? 'text-brand-primary' : 'text-white'}`}>
                                     {index + 1}. {video.title}
                                 </h4>
-                                <p className="text-xs text-dark-muted mt-1">{video.duration || '10:00'}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[10px] text-dark-muted">{video.duration || '10:00'}</p>
+                                    {progressMap[video._id]?.completed && (
+                                        <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Completed</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))}
@@ -388,7 +409,7 @@ const CourseDetail = () => {
             >
                 {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-        </div >
+        </div>
     );
 };
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { MessageSquare, FileText, Info, Send, ThumbsUp, Reply, User } from 'lucide-react';
 
-const VideoTabs = ({ video, course }) => {
+const VideoTabs = ({ video, course, currentTime }) => {
     const [activeTab, setActiveTab] = useState('overview');
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -10,6 +10,9 @@ const VideoTabs = ({ video, course }) => {
     const [activeReplyId, setActiveReplyId] = useState(null);
     const [loadingComments, setLoadingComments] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
+    const [studentNotes, setStudentNotes] = useState([]);
+    const [newNoteContent, setNewNoteContent] = useState('');
+    const [isSavingNote, setIsSavingNote] = useState(false);
 
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user'));
@@ -19,6 +22,9 @@ const VideoTabs = ({ video, course }) => {
     useEffect(() => {
         if (activeTab === 'qa' && video) {
             fetchComments();
+        }
+        if (activeTab === 'studentNotes' && video) {
+            fetchNotes();
         }
     }, [activeTab, video]);
 
@@ -32,6 +38,52 @@ const VideoTabs = ({ video, course }) => {
         } finally {
             setLoadingComments(false);
         }
+    };
+
+    const fetchNotes = async () => {
+        try {
+            const { data } = await api.get(`/notes/video/${video._id}`);
+            setStudentNotes(data);
+        } catch (error) {
+            console.error('Error fetching notes', error);
+        }
+    };
+
+    const handleAddNote = async (e) => {
+        e.preventDefault();
+        if (!newNoteContent.trim() || isSavingNote) return;
+
+        setIsSavingNote(true);
+        try {
+            const { data } = await api.post('/notes', {
+                videoId: video._id,
+                courseId: course._id,
+                content: newNoteContent,
+                timestamp: currentTime || 0
+            });
+            setStudentNotes([...studentNotes, data].sort((a, b) => a.timestamp - b.timestamp));
+            setNewNoteContent('');
+        } catch (error) {
+            console.error('Error adding note', error);
+        } finally {
+            setIsSavingNote(false);
+        }
+    };
+
+    const handleDeleteNote = async (noteId) => {
+        try {
+            await api.delete(`/notes/${noteId}`);
+            setStudentNotes(studentNotes.filter(n => n._id !== noteId));
+        } catch (error) {
+            console.error('Error deleting note', error);
+        }
+    };
+
+    const formatTime = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        return `${h > 0 ? h + ':' : ''}${m < 10 && h > 0 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
     const handlePostComment = async (e) => {
@@ -315,11 +367,79 @@ const VideoTabs = ({ video, course }) => {
                     </div>
                 )}
 
+                {activeTab === 'studentNotes' && (
+                    <div className="flex flex-col h-full space-y-6">
+                        {/* Note Input */}
+                        <div className="bg-dark-layer2 p-4 rounded-xl border border-white/5">
+                            <div className="flex items-center justify-between mb-3 px-1">
+                                <span className="text-xs font-bold text-dark-muted flex items-center gap-2">
+                                    <Sparkles size={14} className="text-brand-primary" />
+                                    Note at {formatTime(currentTime)}
+                                </span>
+                                <span className="text-[10px] text-dark-muted uppercase font-black tracking-widest">Auto-timestamp</span>
+                            </div>
+                            <form onSubmit={handleAddNote} className="space-y-3">
+                                <textarea
+                                    value={newNoteContent}
+                                    onChange={(e) => setNewNoteContent(e.target.value)}
+                                    placeholder="Add a private note at this moment..."
+                                    className="w-full bg-dark-layer1 border border-white/5 rounded-lg p-3 text-sm text-white focus:border-brand-primary focus:outline-none min-h-[100px] resize-none"
+                                />
+                                <div className="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={!newNoteContent.trim() || isSavingNote}
+                                        className="bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all"
+                                    >
+                                        {isSavingNote ? 'Saving...' : 'Save Note'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Notes List */}
+                        <div className="space-y-4">
+                            {studentNotes.length === 0 ? (
+                                <div className="py-12 text-center">
+                                    <FileText className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
+                                    <p className="text-sm text-dark-muted">Your private notes will appear here.</p>
+                                </div>
+                            ) : (
+                                studentNotes.map((note) => (
+                                    <div key={note._id} className="group bg-dark-layer2/50 border border-white/5 rounded-xl p-4 hover:border-brand-primary/30 transition-all">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <button
+                                                onClick={() => {
+                                                    const player = document.querySelector('video');
+                                                    if (player) player.currentTime = note.timestamp;
+                                                }}
+                                                className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider hover:bg-brand-primary hover:text-white transition-all"
+                                            >
+                                                {formatTime(note.timestamp)}
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteNote(note._id)}
+                                                className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-dark-text leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                        <div className="mt-3 text-[10px] text-dark-muted font-medium">
+                                            Last edited: {new Date(note.updatedAt).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'notes' && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 text-white">
                         <div className="flex items-center gap-2 mb-4">
                             <FileText className="text-brand-primary" size={24} />
-                            <h2 className="text-xl font-bold text-white">Video Summary & Notes</h2>
+                            <h2 className="text-xl font-bold">Video Summary</h2>
                         </div>
 
                         {/* PDF Note Download */}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import RoleSidebar from './components/RoleSidebar';
+import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -33,6 +34,9 @@ import InstructorReviews from './pages/instructor/InstructorReviews';
 import InstructorSettings from './pages/instructor/InstructorSettings';
 import UploadCourse from './pages/instructor/UploadCourse';
 import InstructorAnnouncements from './pages/instructor/InstructorAnnouncements';
+import PromotionManagement from './pages/instructor/PromotionManagement';
+import BundleManagement from './pages/instructor/BundleManagement';
+import AssessmentManagement from './pages/instructor/AssessmentManagement';
 
 // Admin Pages
 import SuperAdminDashboard from './pages/admin/SuperAdminDashboard';
@@ -43,9 +47,19 @@ import PaymentManagement from './pages/admin/PaymentManagement';
 import AnnouncementManagement from './pages/admin/AnnouncementManagement';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 import PlatformSettings from './pages/admin/PlatformSettings';
+import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 
 // Shared Pages
 import Notifications from './pages/Notifications';
+import HelpCenter from './pages/HelpCenter';
+import CommunityHub from './pages/CommunityHub';
+import ContactUs from './pages/ContactUs';
+import Referral from './pages/Referral';
+import SubscriptionPlans from './pages/SubscriptionPlans';
+import CourseBundles from './pages/CourseBundles';
+
+// Student Specific
+import Leaderboard from './pages/student/Leaderboard';
 
 // Placeholder
 import ComingSoon from './components/ComingSoon';
@@ -185,9 +199,12 @@ const AppLayout = ({ children }) => {
     };
 
     return (
-        <div className="flex h-screen bg-dark-bg text-dark-text overflow-hidden">
-            {user && <RoleSidebar user={user} onLogout={handleLogout} />}
-            <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden">
+            <Navbar />
+            <div className="flex flex-1 overflow-hidden pt-[72px]">
+                {user && <RoleSidebar user={user} onLogout={handleLogout} />}
+                <main className="flex-1 overflow-y-auto p-8">{children}</main>
+            </div>
         </div>
     );
 };
@@ -225,9 +242,12 @@ function App() {
                 <Route path="/instructor/edit-course/:id" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'admin', 'superadmin']}><AppLayout><UploadCourse /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/students" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><MyStudents /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/earnings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorEarnings /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructor/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/promotions" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><PromotionManagement /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/bundles" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><BundleManagement /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/assessments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><AssessmentManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/reviews" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorReviews /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructor/settings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorSettings /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/settings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorSettings /></AppLayout></RoleRoute></PrivateRoute>} />
 
                 {/* Super Admin Routes */}
                 <Route path="/admin" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><SuperAdminDashboard /></AppLayout></RoleRoute></PrivateRoute>} />
@@ -235,12 +255,20 @@ function App() {
                 <Route path="/admin/courses" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><CourseManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/instructors" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><InstructorApprovals /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/payments" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PaymentManagement /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/admin/subscriptions" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><SubscriptionManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><AnnouncementManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/settings" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformSettings /></AppLayout></RoleRoute></PrivateRoute>} />
 
                 {/* Shared Routes */}
                 <Route path="/notifications" element={<PrivateRoute><AppLayout><Notifications /></AppLayout></PrivateRoute>} />
+                <Route path="/help" element={<AppLayout><HelpCenter /></AppLayout>} />
+                <Route path="/community" element={<AppLayout><CommunityHub /></AppLayout>} />
+                <Route path="/leaderboard" element={<AppLayout><Leaderboard /></AppLayout>} />
+                <Route path="/contact" element={<AppLayout><ContactUs /></AppLayout>} />
+                <Route path="/referral" element={<AppLayout><Referral /></AppLayout>} />
+                <Route path="/subscriptions" element={<AppLayout><SubscriptionPlans /></AppLayout>} />
+                <Route path="/bundles" element={<AppLayout><CourseBundles /></AppLayout>} />
             </Routes>
         </Router>
     );

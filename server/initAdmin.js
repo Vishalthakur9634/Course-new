@@ -10,13 +10,8 @@ const initAdmin = async () => {
         await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/course-selling-app');
         console.log('MongoDB Connected');
 
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const adminPassword = process.env.ADMIN_PASSWORD;
-
-        if (!adminEmail || !adminPassword) {
-            console.error('ADMIN_EMAIL or ADMIN_PASSWORD not set in .env');
-            process.exit(1);
-        }
+        const adminEmail = process.env.ADMIN_EMAIL || 'vishalthakur732007@gmail.com';
+        const adminPassword = process.env.ADMIN_PASSWORD || 'vishal9634';
 
         const existingAdmin = await User.findOne({ email: adminEmail });
 
@@ -25,20 +20,20 @@ const initAdmin = async () => {
 
         if (existingAdmin) {
             existingAdmin.password = hashedPassword;
-            existingAdmin.role = 'admin';
-            existingAdmin.name = 'Admin'; // Ensure name is set
+            existingAdmin.role = 'superadmin';
+            existingAdmin.name = 'Super Admin';
             await existingAdmin.save();
-            console.log('Admin account updated');
+            console.log('Super Admin account updated');
         } else {
             const newAdmin = new User({
-                name: 'Admin',
+                name: 'Super Admin',
                 email: adminEmail,
                 password: hashedPassword,
-                role: 'admin',
-                purchasedCourses: [] // Admin gets access via role check, not purchase list
+                role: 'superadmin',
+                purchasedCourses: []
             });
             await newAdmin.save();
-            console.log('Admin account created');
+            console.log('Super Admin account created');
         }
 
         process.exit(0);

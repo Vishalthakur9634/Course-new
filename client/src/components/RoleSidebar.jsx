@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Home, BookOpen, Award, Heart, User, Settings, LogOut,
-    PlayCircle, Users, DollarSign, BarChart3, Upload,
-    ShieldCheck, MessageSquare, Bell, Menu, X, ChevronLeft, ChevronRight
+    LayoutDashboard, BookOpen, Users, DollarSign,
+    Settings, LogOut, PlusCircle, BarChart, MessageSquare,
+    Bell, Star, Award, Search, Sparkles, Package,
+    Activity, ShieldCheck, Mail, HelpCircle, LayoutGrid,
+    Upload, BarChart3, Menu, X, ChevronLeft, ChevronRight, Heart
 } from 'lucide-react';
 import ResizablePanel from './ResizablePanel';
 
@@ -15,16 +17,11 @@ const RoleSidebar = ({ user, onLogout }) => {
 
     // Student navigation items
     const studentNav = [
-        { icon: Home, label: 'Dashboard', path: '/' },
-        { icon: BookOpen, label: 'Browse Courses', path: '/browse' },
-        { icon: Users, label: 'My Instructors', path: '/my-instructors' }, // Changed from Instructors to My Instructors
-        { icon: Users, label: 'All Instructors', path: '/instructors' },
-        { icon: PlayCircle, label: 'My Learning', path: '/my-learning' },
+        { icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
+        { icon: BookOpen, label: 'My Learning', path: '/my-learning' },
         { icon: Heart, label: 'Wishlist', path: '/wishlist' },
-        { icon: Bell, label: 'Announcements', path: '/announcements' },
-        { icon: Award, label: 'Certificates', path: '/certificates' },
-        { icon: User, label: 'Profile', path: '/profile' },
-        { icon: BookOpen, label: 'Categories', path: '/categories' },
+        { icon: Star, label: 'Certificates', path: '/certificates' },
+        { icon: Settings, label: 'Profile', path: '/profile' },
     ];
 
     // Instructor navigation items
@@ -38,6 +35,9 @@ const RoleSidebar = ({ user, onLogout }) => {
         { icon: DollarSign, label: 'Earnings', path: '/instructor/earnings' },
         { icon: BarChart3, label: 'Analytics', path: '/instructor/analytics' },
         { icon: MessageSquare, label: 'Reviews', path: '/instructor/reviews' },
+        { icon: PlusCircle, label: 'Promotions', path: '/instructor/promotions' },
+        { icon: Package, label: 'Bundle Creator', path: '/instructor/bundles' },
+        { icon: Award, label: 'Assessments', path: '/instructor/assessments' },
         { icon: Settings, label: 'Settings', path: '/instructor/settings' },
     ];
 
@@ -48,6 +48,7 @@ const RoleSidebar = ({ user, onLogout }) => {
         { icon: BookOpen, label: 'Courses', path: '/admin/courses' },
         { icon: ShieldCheck, label: 'Instructors', path: '/admin/instructors' },
         { icon: DollarSign, label: 'Payments', path: '/admin/payments' },
+        { icon: Sparkles, label: 'Subscriptions', path: '/admin/subscriptions' },
         { icon: Bell, label: 'Announcements', path: '/admin/announcements' },
         { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
         { icon: Settings, label: 'Settings', path: '/admin/settings' },

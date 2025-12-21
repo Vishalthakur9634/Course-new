@@ -1,37 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play, BookOpen, Users, Award, CheckCircle, ArrowRight } from 'lucide-react';
+import { Play, BookOpen, Users, Award, CheckCircle, ArrowRight, Rocket } from 'lucide-react';
+import Navbar from '../components/Navbar';
 
 const LandingPage = () => {
     return (
-        <div className="min-h-screen bg-dark-bg text-white">
-            {/* Navbar */}
-            <nav className="border-b border-dark-layer2 bg-dark-layer1/50 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-purple-600 rounded-lg flex items-center justify-center">
-                            <Play size={16} className="text-white fill-current" />
-                        </div>
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                            CourseLauncher
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <Link to="/instructor-home" className="text-sm text-dark-muted hover:text-white transition-colors">
-                            Become an Instructor
-                        </Link>
-                        <Link to="/login" className="text-sm font-medium hover:text-brand-primary transition-colors">
-                            Log In
-                        </Link>
-                        <Link
-                            to="/register"
-                            className="bg-brand-primary hover:bg-brand-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-all transform hover:scale-105"
-                        >
-                            Get Started
-                        </Link>
-                    </div>
-                </div>
-            </nav>
+        <div className="min-h-screen bg-dark-bg text-white pt-[72px]">
+            <Navbar />
 
             {/* Hero Section */}
             <div className="relative overflow-hidden">
@@ -139,12 +114,12 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center">
-                            <Play size={16} className="text-white fill-current" />
+                            <Rocket size={16} className="text-white fill-current" />
                         </div>
-                        <span className="text-xl font-bold text-white">CourseLauncher</span>
+                        <span className="text-xl font-bold text-white">OrbitQuest</span>
                     </div>
                     <div className="text-dark-muted text-sm">
-                        © 2024 CourseLauncher. All rights reserved.
+                        © 2024 OrbitQuest. All rights reserved.
                     </div>
                 </div>
             </footer>

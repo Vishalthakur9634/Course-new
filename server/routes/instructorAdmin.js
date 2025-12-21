@@ -64,7 +64,8 @@ router.get('/dashboard', isInstructor, async (req, res) => {
             recentEnrollments: validEnrollments.slice(0, 10).map(e => ({
                 _id: e._id,
                 enrolledAt: e.enrolledAt,
-                userId: e.userId
+                studentId: e.userId, // Maintain consistency with models
+                userId: e.userId // Alias for frontend compatibility
             }))
         });
     } catch (error) {
@@ -78,9 +79,17 @@ router.get('/courses', isInstructor, async (req, res) => {
     try {
         const courses = await Course.find({ instructorId: req.user._id })
             .populate('videos')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
-        res.json(courses);
+        // Fetch reviews for each course separately since they aren't in the Course model
+        const Review = require('../models/Review');
+        const coursesWithReviews = await Promise.all(courses.map(async (course) => {
+            const reviews = await Review.find({ course: course._id }).populate('user', 'name avatar');
+            return { ...course, reviews };
+        }));
+
+        res.json(coursesWithReviews);
     } catch (error) {
         console.error('Error fetching instructor courses:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
@@ -278,6 +287,47 @@ router.get('/analytics', isInstructor, async (req, res) => {
         res.json(analytics);
     } catch (error) {
         console.error('Error fetching analytics:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Get all reviews for instructor's courses
+router.get('/reviews', isInstructor, async (req, res) => {
+    try {
+        const courses = await Course.find({ instructorId: req.user._id });
+        const courseIds = courses.map(c => c._id);
+
+        const Review = require('../models/Review');
+        const reviews = await Review.find({ course: { $in: courseIds } })
+            .populate('user', 'name email avatar')
+            .populate('course', 'title')
+            .sort({ createdAt: -1 });
+
+        res.json(reviews);
+    } catch (error) {
+        console.error('Error fetching instructor reviews:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Get all students enrolled in instructor's courses
+router.get('/students', isInstructor, async (req, res) => {
+    try {
+        const courses = await Course.find({ instructorId: req.user._id });
+        const courseIds = courses.map(c => c._id);
+
+        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
+            .populate('userId', 'name email avatar')
+            .populate('courseId', 'title thumbnail category')
+            .sort({ enrolledAt: -1 })
+            .lean();
+
+        // Filter out null users (deleted accounts)
+        const validEnrollments = enrollments.filter(e => e.userId);
+
+        res.json(validEnrollments);
+    } catch (error) {
+        console.error('Error fetching students:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });

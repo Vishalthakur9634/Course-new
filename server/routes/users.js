@@ -155,4 +155,41 @@ router.post('/:userId/wishlist/:courseId', async (req, res) => {
     }
 });
 
+// Get top instructors for leaderboard
+router.get('/instructors/top', async (req, res) => {
+    try {
+        const Course = require('../models/Course');
+        const Enrollment = require('../models/Enrollment');
+
+        const instructors = await User.find({
+            role: 'instructor',
+            isInstructorApproved: true
+        }).select('name email avatar').lean();
+
+        // Get student count and rating for each instructor
+        const instructorStats = await Promise.all(instructors.map(async (instructor) => {
+            const courses = await Course.find({ instructorId: instructor._id });
+            const courseIds = courses.map(c => c._id);
+            const studentCount = await Enrollment.countDocuments({ courseId: { $in: courseIds } });
+            const avgRating = courses.length > 0
+                ? courses.reduce((sum, c) => sum + (c.rating || 0), 0) / courses.length
+                : 0;
+
+            return {
+                ...instructor,
+                studentCount,
+                rating: avgRating.toFixed(1)
+            };
+        }));
+
+        // Sort by student count descending
+        instructorStats.sort((a, b) => b.studentCount - a.studentCount);
+
+        res.json(instructorStats.slice(0, 10));
+    } catch (error) {
+        console.error('Error fetching top instructors:', error);
+        res.status(500).json({ message: 'Error fetching top instructors', error: error.message });
+    }
+});
+
 module.exports = router;

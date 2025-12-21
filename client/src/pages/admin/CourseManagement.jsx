@@ -240,13 +240,21 @@ const CourseManagement = () => {
                                     </div>
                                 </td>
                                 <td className="p-4">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${course.approvalStatus === 'approved' ? 'bg-green-500/20 text-green-400' :
-                                        course.approvalStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                            course.approvalStatus === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                                'bg-gray-500/20 text-gray-400'
-                                        }`}>
-                                        {course.approvalStatus}
-                                    </span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium w-fit ${course.isPublished ? 'bg-green-500/20 text-green-400' :
+                                                course.approvalStatus === 'approved' ? 'bg-blue-500/20 text-blue-400' :
+                                                    course.approvalStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        course.approvalStatus === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                                            'bg-gray-500/20 text-gray-400'
+                                            }`}>
+                                            {course.isPublished ? 'Published' : course.approvalStatus}
+                                        </span>
+                                        {course.isPublished && course.publishedAt && (
+                                            <span className="text-[10px] text-dark-muted">
+                                                {new Date(course.publishedAt).toLocaleDateString()}
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">

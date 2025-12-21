@@ -52,6 +52,8 @@ const messageRoutes = require('./routes/messages');
 const discussionRoutes = require('./routes/discussions');
 const instructorAdminRoutes = require('./routes/instructorAdmin');
 const notesRoutes = require('./routes/notes');
+const megaRoutes = require('./routes/mega');
+const communityRoutes = require('./routes/community');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -74,6 +76,8 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/discussions', discussionRoutes);
 app.use('/api/instructor-admin', instructorAdminRoutes);
 app.use('/api/notes', notesRoutes);
+app.use('/api/mega', megaRoutes);
+app.use('/api/community', communityRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
