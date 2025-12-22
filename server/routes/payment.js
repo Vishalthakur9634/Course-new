@@ -3,6 +3,20 @@ const router = express.Router();
 const User = require('../models/User');
 const Course = require('../models/Course');
 const Payment = require('../models/Payment');
+const { authenticate } = require('../middleware/rbac');
+
+// Get My Purchase History
+router.get('/my-history', authenticate, async (req, res) => {
+    try {
+        const history = await Payment.find({ studentId: req.user.id })
+            .populate('courseId', 'title thumbnail')
+            .sort({ createdAt: -1 });
+        res.json(history);
+    } catch (error) {
+        console.error('Error fetching purchase history:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 // Simulated Payment Endpoint
 router.post('/purchase', async (req, res) => {

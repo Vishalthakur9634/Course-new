@@ -1,7 +1,45 @@
-import React from 'react';
-import { Gift, Share2, Copy, Users, DollarSign, Rocket, Sparkles, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Gift, Share2, Copy, Users, DollarSign, Rocket, Sparkles, ChevronRight, Loader } from 'lucide-react';
+import api from '../utils/api';
 
 const Referral = () => {
+    const [stats, setStats] = useState(null);
+    const [referralLink, setReferralLink] = useState('');
+    const [referralCode, setReferralCode] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [copied, setCopied] = useState(false);
+
+    useEffect(() => {
+        fetchReferralData();
+    }, []);
+
+    const fetchReferralData = async () => {
+        try {
+            const { data } = await api.get('/referrals/stats');
+            setStats(data.stats);
+            setReferralLink(data.link);
+            setReferralCode(data.referralCode);
+        } catch (error) {
+            console.error('Error fetching referral stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(referralLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader className="animate-spin text-brand-primary" size={40} />
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-6xl mx-auto py-12 px-6 space-y-24">
             <header className="flex flex-col lg:flex-row items-center gap-16 text-center lg:text-left pt-8">
@@ -19,8 +57,8 @@ const Referral = () => {
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-5 pt-4">
-                        <button className="px-10 py-5 bg-brand-primary hover:bg-brand-hover text-dark-bg font-black rounded-2xl transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,161,22,0.3)] transform hover:-translate-y-1">
-                            Join Affiliate Program <ChevronRight size={20} />
+                        <button onClick={() => document.getElementById('referral-toolbox').scrollIntoView({ behavior: 'smooth' })} className="px-10 py-5 bg-brand-primary hover:bg-brand-hover text-dark-bg font-black rounded-2xl transition-all flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,161,22,0.3)] transform hover:-translate-y-1">
+                            Get My Link <ChevronRight size={20} />
                         </button>
                         <button className="px-10 py-5 bg-white/5 border border-white/10 text-white font-black rounded-2xl hover:bg-white/10 transition-all uppercase tracking-widest text-sm">
                             How it works
@@ -34,12 +72,15 @@ const Referral = () => {
                             <div className="w-24 h-24 bg-dark-layer2 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner border border-white/5">
                                 <Rocket size={48} className="text-brand-primary drop-shadow-[0_0_15px_rgba(255,161,22,0.5)]" />
                             </div>
-                            <p className="text-5xl font-black text-white tracking-tighter">$1,240.00</p>
-                            <p className="text-xs font-black text-dark-muted uppercase tracking-[0.3em]">Estimated Earnings</p>
+                            <p className="text-5xl font-black text-white tracking-tighter">${stats?.totalEarnings?.toFixed(2) || '0.00'}</p>
+                            <p className="text-xs font-black text-dark-muted uppercase tracking-[0.3em]">Total Earnings</p>
                             <div className="h-3 bg-dark-layer2 rounded-full mt-10 overflow-hidden p-0.5 border border-white/5">
-                                <div className="h-full bg-gradient-to-r from-brand-primary to-orange-500 rounded-full w-2/3 shadow-[0_0_15px_rgba(255,161,22,0.6)]"></div>
+                                <div
+                                    className="h-full bg-gradient-to-r from-brand-primary to-orange-500 rounded-full shadow-[0_0_15px_rgba(255,161,22,0.6)] transition-all duration-1000"
+                                    style={{ width: `${Math.min((stats?.totalEarnings || 0) / 1000 * 100, 100)}%` }}
+                                ></div>
                             </div>
-                            <p className="text-[10px] text-dark-muted font-bold mt-4">Next payout in 4 days</p>
+                            <p className="text-[10px] text-dark-muted font-bold mt-4">Payouts are processed monthly</p>
                         </div>
                     </div>
                 </div>
@@ -61,7 +102,7 @@ const Referral = () => {
                 ))}
             </section>
 
-            <div className="bg-dark-layer1 border-2 border-white/10 rounded-[4rem] p-10 lg:p-20 relative overflow-hidden shadow-2xl">
+            <div id="referral-toolbox" className="bg-dark-layer1 border-2 border-white/10 rounded-[4rem] p-10 lg:p-20 relative overflow-hidden shadow-2xl">
                 <div className="absolute -top-24 -right-24 p-32 opacity-5 pointer-events-none rotate-12">
                     <Sparkles size={400} className="text-white" />
                 </div>
@@ -76,22 +117,28 @@ const Referral = () => {
                             <div className="flex gap-2 p-3 bg-dark-layer2/50 border border-white/5 rounded-3xl group focus-within:border-brand-primary transition-all shadow-inner">
                                 <input
                                     readOnly
-                                    value="https://orbitquest.com/ref/vishal_99"
+                                    value={referralLink || 'Loading...'}
                                     className="flex-1 bg-transparent border-none focus:ring-0 text-white font-black ml-4 text-base"
                                 />
-                                <button className="p-4 bg-dark-layer1 hover:bg-brand-primary hover:text-dark-bg text-brand-primary rounded-2xl transition-all flex items-center gap-2 font-black text-xs uppercase tracking-[0.2em] shadow-xl border border-white/5 active:scale-95">
-                                    <Copy size={18} /> Copy Link
+                                <button
+                                    onClick={copyToClipboard}
+                                    className={`p-4 ${copied ? 'bg-green-500 text-white' : 'bg-dark-layer1 text-brand-primary hover:bg-brand-primary hover:text-dark-bg'} rounded-2xl transition-all flex items-center gap-2 font-black text-xs uppercase tracking-[0.2em] shadow-xl border border-white/5 active:scale-95`}
+                                >
+                                    <Copy size={18} /> {copied ? 'Copied!' : 'Copy Link'}
                                 </button>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-dark-muted text-xs">Referral Code: <span className="text-white font-bold">{referralCode}</span></p>
                             </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-6">
                         {[
-                            { label: 'Total Clicks', val: '450', trend: '+12%' },
-                            { label: 'Referrals', val: '28', trend: '+4' },
-                            { label: 'Conversion', val: '6.2%', trend: 'Optimum' },
-                            { label: 'Earned', val: '$312.50', trend: 'Live' }
+                            { label: 'Total Clicks', val: stats?.clicks || 0, trend: 'Active' },
+                            { label: 'Referrals', val: stats?.totalReferrals || 0, trend: 'Lifetime' },
+                            { label: 'Conversion', val: stats?.clicks > 0 ? `${((stats.totalReferrals / stats.clicks) * 100).toFixed(1)}%` : '0%', trend: 'Optimum' },
+                            { label: 'Earned', val: `$${stats?.totalEarnings?.toFixed(2) || '0.00'}`, trend: 'Live' }
                         ].map((stat, i) => (
                             <div key={i} className="p-8 bg-white/5 rounded-[2.5rem] border border-white/10 flex flex-col justify-between hover:bg-white/[0.07] transition-colors">
                                 <div className="flex justify-between items-start mb-4">

@@ -82,9 +82,12 @@ router.post('/enroll', authenticate, async (req, res) => {
         payment.enrollmentId = enrollment._id;
         await payment.save();
 
-        // Update course stats
+        // Update course stats (Enrollment + Revenue)
         await Course.findByIdAndUpdate(courseId, {
-            $inc: { enrollmentCount: 1 }
+            $inc: {
+                enrollmentCount: 1,
+                totalRevenue: payment.amount || 0
+            }
         });
 
         // Update student's enrolled courses
@@ -98,9 +101,13 @@ router.post('/enroll', authenticate, async (req, res) => {
             }
         });
 
-        // Update instructor stats
+        // Update instructor stats (Total Students + Earnings)
         await User.findByIdAndUpdate(course.instructorId, {
-            $inc: { 'instructorProfile.totalStudents': 1 }
+            $inc: {
+                'instructorProfile.totalStudents': 1,
+                'earnings.total': payment.amount || 0,
+                'earnings.available': payment.amount || 0 // Assuming instant availability for now, or use 'pending'
+            }
         });
 
         // Create notifications (Non-blocking)

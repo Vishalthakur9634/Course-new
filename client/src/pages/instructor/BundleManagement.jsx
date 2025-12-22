@@ -63,7 +63,8 @@ const BundleManagement = () => {
             setShowModal(false);
             resetForm();
         } catch (error) {
-            alert('Error creating bundle');
+            console.error('Bundle creation error:', error);
+            alert(error.response?.data?.message || 'Error creating bundle: ' + error.message);
         }
     };
 

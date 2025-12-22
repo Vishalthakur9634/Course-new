@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const announcementSchema = new mongoose.Schema({
+const practiceSchema = new mongoose.Schema({
     courseId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Course',
@@ -10,22 +10,20 @@ const announcementSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    message: {
+    description: {
         type: String,
         required: true
     },
-    priority: {
-        type: String,
-        enum: ['low', 'medium', 'high'],
-        default: 'medium'
-    },
+    attachments: [{
+        name: String,
+        url: String,
+        type: String // 'pdf', 'ppt', etc.
+    }],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    attachments: [{
-        type: String // URL
-    }]
+        ref: 'User',
+        required: true
+    }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Announcement', announcementSchema);
+module.exports = mongoose.model('Practice', practiceSchema);

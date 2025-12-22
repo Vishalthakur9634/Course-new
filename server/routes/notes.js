@@ -21,6 +21,20 @@ router.get('/video/:videoId', async (req, res) => {
     }
 });
 
+// Get ALL notes for the authenticated user (for My Notes page)
+router.get('/', async (req, res) => {
+    try {
+        const notes = await Note.find({ userId: req.user.id })
+            .populate('videoId', 'title duration')
+            .populate('courseId', 'title thumbnail')
+            .sort({ createdAt: -1 });
+        res.json(notes);
+    } catch (error) {
+        console.error('Error fetching all notes:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Create a new note
 router.post('/', async (req, res) => {
     try {

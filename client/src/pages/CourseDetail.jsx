@@ -116,17 +116,18 @@ const CourseDetail = () => {
         if (!activeVideo || !course || !hasAccess) return;
 
         const progress = currentTime;
-        const completed = (currentTime / duration) > 0.9;
+        const completed = (currentTime / duration) > 0.8; // Reduced to 80% for better UX
 
         try {
             setVideoTime(currentTime);
             const userId = JSON.parse(localStorage.getItem('user')).id;
-            await api.post('/users/progress', {
-                userId,
+            await api.put(`/enrollment/${course._id}/progress`, {
                 videoId: activeVideo._id,
-                courseId: course._id,
-                progress,
-                completed
+                progress: currentTime, // Send raw time or %? Backend expects 'progress' but treats it as value to store in watchHistory. Enrollment uses it for completedVideos logic if 'completed' is true. 
+                // enrollment.js: const { videoId, progress, timeSpent, completed } = req.body;
+                // It pushes completedVideos if completed is true.
+                completed,
+                timeSpent: 5 // approx
             });
 
             setProgressMap(prev => ({
@@ -211,7 +212,7 @@ const CourseDetail = () => {
                     {hasAccess ? (
                         activeVideo ? (
                             <VideoPlayer
-                                src={`${activeVideo.videoUrl}`}
+                                src={`/${activeVideo.videoUrl.replace(/\\/g, '/').replace(/^\/+/, '')}`}
                                 poster={activeVideo.thumbnailUrl}
                                 onProgress={handleProgress}
                             />

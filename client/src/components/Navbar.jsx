@@ -202,9 +202,8 @@ const Navbar = () => {
                     )}
                 </div>
 
-                {/* Search & User Controls */}
                 <div className="flex items-center gap-4 flex-1 justify-end max-w-2xl">
-                    <div ref={searchRef} className="hidden md:flex flex-1 max-w-md relative group">
+                    <div ref={searchRef} className={`hidden md:flex flex-1 max-w-md relative group ${user.role === 'instructor' ? 'invisible pointer-events-none' : ''}`}>
                         <div className={`flex items-center w-full bg-dark-layer1/50 border rounded-2xl transition-all ${isSearchFocused ? 'border-brand-primary bg-dark-layer1 shadow-lg shadow-brand-primary/10' : 'border-dark-layer2 shadow-none'
                             }`}>
                             <Search className={`ml-4 transition-colors ${isSearchFocused ? 'text-brand-primary' : 'text-dark-muted'}`} size={18} />

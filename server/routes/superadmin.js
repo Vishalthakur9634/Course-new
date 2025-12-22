@@ -27,10 +27,20 @@ router.get('/dashboard', authenticate, requireSuperAdmin, async (req, res) => {
         const activeEnrollments = await Enrollment.countDocuments({ isCompleted: false });
         const completedEnrollments = await Enrollment.countDocuments({ isCompleted: true });
 
-        const payments = await Payment.find({ status: 'completed' });
-        const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
-        const platformEarnings = payments.reduce((sum, p) => sum + p.platformFee, 0);
-        const instructorEarnings = payments.reduce((sum, p) => sum + p.instructorEarning, 0);
+        // Optimize Revenue Calculation using Aggregation
+        const revenueStats = await Payment.aggregate([
+            { $match: { status: 'completed' } },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$amount' },
+                    platformEarnings: { $sum: '$platformFee' },
+                    instructorEarnings: { $sum: '$instructorEarning' }
+                }
+            }
+        ]);
+
+        const financialData = revenueStats[0] || { totalRevenue: 0, platformEarnings: 0, instructorEarnings: 0 };
 
         // Get growth data (last 30 days)
         const thirtyDaysAgo = new Date();
@@ -80,9 +90,9 @@ router.get('/dashboard', authenticate, requireSuperAdmin, async (req, res) => {
                     newLast30Days: newEnrollmentsLast30Days
                 },
                 revenue: {
-                    total: totalRevenue,
-                    platformEarnings,
-                    instructorEarnings
+                    total: financialData.totalRevenue,
+                    platformEarnings: financialData.platformEarnings,
+                    instructorEarnings: financialData.instructorEarnings
                 }
             },
             recentActivity: {
@@ -92,6 +102,7 @@ router.get('/dashboard', authenticate, requireSuperAdmin, async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Dashboard Stats Error:', error); // Add logging
         res.status(500).json({ message: 'Error fetching dashboard data', error: error.message });
     }
 });

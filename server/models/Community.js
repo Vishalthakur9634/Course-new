@@ -68,7 +68,7 @@ const postSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['discussion', 'question', 'showcase', 'announcement'],
+        enum: ['discussion', 'question', 'showcase', 'announcement', 'poll'],
         default: 'discussion'
     },
     tags: [String],
@@ -110,6 +110,14 @@ const postSchema = new mongoose.Schema({
     viewCount: {
         type: Number,
         default: 0
+    },
+    poll: {
+        question: String,
+        options: [{
+            text: String,
+            votes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+        }],
+        expiresAt: Date
     }
 }, { timestamps: true });
 

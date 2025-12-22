@@ -48,6 +48,55 @@ router.get('/profile/:userId', async (req, res) => {
     }
 });
 
+// Get Public Profile (Student Resume/Gamification)
+router.get('/:userId/public-profile', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId)
+            .select('name avatar bio createdAt role enrolledCourses certificates')
+            .populate({
+                path: 'enrolledCourses.courseId',
+                select: 'title thumbnail category difficulty'
+            })
+            .lean();
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Gamification Logic (Orbit XP)
+        // 1 Course = 500 XP
+        // 1 Certificate = 1000 XP
+        // 1 Year active = 200 XP
+        const coursesCompleted = user.enrolledCourses.filter(c => c.progress === 100).length;
+        const certificatesCount = user.certificates ? user.certificates.length : 0;
+        const yearsActive = (new Date() - new Date(user.createdAt)) / (1000 * 60 * 60 * 24 * 365);
+
+        const xp = Math.floor(
+            (user.enrolledCourses.length * 100) +
+            (coursesCompleted * 400) +
+            (certificatesCount * 1000) +
+            (yearsActive * 200)
+        );
+
+        // Badges Calculation
+        const badges = [];
+        if (xp > 1000) badges.push({ name: 'Orbit Explorer', icon: 'Rocket', color: 'blue' });
+        if (xp > 5000) badges.push({ name: 'Galaxy Master', icon: 'Crown', color: 'purple' });
+        if (coursesCompleted >= 5) badges.push({ name: 'Dedicated Learner', icon: 'BookOpen', color: 'green' });
+        if (certificatesCount >= 1) badges.push({ name: 'Certified Pro', icon: 'Award', color: 'yellow' });
+
+        res.json({
+            ...user,
+            gamification: {
+                xp,
+                level: Math.floor(xp / 1000) + 1,
+                badges,
+                coursesCompleted
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching public profile', error: error.message });
+    }
+});
+
 // Update User Profile
 router.put('/profile/:userId', async (req, res) => {
     try {

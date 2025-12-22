@@ -7,75 +7,89 @@ const Enrollment = require('../models/Enrollment');
 const { authenticate } = require('../middleware/rbac');
 
 // Middleware to check if user is instructor or admin
-const isInstructor = (req, res, next) => {
-    console.log('isInstructor Middleware Check:', {
-        user: req.user ? req.user._id : 'No User',
-        role: req.user ? req.user.role : 'No Role',
-        approved: req.user ? req.user.isInstructorApproved : 'N/A'
-    });
-
-    if (!req.user || !['instructor', 'admin', 'superadmin'].includes(req.user.role)) {
-        console.log('Access Denied: Invalid Role');
-        return res.status(403).json({ message: 'Access denied. Instructor or Admin only.' });
-    }
-    next();
-};
+const { requireInstructor } = require('../middleware/rbac');
 
 // Apply authentication to all routes
 router.use(authenticate);
 
 // Dashboard stats for instructor
-router.get('/dashboard', isInstructor, async (req, res) => {
+router.get('/dashboard', requireInstructor, async (req, res) => {
+    // Initialize default response structure
+    let responseData = {
+        totalCourses: 0,
+        totalStudents: 0,
+        totalRevenue: 0,
+        totalVideos: 0,
+        courses: [],
+        recentEnrollments: []
+    };
+
     try {
         const instructorId = req.user._id;
+        console.log('Fetching dashboard for instructor:', instructorId);
 
-        // Get all courses by this instructor
-        const courses = await Course.find({ instructorId }).populate('videos');
+        // 1. Fetch Courses
+        let courses = [];
+        try {
+            courses = await Course.find({ instructorId }).populate('videos').lean();
+            responseData.totalCourses = courses.length;
 
-        // Get enrollments for these courses
-        const courseIds = courses.map(c => c._id);
-        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
-            .populate('userId', 'name email avatar')
-            .populate('courseId', 'title');
-
-        // Calculate stats
-        // Safety check: Filter out enrollments where userId is null (deleted users)
-        const validEnrollments = enrollments.filter(e => e.userId);
-        const totalStudents = new Set(validEnrollments.map(e => e.userId._id.toString())).size;
-
-        const totalRevenue = courses.reduce((sum, course) => sum + (course.totalRevenue || 0), 0);
-        const totalCourses = courses.length;
-        // Safety check: Ensure videos array exists
-        const totalVideos = courses.reduce((sum, course) => sum + (course.videos ? course.videos.length : 0), 0);
-
-        res.json({
-            totalCourses,
-            totalStudents,
-            totalRevenue,
-            totalVideos,
-            courses: courses.map(c => ({
+            responseData.courses = courses.map(c => ({
                 _id: c._id,
                 title: c.title,
                 enrollmentCount: c.enrollmentCount || 0,
                 revenue: c.totalRevenue || 0,
                 rating: c.rating || 0,
                 videoCount: c.videos ? c.videos.length : 0
-            })),
-            recentEnrollments: validEnrollments.slice(0, 10).map(e => ({
-                _id: e._id,
-                enrolledAt: e.enrolledAt,
-                studentId: e.userId, // Maintain consistency with models
-                userId: e.userId // Alias for frontend compatibility
-            }))
-        });
+            }));
+
+            // Aggregates from courses
+            responseData.totalRevenue = courses.reduce((sum, c) => sum + (c.totalRevenue || 0), 0);
+            responseData.totalVideos = courses.reduce((sum, c) => sum + (c.videos ? c.videos.length : 0), 0);
+        } catch (err) {
+            console.error('Error processing courses:', err);
+        }
+
+        // 2. Fetch Enrollments
+        if (courses.length > 0) {
+            try {
+                const courseIds = courses.map(c => c._id);
+                const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
+                    .populate('studentId', 'name email avatar')
+                    .populate('courseId', 'title')
+                    .sort({ enrolledAt: -1 })
+                    .lean();
+
+                // Valid enrollments (where student exists)
+                const validEnrollments = enrollments.filter(e => e && e.studentId);
+
+                // Count unique students
+                const studentIds = validEnrollments.map(e => e.studentId._id.toString());
+                responseData.totalStudents = new Set(studentIds).size;
+
+                // Recent enrollments list
+                responseData.recentEnrollments = validEnrollments.slice(0, 10).map(e => ({
+                    _id: e._id,
+                    enrolledAt: e.enrolledAt,
+                    studentId: e.studentId,
+                    userId: e.studentId // fallback alias
+                }));
+            } catch (err) {
+                console.error('Error processing enrollments:', err);
+            }
+        }
+
+        res.json(responseData);
+
     } catch (error) {
-        console.error('Error fetching instructor dashboard:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('CRITICAL DASHBOARD ERROR:', error);
+        // Even in critical error, ensure we return JSON, not crashing the server
+        res.status(200).json(responseData);
     }
 });
 
 // Get all courses by instructor
-router.get('/courses', isInstructor, async (req, res) => {
+router.get('/courses', requireInstructor, async (req, res) => {
     try {
         const courses = await Course.find({ instructorId: req.user._id })
             .populate('videos')
@@ -97,7 +111,7 @@ router.get('/courses', isInstructor, async (req, res) => {
 });
 
 // Update instructor admin settings for a course
-router.put('/courses/:id/settings', isInstructor, async (req, res) => {
+router.put('/courses/:id/settings', requireInstructor, async (req, res) => {
     try {
         const course = await Course.findOne({
             _id: req.params.id,
@@ -128,29 +142,10 @@ router.put('/courses/:id/settings', isInstructor, async (req, res) => {
     }
 });
 
-// Get students enrolled in instructor's courses
-router.get('/students', isInstructor, async (req, res) => {
-    try {
-        const courses = await Course.find({ instructorId: req.user._id });
-        const courseIds = courses.map(c => c._id);
 
-        const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
-            .populate('userId', 'name email avatar')
-            .populate('courseId', 'title')
-            .sort({ enrolledAt: -1 });
-
-        // Filter out enrollments with deleted users
-        const validEnrollments = enrollments.filter(e => e.userId);
-
-        res.json(validEnrollments);
-    } catch (error) {
-        console.error('Error fetching students:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
 
 // Get students for a specific course
-router.get('/courses/:id/students', isInstructor, async (req, res) => {
+router.get('/courses/:id/students', requireInstructor, async (req, res) => {
     try {
         const course = await Course.findOne({
             _id: req.params.id,
@@ -162,14 +157,14 @@ router.get('/courses/:id/students', isInstructor, async (req, res) => {
         }
 
         const enrollments = await Enrollment.find({ courseId: req.params.id })
-            .populate('userId', 'name email avatar watchHistory')
+            .populate('studentId', 'name email avatar watchHistory')
             .sort({ enrolledAt: -1 });
 
         // Calculate progress for each student
         const studentsWithProgress = enrollments
-            .filter(e => e.userId) // Filter out deleted users
+            .filter(e => e.studentId) // Filter out deleted users
             .map(enrollment => {
-                const user = enrollment.userId;
+                const user = enrollment.studentId;
                 const courseVideos = course.videos ? course.videos.length : 0;
                 const watchedVideos = user.watchHistory ? user.watchHistory.filter(h =>
                     h.courseId && h.courseId.toString() === req.params.id && h.completed
@@ -179,7 +174,9 @@ router.get('/courses/:id/students', isInstructor, async (req, res) => {
                     ...enrollment.toObject(),
                     progress: courseVideos > 0 ? Math.round((watchedVideos / courseVideos) * 100) : 0,
                     watchedVideos,
-                    totalVideos: courseVideos
+                    totalVideos: courseVideos,
+                    studentId: user, // Ensure frontend gets the populated user object
+                    userId: user // Alias for frontend
                 };
             });
 
@@ -191,7 +188,7 @@ router.get('/courses/:id/students', isInstructor, async (req, res) => {
 });
 
 // Get earnings summary
-router.get('/earnings', isInstructor, async (req, res) => {
+router.get('/earnings', requireInstructor, async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
         const courses = await Course.find({ instructorId: req.user._id });
@@ -222,7 +219,7 @@ router.get('/earnings', isInstructor, async (req, res) => {
 });
 
 // Get analytics for instructor's courses
-router.get('/analytics', isInstructor, async (req, res) => {
+router.get('/analytics', requireInstructor, async (req, res) => {
     try {
         const courses = await Course.find({ instructorId: req.user._id });
         const courseIds = courses.map(c => c._id);
@@ -292,7 +289,7 @@ router.get('/analytics', isInstructor, async (req, res) => {
 });
 
 // Get all reviews for instructor's courses
-router.get('/reviews', isInstructor, async (req, res) => {
+router.get('/reviews', requireInstructor, async (req, res) => {
     try {
         const courses = await Course.find({ instructorId: req.user._id });
         const courseIds = courses.map(c => c._id);
@@ -311,23 +308,45 @@ router.get('/reviews', isInstructor, async (req, res) => {
 });
 
 // Get all students enrolled in instructor's courses
-router.get('/students', isInstructor, async (req, res) => {
+router.get('/students', requireInstructor, async (req, res) => {
     try {
         const courses = await Course.find({ instructorId: req.user._id });
         const courseIds = courses.map(c => c._id);
 
         const enrollments = await Enrollment.find({ courseId: { $in: courseIds } })
-            .populate('userId', 'name email avatar')
+            .populate('studentId', 'name email avatar')
             .populate('courseId', 'title thumbnail category')
             .sort({ enrolledAt: -1 })
             .lean();
 
         // Filter out null users (deleted accounts)
-        const validEnrollments = enrollments.filter(e => e.userId);
+        const validEnrollments = enrollments.filter(e => e.studentId);
 
-        res.json(validEnrollments);
+        // Map to include alias
+        const robustEnrollments = validEnrollments.map(e => ({
+            ...e,
+            userId: e.studentId // Alias for frontend compatibility
+        }));
+
+        res.json(robustEnrollments);
     } catch (error) {
         console.error('Error fetching students:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
+
+// Get all certificates issued for instructor's courses
+router.get('/certificates', requireInstructor, async (req, res) => {
+    try {
+        const Certificate = require('../models/Certificate');
+        const certificates = await Certificate.find({ instructorId: req.user._id })
+            .populate('userId', 'name email avatar')
+            .populate('courseId', 'title')
+            .sort({ issueDate: -1 });
+
+        res.json(certificates);
+    } catch (error) {
+        console.error('Error fetching certificates:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });

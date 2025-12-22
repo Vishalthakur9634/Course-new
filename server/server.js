@@ -54,6 +54,11 @@ const instructorAdminRoutes = require('./routes/instructorAdmin');
 const notesRoutes = require('./routes/notes');
 const megaRoutes = require('./routes/mega');
 const communityRoutes = require('./routes/community');
+const liveRoutes = require('./routes/live');
+const articleRoutes = require('./routes/articles');
+const referralRoutes = require('./routes/referrals');
+const uploadRoutes = require('./routes/upload');
+const practiceRoutes = require('./routes/practice');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -78,6 +83,11 @@ app.use('/api/instructor-admin', instructorAdminRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/mega', megaRoutes);
 app.use('/api/community', communityRoutes);
+app.use('/api/live', liveRoutes);
+app.use('/api/articles', articleRoutes);
+app.use('/api/referrals', referralRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/practice', practiceRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

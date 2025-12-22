@@ -67,13 +67,19 @@ const AssessmentManagement = () => {
         setAssessment({ ...assessment, questions: newQuestions });
     };
 
+    const handleDeleteQuestion = (index) => {
+        const newQuestions = assessment.questions.filter((_, i) => i !== index);
+        setAssessment({ ...assessment, questions: newQuestions });
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
             await api.post('/mega/assessments', assessment);
             alert('Assessment saved successfully!');
         } catch (error) {
-            alert('Error saving assessment');
+            console.error(error);
+            alert(error.response?.data?.message || 'Error saving assessment');
         } finally {
             setIsSaving(false);
         }
@@ -160,13 +166,18 @@ const AssessmentManagement = () => {
                             <div className="space-y-8 pb-10">
                                 {assessment.questions.map((q, qIndex) => (
                                     <div key={qIndex} className="bg-dark-layer2/30 border border-white/5 rounded-[2rem] p-8 space-y-6 relative group">
-                                        <button className="absolute top-8 right-8 text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"><Trash2 size={18} /></button>
+                                        <button
+                                            onClick={() => handleDeleteQuestion(qIndex)}
+                                            className="absolute top-8 right-8 text-red-400 opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
                                         <div className="space-y-4">
                                             <label className="text-xs font-black text-dark-muted uppercase tracking-[0.2em]">Question {qIndex + 1}</label>
                                             <textarea
                                                 value={q.questionText}
                                                 onChange={e => handleQuestionChange(qIndex, 'questionText', e.target.value)}
-                                                className="w-full bg-dark-layer1/50 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary h-24"
+                                                className="w-full bg-dark-layer2 border border-white/5 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary h-24 placeholder-dark-muted"
                                                 placeholder="Ask your question here..."
                                             />
                                         </div>

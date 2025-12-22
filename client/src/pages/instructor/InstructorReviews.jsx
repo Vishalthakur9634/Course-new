@@ -132,7 +132,7 @@ const InstructorReviews = () => {
                                     <User size={24} className="text-white" />
                                 </div>
                                 <div>
-                                    <p className="text-white font-bold">{review.userId?.name || 'Anonymous'}</p>
+                                    <p className="text-white font-bold">{review.user?.name || 'Anonymous'}</p>
                                     <p className="text-sm text-dark-muted">{review.courseTitle}</p>
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="flex">

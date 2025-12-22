@@ -31,6 +31,42 @@ router.get('/communities', async (req, res) => {
     }
 });
 
+// Get communities for enrolled instructors
+router.get('/communities/enrolled', authenticate, async (req, res) => {
+    try {
+        const User = require('../models/User'); // specific import to avoid circle if any (though usually fine)
+        const Course = require('../models/Course'); // Ensure Course model is available
+
+        // 1. Get student's enrolled courses to find instructors
+        const user = await User.findById(req.user._id).populate({
+            path: 'enrolledCourses.courseId',
+            select: 'instructorId'
+        });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // 2. Extract unique instructor IDs
+        const instructorIds = new Set();
+        user.enrolledCourses.forEach(enrollment => {
+            if (enrollment.courseId && enrollment.courseId.instructorId) {
+                instructorIds.add(enrollment.courseId.instructorId.toString());
+            }
+        });
+
+        // 3. Find communities created by these instructors
+        const communities = await Community.find({
+            creatorId: { $in: Array.from(instructorIds) }
+        })
+            .populate('creatorId', 'name avatar')
+            .sort({ memberCount: -1 });
+
+        res.json(communities);
+    } catch (error) {
+        console.error('Error fetching enrolled communities:', error);
+        res.status(500).json({ message: 'Error fetching communities', error: error.message });
+    }
+});
+
 // Create a community (instructors only)
 router.post('/communities', authenticate, async (req, res) => {
     try {
@@ -352,6 +388,34 @@ router.get('/trending', async (req, res) => {
         res.json(trending);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching trending posts', error: error.message });
+    }
+});
+
+// Vote on a poll
+router.post('/posts/:id/vote', authenticate, async (req, res) => {
+    try {
+        const { optionIndex } = req.body;
+        const post = await Post.findById(req.params.id);
+
+        if (!post || !post.poll) {
+            return res.status(404).json({ message: 'Poll not found' });
+        }
+
+        // Remove previous vote if exists
+        post.poll.options.forEach(opt => {
+            opt.votes = opt.votes.filter(v => v.toString() !== req.user._id.toString());
+        });
+
+        // Add new vote
+        if (post.poll.options[optionIndex]) {
+            post.poll.options[optionIndex].votes.push(req.user._id);
+            await post.save();
+            res.json(post.poll);
+        } else {
+            res.status(400).json({ message: 'Invalid option' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'Error voting', error: error.message });
     }
 });
 

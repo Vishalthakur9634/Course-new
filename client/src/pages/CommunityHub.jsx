@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import {
     MessageSquare, Users, Zap, Hash, MessageCircle, ArrowUpCircle, Filter, Search,
-    Plus, TrendingUp, Clock, Eye, Pin, Check, Trash2, X, Send, Heart, Flame,
-    Sparkles, Globe, Lock, Crown, Star, BookOpen, Code, Palette, Briefcase
+    Sparkles, Globe, Lock, Crown, Star, BookOpen, Code, Palette, Briefcase,
+    BarChart2, Image as ImageIcon, Loader
 } from 'lucide-react';
 
 const CommunityHub = () => {
     const [communities, setCommunities] = useState([]);
+    const [myCommunities, setMyCommunities] = useState([]); // [NEW] Enrolled instructor communities
     const [posts, setPosts] = useState([]);
     const [selectedCommunity, setSelectedCommunity] = useState(null);
     const [activeTab, setActiveTab] = useState('feed'); // feed, communities, trending
@@ -23,6 +24,15 @@ const CommunityHub = () => {
     const [newPost, setNewPost] = useState({ title: '', content: '', type: 'discussion', tags: '' });
     const [newCommunity, setNewCommunity] = useState({ name: '', description: '', category: 'general', color: '#6366f1' });
     const [newComment, setNewComment] = useState('');
+
+    // Poll State
+    const [pollOptions, setPollOptions] = useState(['', '']);
+    const [pollDuration, setPollDuration] = useState(1); // days
+
+    // Image State
+    const [imageFile, setImageFile] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const categoryIcons = {
         announcements: Crown,
@@ -46,6 +56,7 @@ const CommunityHub = () => {
         const user = JSON.parse(localStorage.getItem('user'));
         setCurrentUser(user);
         fetchCommunities();
+        fetchMyCommunities(); // [NEW]
         fetchPosts();
     }, []);
 
@@ -59,6 +70,15 @@ const CommunityHub = () => {
             setCommunities(data);
         } catch (error) {
             console.error('Error fetching communities:', error);
+        }
+    };
+
+    const fetchMyCommunities = async () => {
+        try {
+            const { data } = await api.get('/community/communities/enrolled');
+            setMyCommunities(data);
+        } catch (error) {
+            console.error('Error fetching my communities:', error);
         }
     };
 
@@ -100,26 +120,90 @@ const CommunityHub = () => {
         }
     };
 
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
     const handleCreatePost = async (e) => {
         e.preventDefault();
         if (!selectedCommunity) {
             alert('Please select a community first');
             return;
         }
+
+        setIsUploading(true);
         try {
+            let media = [];
+
+            // Upload Image if exists
+            if (imageFile) {
+                const formData = new FormData();
+                formData.append('file', imageFile);
+                const uploadRes = await api.post('/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                media.push({
+                    type: 'image',
+                    url: uploadRes.data.url
+                });
+            }
+
             const postData = {
                 ...newPost,
                 communityId: selectedCommunity._id,
-                tags: newPost.tags.split(',').map(t => t.trim()).filter(Boolean)
+                tags: newPost.tags.split(',').map(t => t.trim()).filter(Boolean),
+                media
             };
+
+            // Add Poll Data
+            if (newPost.type === 'poll') {
+                const validOptions = pollOptions.filter(o => o.trim());
+                if (validOptions.length < 2) {
+                    throw new Error('Poll must have at least 2 options');
+                }
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + parseInt(pollDuration));
+
+                postData.poll = {
+                    question: newPost.title,
+                    options: validOptions.map(text => ({ text })),
+                    expiresAt
+                };
+            }
+
             const { data } = await api.post('/community/posts', postData);
             setPosts([data, ...posts]);
             setShowCreatePost(false);
             setSelectedCommunity(null);
             setNewPost({ title: '', content: '', type: 'discussion', tags: '' });
+            setImageFile(null);
+            setImagePreview(null);
+            setPollOptions(['', '']);
         } catch (error) {
             console.error('Error creating post:', error);
             alert(error.response?.data?.message || 'Failed to create post');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleVote = async (postId, optionIndex) => {
+        try {
+            const { data } = await api.post(`/community/posts/${postId}/vote`, { optionIndex });
+            // Update local state
+            setPosts(posts.map(p => {
+                if (p._id === postId) {
+                    return { ...p, poll: data };
+                }
+                return p;
+            }));
+        } catch (error) {
+            console.error('Error voting:', error);
+            alert('Failed to record vote');
         }
     };
 
@@ -159,7 +243,8 @@ const CommunityHub = () => {
             announcement: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400',
             question: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
             showcase: 'bg-purple-500/10 border-purple-500/20 text-purple-400',
-            discussion: 'bg-green-500/10 border-green-500/20 text-green-400'
+            discussion: 'bg-green-500/10 border-green-500/20 text-green-400',
+            poll: 'bg-pink-500/10 border-pink-500/20 text-pink-400'
         };
         return colors[type] || 'bg-white/5 border-white/10 text-dark-muted';
     };
@@ -194,22 +279,28 @@ const CommunityHub = () => {
                     </div>
 
                     {/* Tab Navigation */}
-                    <div className="flex items-center gap-2 mt-6 border-t border-white/5 pt-6">
+                    <div className="flex items-center gap-2 mt-6 border-t border-white/5 pt-6 overflow-x-auto">
                         <button
                             onClick={() => setActiveTab('feed')}
-                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'feed' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
+                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'feed' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
                         >
                             <MessageSquare className="inline mr-2" size={16} /> Feed
                         </button>
                         <button
-                            onClick={() => setActiveTab('communities')}
-                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'communities' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
+                            onClick={() => setActiveTab('my_instructors')}
+                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'my_instructors' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
                         >
-                            <Users className="inline mr-2" size={16} /> Communities
+                            <Crown className="inline mr-2" size={16} /> My Instructors
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('communities')}
+                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'communities' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
+                        >
+                            <Users className="inline mr-2" size={16} /> All Communities
                         </button>
                         <button
                             onClick={() => setActiveTab('trending')}
-                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${activeTab === 'trending' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
+                            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${activeTab === 'trending' ? 'bg-brand-primary text-dark-bg' : 'bg-white/5 text-dark-muted hover:text-white'}`}
                         >
                             <Flame className="inline mr-2" size={16} /> Trending
                         </button>
@@ -221,7 +312,9 @@ const CommunityHub = () => {
                     <aside className="w-full lg:w-80 space-y-6">
                         {/* Communities List */}
                         <div className="bg-dark-layer1 border border-white/10 rounded-3xl p-6 shadow-2xl">
-                            <h3 className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-4">Your Communities</h3>
+                            <h3 className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] mb-4">
+                                {activeTab === 'my_instructors' ? 'My Instructor Communities' : 'All Communities'}
+                            </h3>
                             <div className="space-y-2 max-h-96 overflow-y-auto">
                                 <button
                                     onClick={() => setSelectedCommunity(null)}
@@ -229,7 +322,7 @@ const CommunityHub = () => {
                                 >
                                     <Globe size={18} /> All Posts
                                 </button>
-                                {communities.map((community) => {
+                                {(activeTab === 'my_instructors' ? myCommunities : communities).map((community) => {
                                     const Icon = categoryIcons[community.category] || Hash;
                                     return (
                                         <button
@@ -412,8 +505,54 @@ const CommunityHub = () => {
                                                 <p className="text-dark-muted leading-relaxed font-medium line-clamp-3">
                                                     {post.content}
                                                 </p>
+
+                                                {/* Image Display */}
+                                                {post.media && post.media.length > 0 && post.media[0].type === 'image' && (
+                                                    <div className="mt-4 rounded-xl overflow-hidden max-h-96">
+                                                        <img
+                                                            src={post.media[0].url}
+                                                            alt="Post content"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {/* Poll Display */}
+                                                {post.type === 'poll' && post.poll && (
+                                                    <div className="mt-4 bg-dark-layer2/50 rounded-xl p-4 border border-white/5 space-y-3" onClick={e => e.stopPropagation()}>
+                                                        {post.poll.options.map((option, idx) => {
+                                                            const totalVotes = post.poll.options.reduce((acc, curr) => acc + curr.votes.length, 0);
+                                                            const percentage = totalVotes === 0 ? 0 : Math.round((option.votes.length / totalVotes) * 100);
+                                                            const hasVoted = option.votes.includes(currentUser?.id);
+
+                                                            return (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => handleVote(post._id, idx)}
+                                                                    className={`relative w-full text-left p-3 rounded-lg text-sm font-bold border transition-all ${hasVoted
+                                                                        ? 'border-brand-primary text-white bg-brand-primary/10'
+                                                                        : 'border-white/10 text-dark-muted hover:bg-white/5'
+                                                                        }`}
+                                                                >
+                                                                    <div
+                                                                        className={`absolute inset-0 opacity-20 transition-all duration-1000 ${hasVoted ? 'bg-brand-primary' : 'bg-white'}`}
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    />
+                                                                    <div className="relative flex justify-between z-10">
+                                                                        <span>{option.text}</span>
+                                                                        <span>{percentage}%</span>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                        <p className="text-xs text-dark-muted text-center mt-2">
+                                                            {post.poll.options.reduce((acc, curr) => acc + curr.votes.length, 0)} votes • Ends {new Date(post.poll.expiresAt).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 {post.tags && post.tags.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
+                                                    <div className="flex flex-wrap gap-2 pt-2">
                                                         {post.tags.map((tag, idx) => (
                                                             <span key={idx} className="px-3 py-1 bg-white/5 text-brand-primary text-xs font-bold rounded-xl border border-white/10">
                                                                 #{tag}
@@ -498,7 +637,100 @@ const CommunityHub = () => {
                                         <option value="discussion">Discussion</option>
                                         <option value="question">Question</option>
                                         <option value="showcase">Showcase</option>
+                                        <option value="poll">Poll</option>
                                     </select>
+                                </div>
+
+                                {/* Poll Inputs */}
+                                {newPost.type === 'poll' && (
+                                    <div className="space-y-3 bg-dark-layer2/50 p-4 rounded-xl border border-white/5">
+                                        <label className="block text-sm font-bold text-brand-primary">Poll Options</label>
+                                        {pollOptions.map((option, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={option}
+                                                    onChange={(e) => {
+                                                        const newOptions = [...pollOptions];
+                                                        newOptions[idx] = e.target.value;
+                                                        setPollOptions(newOptions);
+                                                    }}
+                                                    placeholder={`Option ${idx + 1}`}
+                                                    className="flex-1 bg-dark-layer1 border border-white/10 rounded-lg p-2 text-white text-sm"
+                                                    required
+                                                />
+                                                {pollOptions.length > 2 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
+                                                        className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {pollOptions.length < 5 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setPollOptions([...pollOptions, ''])}
+                                                className="text-sm text-brand-primary font-bold hover:underline flex items-center gap-1"
+                                            >
+                                                <Plus size={14} /> Add Option
+                                            </button>
+                                        )}
+                                        <div>
+                                            <label className="block text-sm font-bold text-dark-muted mb-1">Duration (Days)</label>
+                                            <select
+                                                value={pollDuration}
+                                                onChange={(e) => setPollDuration(e.target.value)}
+                                                className="w-full bg-dark-layer1 border border-white/10 rounded-lg p-2 text-white text-sm"
+                                            >
+                                                <option value="1">1 Day</option>
+                                                <option value="3">3 Days</option>
+                                                <option value="7">7 Days</option>
+                                                <option value="30">30 Days</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Image Upload Input */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-bold text-dark-muted">Attachment</label>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => document.getElementById('post-image').click()}
+                                            className="px-4 py-2 bg-dark-layer2 hover:bg-white/5 text-white rounded-xl border border-white/10 transition-colors flex items-center gap-2 text-sm font-bold"
+                                        >
+                                            <ImageIcon size={16} /> {imageFile ? 'Change Image' : 'Add Image'}
+                                        </button>
+                                        <input
+                                            type="file"
+                                            id="post-image"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="hidden"
+                                        />
+                                        {imageFile && (
+                                            <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-3 py-1 rounded-lg text-xs font-bold border border-green-500/20">
+                                                <Check size={12} /> {imageFile.name}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                                                    className="ml-2 hover:text-red-400"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {imagePreview && (
+                                        <div className="mt-2 text-center bg-dark-layer2 rounded-xl p-2 border border-white/10">
+                                            <img src={imagePreview} alt="Preview" className="max-h-48 mx-auto rounded-lg" />
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-dark-muted mb-2">Title</label>
@@ -536,8 +768,9 @@ const CommunityHub = () => {
                                     <button
                                         type="submit"
                                         className="flex-1 bg-brand-primary hover:bg-brand-hover text-dark-bg px-6 py-3 rounded-2xl font-black transition-all"
+                                        disabled={isUploading}
                                     >
-                                        Publish Post
+                                        {isUploading ? <Loader className="animate-spin mx-auto" size={20} /> : 'Publish Post'}
                                     </button>
                                     <button
                                         type="button"

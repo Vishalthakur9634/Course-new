@@ -38,6 +38,10 @@ const bundleSchema = new mongoose.Schema({
     tag: {
         type: String, // e.g., "Best Seller", "Trending"
         default: ''
+    },
+    bg: {
+        type: String,
+        default: 'from-brand-primary to-orange-600'
     }
 }, { timestamps: true });
 

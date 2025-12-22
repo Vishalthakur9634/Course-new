@@ -52,7 +52,25 @@ const InstructorAdmin = () => {
     }
 
     if (!dashboardData) {
-        return <div className="text-center mt-10 text-white">Error loading dashboard</div>;
+        return (
+            <div className="flex flex-col items-center justify-center mt-20 text-white">
+                <div className="bg-red-500/10 p-6 rounded-lg border border-red-500/20 text-center max-w-md">
+                    <h3 className="text-xl font-bold text-red-400 mb-2">Dashboard Unavailable</h3>
+                    <p className="text-dark-muted mb-4">
+                        We couldn't load your instructor stats. This might be because your account is pending approval or there's a connection issue.
+                    </p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="bg-dark-layer2 hover:bg-dark-layer1 px-4 py-2 rounded text-sm transition-colors"
+                    >
+                        Retry Connection
+                    </button>
+                    <p className="text-xs text-dark-muted mt-4">
+                        If this persists, please contact support.
+                    </p>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -115,8 +133,8 @@ const InstructorAdmin = () => {
                 <button
                     onClick={() => setActiveTab('overview')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'overview'
-                            ? 'text-brand-primary border-b-2 border-brand-primary'
-                            : 'text-dark-muted hover:text-white'
+                        ? 'text-brand-primary border-b-2 border-brand-primary'
+                        : 'text-dark-muted hover:text-white'
                         }`}
                 >
                     Overview
@@ -124,8 +142,8 @@ const InstructorAdmin = () => {
                 <button
                     onClick={() => setActiveTab('courses')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'courses'
-                            ? 'text-brand-primary border-b-2 border-brand-primary'
-                            : 'text-dark-muted hover:text-white'
+                        ? 'text-brand-primary border-b-2 border-brand-primary'
+                        : 'text-dark-muted hover:text-white'
                         }`}
                 >
                     Course Management
@@ -133,8 +151,8 @@ const InstructorAdmin = () => {
                 <button
                     onClick={() => setActiveTab('students')}
                     className={`px-6 py-3 font-medium transition-colors ${activeTab === 'students'
-                            ? 'text-brand-primary border-b-2 border-brand-primary'
-                            : 'text-dark-muted hover:text-white'
+                        ? 'text-brand-primary border-b-2 border-brand-primary'
+                        : 'text-dark-muted hover:text-white'
                         }`}
                 >
                     Students

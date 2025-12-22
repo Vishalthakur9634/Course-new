@@ -146,6 +146,22 @@ const userSchema = new mongoose.Schema({
     banReason: {
         type: String,
         default: ''
+    },
+
+    // Referral System
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    referredBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    referralStats: {
+        totalReferrals: { type: Number, default: 0 },
+        totalEarnings: { type: Number, default: 0 },
+        clicks: { type: Number, default: 0 }
     }
 }, { timestamps: true });
 
@@ -153,5 +169,17 @@ const userSchema = new mongoose.Schema({
 // email index removed (already unique in schema)
 userSchema.index({ role: 1 });
 userSchema.index({ isInstructorApproved: 1 });
+
+userSchema.index({ referralCode: 1 });
+
+userSchema.pre('save', async function (next) {
+    if (!this.referralCode) {
+        // Generate simple referral code: Uppercase Name (first 4 chars) + Random 4 digits
+        const namePart = this.name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'USER');
+        const randomPart = Math.floor(1000 + Math.random() * 9000);
+        this.referralCode = `${namePart}${randomPart}`;
+    }
+    next();
+});
 
 module.exports = mongoose.model('User', userSchema);

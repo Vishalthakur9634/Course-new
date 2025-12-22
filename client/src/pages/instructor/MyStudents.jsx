@@ -35,8 +35,9 @@ const MyStudents = () => {
     };
 
     const filteredStudents = students.filter(enrollment => {
-        const matchesSearch = enrollment.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            enrollment.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const student = enrollment.studentId || enrollment.userId;
+        const matchesSearch = student?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student?.email?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCourse = selectedCourse === 'all' || enrollment.courseId?._id === selectedCourse;
         return matchesSearch && matchesCourse;
     });
@@ -97,12 +98,12 @@ const MyStudents = () => {
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
                                             <span className="text-white font-bold">
-                                                {enrollment.userId?.name?.charAt(0).toUpperCase() || '?'}
+                                                {(enrollment.studentId || enrollment.userId)?.name?.charAt(0).toUpperCase() || '?'}
                                             </span>
                                         </div>
                                         <div>
-                                            <p className="text-white font-medium">{enrollment.userId?.name || 'Unknown'}</p>
-                                            <p className="text-sm text-dark-muted">{enrollment.userId?.email || 'N/A'}</p>
+                                            <p className="text-white font-medium">{(enrollment.studentId || enrollment.userId)?.name || 'Unknown'}</p>
+                                            <p className="text-sm text-dark-muted">{(enrollment.studentId || enrollment.userId)?.email || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </td>

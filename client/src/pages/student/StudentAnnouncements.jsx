@@ -83,7 +83,7 @@ const StudentAnnouncements = () => {
                                 <Bell size={20} />
                             </div>
                             <div>
-                                <h3 className="text-white font-medium">All Announcements</h3>
+                                <h3 className="text-white font-medium">All Chats</h3>
                                 <p className="text-sm text-dark-muted">Combined feed</p>
                             </div>
                         </div>
@@ -124,7 +124,7 @@ const StudentAnnouncements = () => {
                         )}
                         <div>
                             <h2 className="text-white font-bold text-lg">
-                                {selectedCourseId === 'all' ? 'All Announcements' : courses.find(c => c._id === selectedCourseId)?.title}
+                                {selectedCourseId === 'all' ? 'All Chats' : courses.find(c => c._id === selectedCourseId)?.title}
                             </h2>
                             <p className="text-sm text-dark-muted">
                                 {selectedCourseId === 'all' ? 'Updates from all your instructors' : 'Official Course Channel'}

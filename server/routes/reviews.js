@@ -3,7 +3,9 @@ const Review = require('../models/Review');
 const Course = require('../models/Course');
 const router = express.Router();
 
-// Get Reviews for a Course
+const { authenticate } = require('../middleware/rbac');
+
+// Get Reviews for a Course (Public)
 router.get('/:courseId', async (req, res) => {
     try {
         const reviews = await Review.find({ course: req.params.courseId })
@@ -15,10 +17,23 @@ router.get('/:courseId', async (req, res) => {
     }
 });
 
-// Add a Review
-router.post('/', async (req, res) => {
+// Get My Reviews
+router.get('/my/all', authenticate, async (req, res) => {
     try {
-        const { userId, courseId, rating, comment } = req.body;
+        const reviews = await Review.find({ user: req.user._id })
+            .populate('course', 'title thumbnail')
+            .sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching my reviews', error: error.message });
+    }
+});
+
+// Add a Review
+router.post('/', authenticate, async (req, res) => {
+    try {
+        const { courseId, rating, comment } = req.body;
+        const userId = req.user._id;
 
         const review = new Review({
             user: userId,

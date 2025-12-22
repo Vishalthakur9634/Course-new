@@ -9,7 +9,7 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password, role } = req.body;
+        const { name, email, password, role, referralCode } = req.body;
 
         // Validate role
         if (role && !['student', 'instructor'].includes(role)) {
@@ -20,6 +20,12 @@ router.post('/register', async (req, res) => {
         if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
         const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Handle Referral
+        let referrer = null;
+        if (referralCode) {
+            referrer = await User.findOne({ referralCode });
+        }
 
         // Check if this is the first user - if so, make them superadmin
         const userCount = await User.countDocuments();
@@ -40,10 +46,22 @@ router.post('/register', async (req, res) => {
             password: hashedPassword,
             role: userRole,
             isInstructorApproved: userRole === 'instructor' ? true : true, // Auto-approve for development
-            instructorApplicationDate: userRole === 'instructor' ? new Date() : undefined
+            instructorApplicationDate: userRole === 'instructor' ? new Date() : undefined,
+            referredBy: referrer ? referrer._id : undefined
         });
 
         await user.save();
+
+        // Update Referrer Stats
+        if (referrer) {
+            try {
+                referrer.referralStats.totalReferrals = (referrer.referralStats.totalReferrals || 0) + 1;
+                await referrer.save();
+            } catch (err) {
+                console.error('Error updating referrer stats:', err);
+                // Don't fail registration if this fails
+            }
+        }
 
         // Create welcome notification
         await Notification.create({
