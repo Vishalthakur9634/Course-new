@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import InstructorAssignments from './pages/instructor/InstructorAssignments';
+import StudentAssignments from './pages/student/StudentAssignments';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import RoleSidebar from './components/RoleSidebar';
 import Navbar from './components/Navbar';
@@ -30,6 +32,8 @@ import PurchaseHistory from './pages/student/PurchaseHistory';
 import StudentPublicProfile from './pages/student/StudentPublicProfile';
 import MyReviews from './pages/student/MyReviews';
 import StudentPractice from './pages/student/StudentPractice'; // [NEW]
+import TakeAssessment from './pages/student/TakeAssessment'; // [NEW]
+import Reels from './pages/student/Reels'; // [NEW]
 
 // Instructor Pages
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
@@ -40,7 +44,12 @@ import InstructorEarnings from './pages/instructor/InstructorEarnings';
 import InstructorAnalytics from './pages/instructor/InstructorAnalytics';
 import InstructorReviews from './pages/instructor/InstructorReviews';
 import InstructorSettings from './pages/instructor/InstructorSettings';
+import EditCourse from './pages/instructor/EditCourse'; // [NEW]
 import UploadCourse from './pages/instructor/UploadCourse';
+
+// ... (previous imports)
+
+
 import InstructorAnnouncements from './pages/instructor/InstructorAnnouncements';
 import PromotionManagement from './pages/instructor/PromotionManagement';
 import BundleManagement from './pages/instructor/BundleManagement';
@@ -195,6 +204,8 @@ const PublicRoute = ({ children }) => {
 };
 
 // Unified Layout with Sidebar for ALL users
+import MobileNav from './components/MobileNav';
+
 const AppLayout = ({ children }) => {
     const [user, setUser] = useState(null);
     const navigate = useNavigate();
@@ -211,12 +222,20 @@ const AppLayout = ({ children }) => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden">
+        <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden relative">
             <Navbar />
-            <div className="flex flex-1 overflow-hidden pt-[72px]">
-                {user && <RoleSidebar user={user} onLogout={handleLogout} />}
-                <main className="flex-1 overflow-y-auto p-4 md:p-8">{children}</main>
+            <div className="h-[60px] md:h-[72px] flex-shrink-0" /> {/* Spacer for fixed Navbar */}
+            <div className="flex flex-1 overflow-hidden min-h-0 relative">
+                {user && (
+                    <aside className="hidden md:flex flex-col h-full border-r border-white/5 flex-shrink-0 overflow-hidden">
+                        <RoleSidebar user={user} onLogout={handleLogout} />
+                    </aside>
+                )}
+                <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 flex flex-col min-h-0 custom-scrollbar relative">
+                    {children}
+                </main>
             </div>
+            {user && <MobileNav user={user} />}
         </div>
     );
 };
@@ -240,22 +259,26 @@ function App() {
                 <Route path="/u/:studentKey" element={<AppLayout><StudentPublicProfile /></AppLayout>} />
 
                 {/* Student Routes */}
-                <Route path="/dashboard" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Dashboard /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/browse" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><CourseBrowse /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><InstructorList /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/my-instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyInstructors /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/dashboard" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><Dashboard /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/browse" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><CourseBrowse /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><InstructorList /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/my-instructors" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyInstructors /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/profile" element={<PrivateRoute><AppLayout><Profile /></AppLayout></PrivateRoute>} />
-                <Route path="/my-learning" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyLearning /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/wishlist" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Wishlist /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><StudentAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/categories" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><Categories /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/profile/:userId" element={<AppLayout><Profile /></AppLayout>} />
+                <Route path="/my-learning" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyLearning /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/wishlist" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><Wishlist /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/categories" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><Categories /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/certificates" element={<PrivateRoute><AppLayout><Certificates /></AppLayout></PrivateRoute>} />
                 <Route path="/course/:id" element={<PrivateRoute><AppLayout><CourseDetail /></AppLayout></PrivateRoute>} />
-                <Route path="/live" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><StudentLiveSessions /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/my-notes" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyNotes /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/purchase-history" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><PurchaseHistory /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/my-reviews" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><MyReviews /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/practice" element={<PrivateRoute><RoleRoute allowedRoles={['student']}><AppLayout><StudentPractice /></AppLayout></RoleRoute></PrivateRoute>} /> {/* [NEW] */}
+                <Route path="/live" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentLiveSessions /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/my-notes" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyNotes /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/purchase-history" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><PurchaseHistory /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/my-reviews" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyReviews /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/practice" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentPractice /></AppLayout></RoleRoute></PrivateRoute>} /> {/* [NEW] */}
+                <Route path="/course/:id/assessment" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><TakeAssessment /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentAssignments /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/reels" element={<PrivateRoute><Reels /></PrivateRoute>} /> {/* [NEW] */}
 
                 {/* Instructor Routes */}
                 <Route path="/instructor" element={<PrivateRoute><RoleRoute allowedRoles={['instructor']}><AppLayout><InstructorDashboard /></AppLayout></RoleRoute></PrivateRoute>} />
@@ -263,13 +286,14 @@ function App() {
                 <Route path="/instructor/courses" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><MyCourses /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/upload" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><UploadCourse /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructor/edit-course/:id" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'admin', 'superadmin']}><AppLayout><UploadCourse /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/edit-course/:id" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'admin', 'superadmin']}><AppLayout><EditCourse /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/students" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><MyStudents /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/earnings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorEarnings /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/promotions" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><PromotionManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/bundles" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><BundleManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/assessments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><AssessmentManagement /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorAssignments /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/reviews" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorReviews /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/settings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorSettings /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/live" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorLiveManager /></AppLayout></RoleRoute></PrivateRoute>} />

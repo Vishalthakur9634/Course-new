@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { TrendingUp, Users, DollarSign, BookOpen, Plus, Upload, BarChart2, Calendar } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, BookOpen, Plus, Upload, BarChart2, Calendar, Video, FileText } from 'lucide-react';
 
 const InstructorDashboard = () => {
     const [stats, setStats] = useState(null);
@@ -163,6 +163,14 @@ const InstructorDashboard = () => {
                 <Link to="/instructor/upload" className="bg-dark-layer1 border border-dark-layer2 text-white px-6 py-3 rounded-lg font-bold hover:bg-dark-layer2 flex items-center gap-2">
                     <Upload size={20} />
                     Upload Content
+                </Link>
+                <Link to="/instructor/live" className="bg-dark-layer1 border border-dark-layer2 text-white px-6 py-3 rounded-lg font-bold hover:bg-dark-layer2 flex items-center gap-2">
+                    <Video size={20} />
+                    Live Session
+                </Link>
+                <Link to="/instructor/practice" className="bg-dark-layer1 border border-dark-layer2 text-white px-6 py-3 rounded-lg font-bold hover:bg-dark-layer2 flex items-center gap-2">
+                    <FileText size={20} />
+                    Daily Practice
                 </Link>
             </div>
 

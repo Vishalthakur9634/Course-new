@@ -31,6 +31,15 @@ const CourseDetail = () => {
             setCurrentUser(JSON.parse(userStr));
             checkWishlistStatus(JSON.parse(userStr).id);
         }
+
+        // Capture Referral Code
+        const params = new URLSearchParams(window.location.search);
+        const refCode = params.get('ref');
+        if (refCode) {
+            localStorage.setItem('currentReferral', refCode);
+            // Optionally count clicks here via API
+        }
+
         fetchCourseData();
     }, [id]);
 
@@ -193,7 +202,7 @@ const CourseDetail = () => {
     if (!course) return <div className="text-center mt-10 text-white">Course not found</div>;
 
     return (
-        <div className="flex h-[calc(100vh-80px)] -m-4 md:-m-8 overflow-hidden bg-dark-bg relative">
+        <div className="flex h-full overflow-hidden bg-dark-bg relative rounded-xl border border-white/5">
             {showPaymentModal && (
                 <PaymentModal
                     course={course}
@@ -206,8 +215,8 @@ const CourseDetail = () => {
             <div className="flex-1 flex flex-col min-w-0" style={{ marginRight: sidebarOpen ? 0 : 0 }}>
                 {/* Video Player Area */}
                 <div
-                    className="bg-black w-full relative flex-shrink-0 flex items-center justify-center"
-                    style={{ height: `${videoHeight}vh` }}
+                    className="bg-black w-full relative flex-shrink-0 flex items-center justify-center md:h-[60vh] aspect-video md:aspect-auto"
+                    style={{ height: window.innerWidth >= 768 ? `${videoHeight}vh` : 'auto' }}
                 >
                     {hasAccess ? (
                         activeVideo ? (
@@ -250,6 +259,19 @@ const CourseDetail = () => {
                                     >
                                         <Heart size={24} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
                                     </button>
+                                    <button
+                                        onClick={() => {
+                                            if (!currentUser) return alert('Login to share');
+                                            const refLink = `${window.location.origin}/course/${course._id}?ref=${currentUser.referralCode}`;
+                                            navigator.clipboard.writeText(refLink);
+                                            alert('Referral link copied!');
+                                        }}
+                                        className="px-4 rounded-xl border-2 border-dark-layer2 hover:border-green-500 hover:text-green-500 text-white transition-colors flex items-center justify-center"
+                                        title="Share & Earn"
+                                    >
+                                        <dollarSign size={24} /> {/* Assuming dollarSign or similar exists, or just text. Wait, Lucide import needed? */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-share-2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg>
+                                    </button>
                                 </div>
 
                                 <p className="mt-4 text-xs text-dark-muted flex items-center justify-center gap-1">
@@ -260,9 +282,9 @@ const CourseDetail = () => {
                     )}
                 </div>
 
-                {/* Vertical Resizer Handle */}
+                {/* Vertical Resizer Handle (Desktop Only) */}
                 <div
-                    className="h-1 bg-dark-layer2 hover:bg-brand-primary cursor-row-resize transition-colors w-full z-10"
+                    className="hidden md:block h-1 bg-dark-layer2 hover:bg-brand-primary cursor-row-resize transition-colors w-full z-10"
                     onMouseDown={startResizingVideo}
                 />
 

@@ -4,9 +4,9 @@ import {
     LayoutDashboard, BookOpen, Users, DollarSign,
     Settings, LogOut, PlusCircle, BarChart, MessageSquare,
     Bell, Star, Award, Search, Sparkles, Package,
-    Activity, ShieldCheck, Mail, HelpCircle, LayoutGrid,
-    Upload, BarChart3, Menu, X, ChevronLeft, ChevronRight, Heart,
-    FileText, Clock, Video, PenTool // [NEW]
+    LayoutGrid,
+    Upload, BarChart3, ChevronLeft, ChevronRight, Heart,
+    FileText, Clock, Video, PenTool, Film, ShieldCheck // [NEW]
 } from 'lucide-react';
 import ResizablePanel from './ResizablePanel';
 
@@ -14,13 +14,14 @@ const RoleSidebar = ({ user, onLogout }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
 
     // Student navigation items
     const studentNav = [
         { icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
         { icon: BookOpen, label: 'My Learning', path: '/my-learning' },
+        { icon: Film, label: 'Shorts', path: '/reels' }, // [NEW]
         { icon: FileText, label: 'Practice', path: '/practice' }, // [NEW]
+        { icon: FileText, label: 'Assignments', path: '/assignments' }, // [NEW]
         { icon: Video, label: 'Live Sessions', path: '/live' }, // [NEW]
         { icon: FileText, label: 'My Notes', path: '/my-notes' }, // [NEW]
         { icon: Heart, label: 'Wishlist', path: '/wishlist' },
@@ -35,9 +36,12 @@ const RoleSidebar = ({ user, onLogout }) => {
         { icon: BarChart3, label: 'Dashboard', path: '/instructor' },
         // { icon: ShieldCheck, label: 'Admin Panel', path: '/instructor/admin' }, // Redundant
         { icon: BookOpen, label: 'My Courses', path: '/instructor/courses' },
+        { icon: Film, label: 'Shorts', path: '/reels' }, // [NEW]
         { icon: Video, label: 'Live Sessions', path: '/instructor/live' },
         { icon: PenTool, label: 'Blog Articles', path: '/instructor/articles' }, // [NEW]
         { icon: FileText, label: 'Practice', path: '/instructor/practice' }, // [NEW]
+        { icon: FileText, label: 'Assignments', path: '/instructor/assignments' }, // [NEW]
+        { icon: MessageSquare, label: 'Community', path: '/community' }, // [NEW]
         { icon: Upload, label: 'Upload Content', path: '/instructor/upload' },
         { icon: MessageSquare, label: 'Chats', path: '/instructor/announcements' },
         { icon: Users, label: 'Students', path: '/instructor/students' },
@@ -94,7 +98,7 @@ const RoleSidebar = ({ user, onLogout }) => {
     };
 
     const SidebarContent = () => (
-        <div className="flex flex-col h-full bg-dark-layer1 border-r border-dark-layer2">
+        <div className="flex flex-col h-full bg-dark-layer1 border-r border-dark-layer2 min-h-0">
             {/* Header */}
             <div className="p-4 border-b border-dark-layer2">
                 <div className="flex items-center justify-between mb-3">
@@ -108,12 +112,6 @@ const RoleSidebar = ({ user, onLogout }) => {
                         className="p-2 hover:bg-dark-layer2 rounded-lg transition-colors hidden md:block"
                     >
                         {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                    </button>
-                    <button
-                        onClick={() => setIsMobileOpen(false)}
-                        className="p-2 hover:bg-dark-layer2 rounded-lg transition-colors md:hidden"
-                    >
-                        <X size={20} />
                     </button>
                 </div>
 
@@ -134,7 +132,7 @@ const RoleSidebar = ({ user, onLogout }) => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1 min-h-0 custom-scrollbar">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
@@ -177,50 +175,24 @@ const RoleSidebar = ({ user, onLogout }) => {
     );
 
     return (
-        <>
-            {/* Mobile Menu Button */}
-            <button
-                onClick={() => setIsMobileOpen(true)}
-                className="fixed top-4 left-4 z-50 p-2 bg-dark-layer1 border border-dark-layer2 rounded-lg md:hidden"
-            >
-                <Menu size={24} />
-            </button>
-
-            {/* Mobile Overlay */}
-            {isMobileOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
-                    onClick={() => setIsMobileOpen(false)}
-                />
+        <div className="hidden md:flex flex-col h-full overflow-hidden">
+            {isCollapsed ? (
+                <div className="w-16 h-full flex flex-col overflow-hidden">
+                    <SidebarContent />
+                </div>
+            ) : (
+                <ResizablePanel
+                    defaultWidth={280}
+                    minWidth={240}
+                    maxWidth={400}
+                    position="left"
+                    storageKey={`sidebar-width-${user?.role}`}
+                    className="h-full flex flex-col overflow-hidden"
+                >
+                    <SidebarContent />
+                </ResizablePanel>
             )}
-
-            {/* Mobile Sidebar */}
-            <div
-                className={`fixed top-0 left-0 h-full w-64 z-50 transform transition-transform duration-300 ease-in-out md:hidden ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'
-                    }`}
-            >
-                <SidebarContent />
-            </div>
-
-            {/* Desktop Resizable Sidebar */}
-            <div className="hidden md:block">
-                {isCollapsed ? (
-                    <div className="w-16">
-                        <SidebarContent />
-                    </div>
-                ) : (
-                    <ResizablePanel
-                        defaultWidth={280}
-                        minWidth={240}
-                        maxWidth={400}
-                        position="left"
-                        storageKey={`sidebar-width-${user?.role}`}
-                    >
-                        <SidebarContent />
-                    </ResizablePanel>
-                )}
-            </div>
-        </>
+        </div>
     );
 };
 

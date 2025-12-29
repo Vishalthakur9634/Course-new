@@ -84,7 +84,10 @@ const UploadCourse = () => {
                 }
             }
 
-            alert('Course created successfully! Pending admin approval.');
+            // Submit for approval
+            await api.post(`/instructor/courses/${course._id}/submit`);
+
+            alert('Course created and submitted for approval successfully!');
             navigate('/instructor/courses');
         } catch (error) {
             console.error('Error creating course:', error);
@@ -178,6 +181,7 @@ const UploadCourse = () => {
                                 type="file"
                                 accept="image/*"
                                 onChange={handleThumbnailChange}
+                                required
                                 className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
                             />
                         </div>

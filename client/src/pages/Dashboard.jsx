@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
-import { PlayCircle, Search, Clock, Zap, Award, BookOpen, CheckCircle, Flame } from 'lucide-react';
+import { PlayCircle, Search, Clock, Zap, Award, BookOpen, CheckCircle, Flame, Share2 } from 'lucide-react';
 
 const Dashboard = () => {
     const [courses, setCourses] = useState([]);
@@ -61,7 +61,7 @@ const Dashboard = () => {
     return (
         <div className="space-y-12 pb-12">
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-brand-primary to-purple-600 rounded-2xl p-8 md:p-12 text-white relative overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-r from-brand-primary to-purple-600 rounded-2xl p-6 md:p-12 text-white relative overflow-hidden shadow-2xl">
                 <div className="relative z-10 max-w-2xl">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">
                         Welcome back, {user?.name.split(' ')[0]}! 👋
@@ -128,9 +128,9 @@ const Dashboard = () => {
                     <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                         <Clock className="text-brand-primary" /> Continue Learning
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="flex overflow-x-auto pb-4 gap-4 md:grid md:grid-cols-3 md:gap-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                         {recentEnrollments.map(enrollment => (
-                            <Link to={`/course/${enrollment.courseId._id}`} key={enrollment._id} className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-4 hover:border-brand-primary transition-all flex gap-4 items-center group">
+                            <Link to={`/course/${enrollment.courseId._id}`} key={enrollment._id} className="min-w-[85vw] md:min-w-0 snap-center bg-dark-layer1 border border-dark-layer2 rounded-xl p-4 hover:border-brand-primary transition-all flex gap-4 items-center group shadow-md md:shadow-none">
                                 <div className="w-32 h-20 rounded-lg overflow-hidden flex-shrink-0 relative">
                                     <img src={enrollment.courseId.thumbnail} alt="" className="w-full h-full object-cover" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -185,9 +185,9 @@ const Dashboard = () => {
                 </div>
 
                 {/* Course Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="flex overflow-x-auto pb-6 gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
                     {filteredCourses.map((course) => (
-                        <Link to={`/course/${course._id}`} key={course._id} className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden hover:border-brand-primary transition-all group hover:shadow-lg hover:shadow-brand-primary/10 flex flex-col h-full">
+                        <Link to={`/course/${course._id}`} key={course._id} className="min-w-[85vw] md:min-w-0 snap-center bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden hover:border-brand-primary transition-all group hover:shadow-lg hover:shadow-brand-primary/10 flex flex-col h-full shadow-md md:shadow-none">
                             <div className="aspect-video bg-dark-layer2 relative overflow-hidden">
                                 <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
@@ -195,6 +195,28 @@ const Dashboard = () => {
                                 </div>
                                 <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-xs font-bold text-white">
                                     {course.videos.length} Videos
+                                </div>
+                                {/* Referral Button Overlay */}
+                                <div className="absolute top-2 left-2 flex gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const userStr = localStorage.getItem('user');
+                                            if (!userStr) {
+                                                alert('Login to share and earn!');
+                                                return;
+                                            }
+                                            const u = JSON.parse(userStr);
+                                            const refLink = `${window.location.origin}/course/${course._id}?ref=${u.referralCode || 'REF' + u.id.slice(-6)}`;
+                                            navigator.clipboard.writeText(refLink);
+                                            alert('Referral link copied! Share this with your friends to earn rewards.');
+                                        }}
+                                        className="p-2 rounded-full bg-black/50 hover:bg-green-500/80 transition-colors z-10 text-white opacity-0 group-hover:opacity-100"
+                                        title="Share & Earn"
+                                    >
+                                        <Share2 size={16} />
+                                    </button>
                                 </div>
                             </div>
                             <div className="p-5 flex-1 flex flex-col">

@@ -11,6 +11,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Request Logger
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
 // Serve static files with proper MIME types for HLS streaming
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     setHeaders: (res, filePath) => {
@@ -88,13 +94,31 @@ app.use('/api/articles', articleRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/practice', practiceRoutes);
+app.use('/api/reels', require('./routes/reels')); // [NEW] Reels routes
+app.use('/api/assignments', require('./routes/assignments')); // [NEW] Assignment routes
 
 // Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-const PORT = process.env.PORT || 5000;
+// Global Error Handler & Logger
+const fs = require('fs');
+app.use((err, req, res, next) => {
+    const errorLog = `[${new Date().toISOString()}] ${req.method} ${req.url} - Error: ${err.message}\nStack: ${err.stack}\n\n`;
+    fs.appendFileSync('debug_log.txt', errorLog);
+    console.error('SERVER ERROR:', err);
+    res.status(500).json({ message: 'Internal Server Error', error: err.message });
+});
+
+const PORT = process.env.PORT || 5001;
+
+// Ensure upload directories exist
+const uploadDirs = ['uploads', 'uploads/profiles', 'uploads/files', 'uploads/courses', 'uploads/temp'];
+uploadDirs.forEach(dir => {
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });

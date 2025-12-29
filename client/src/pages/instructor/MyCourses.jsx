@@ -133,6 +133,12 @@ const MyCourses = () => {
                                         View
                                     </button>
                                     <button
+                                        onClick={() => navigate(`/instructor/edit-course/${course._id}`)}
+                                        className="p-2 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30 transition-colors"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                    <button
                                         onClick={() => handleDelete(course._id)}
                                         className="p-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors"
                                     >
@@ -146,8 +152,8 @@ const MyCourses = () => {
                                         onClick={() => handleRequestSponsorship(course)}
                                         disabled={course.sponsorship?.requestStatus === 'pending'}
                                         className={`w-full py-2 rounded text-sm font-medium transition-colors ${course.sponsorship?.requestStatus === 'pending'
-                                                ? 'bg-yellow-500/10 text-yellow-500 cursor-not-allowed'
-                                                : 'bg-dark-layer2 hover:bg-dark-layer1 text-white border border-dark-layer2'
+                                            ? 'bg-yellow-500/10 text-yellow-500 cursor-not-allowed'
+                                            : 'bg-dark-layer2 hover:bg-dark-layer1 text-white border border-dark-layer2'
                                             }`}
                                     >
                                         {course.sponsorship?.requestStatus === 'pending' ? 'Sponsorship Pending' : 'Request Sponsorship'}

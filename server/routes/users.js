@@ -3,6 +3,23 @@ const User = require('../models/User');
 const Course = require('../models/Course');
 const Video = require('../models/Video');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { authenticate } = require('../middleware/rbac');
+
+// Multer for Profile Photos
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/profiles';
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${req.params.userId}-${Date.now()}${path.extname(file.originalname)}`);
+    }
+});
+const upload = multer({ storage });
 
 // Get all instructors
 router.get('/instructors', async (req, res) => {
@@ -39,7 +56,24 @@ router.get('/profile/:userId', async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        res.json(user);
+        // Add custom fields for UI
+        const userData = user.toObject();
+        userData.followerCount = user.followers?.length || 0;
+        userData.followingCount = user.following?.length || 0;
+
+        // If an authenticated user is requesting, check if they are following
+        if (req.headers.authorization) {
+            try {
+                const jwt = require('jsonwebtoken');
+                const token = req.headers.authorization.split(' ')[1];
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+                userData.isFollowing = user.followers?.some(id => id.toString() === decoded.id);
+            } catch (e) {
+                userData.isFollowing = false;
+            }
+        }
+
+        res.json(userData);
     } catch (error) {
         if (error.kind === 'ObjectId') {
             return res.status(400).json({ message: 'Invalid user ID format' });
@@ -108,6 +142,9 @@ router.put('/profile/:userId', async (req, res) => {
         if (name) user.name = name;
         if (email) user.email = email;
         if (avatar) user.avatar = avatar;
+        if (req.body.bio !== undefined) user.bio = req.body.bio;
+        if (req.body.phone !== undefined) user.phone = req.body.phone;
+        if (req.body.socialLinks) user.instructorProfile.socialLinks = req.body.socialLinks;
 
         if (req.body.password) {
             const bcrypt = require('bcryptjs');
@@ -119,6 +156,20 @@ router.put('/profile/:userId', async (req, res) => {
         res.json({ message: 'Profile updated successfully', user });
     } catch (error) {
         res.status(500).json({ message: 'Error updating profile', error: error.message });
+    }
+});
+
+// Update Profile Photo
+router.post('/profile/:userId/photo', authenticate, upload.single('photo'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: 'No photo uploaded' });
+
+        const imageUrl = `/uploads/profiles/${req.file.filename}`;
+        await User.findByIdAndUpdate(req.params.userId, { avatar: imageUrl });
+
+        res.json({ url: imageUrl, message: 'Photo updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating photo', error: error.message });
     }
 });
 
@@ -184,7 +235,7 @@ router.post('/:userId/wishlist/:courseId', async (req, res) => {
 
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const index = user.wishlist.indexOf(courseId);
+        const index = user.wishlist.findIndex(id => id.toString() === courseId);
         let action = '';
 
         if (index > -1) {
@@ -238,6 +289,58 @@ router.get('/instructors/top', async (req, res) => {
     } catch (error) {
         console.error('Error fetching top instructors:', error);
         res.status(500).json({ message: 'Error fetching top instructors', error: error.message });
+    }
+});
+
+// Follow User
+router.post('/follow/:userId', authenticate, async (req, res) => {
+    try {
+        const targetUser = await User.findById(req.params.userId);
+        const currentUser = await User.findById(req.user.id);
+
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+        if (targetUser._id.equals(currentUser._id)) return res.status(400).json({ message: 'You cannot follow yourself' });
+
+        if (!currentUser.following.includes(targetUser._id)) {
+            currentUser.following.push(targetUser._id);
+            targetUser.followers.push(currentUser._id);
+            await currentUser.save();
+            await targetUser.save();
+
+            // Notify target user
+            const Notification = require('../models/Notification');
+            await Notification.create({
+                userId: targetUser._id,
+                type: 'new_follower',
+                title: 'New Follower!',
+                message: `${currentUser.name} started following you.`,
+                priority: 'low'
+            });
+        }
+
+        res.json({ message: 'Followed successfully', following: currentUser.following });
+    } catch (error) {
+        res.status(500).json({ message: 'Error following user', error: error.message });
+    }
+});
+
+// Unfollow User
+router.post('/unfollow/:userId', authenticate, async (req, res) => {
+    try {
+        const targetUser = await User.findById(req.params.userId);
+        const currentUser = await User.findById(req.user.id);
+
+        if (!targetUser) return res.status(404).json({ message: 'User not found' });
+
+        currentUser.following = currentUser.following.filter(id => !id.equals(targetUser._id));
+        targetUser.followers = targetUser.followers.filter(id => !id.equals(currentUser._id));
+
+        await currentUser.save();
+        await targetUser.save();
+
+        res.json({ message: 'Unfollowed successfully', following: currentUser.following });
+    } catch (error) {
+        res.status(500).json({ message: 'Error unfollowing user', error: error.message });
     }
 });
 

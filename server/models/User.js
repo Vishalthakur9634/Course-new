@@ -162,7 +162,15 @@ const userSchema = new mongoose.Schema({
         totalReferrals: { type: Number, default: 0 },
         totalEarnings: { type: Number, default: 0 },
         clicks: { type: Number, default: 0 }
-    }
+    },
+    followers: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    following: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
 }, { timestamps: true });
 
 // Indexes
@@ -170,7 +178,7 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ role: 1 });
 userSchema.index({ isInstructorApproved: 1 });
 
-userSchema.index({ referralCode: 1 });
+// userSchema.index({ referralCode: 1 }); // Removed duplicate index
 
 userSchema.pre('save', async function (next) {
     if (!this.referralCode) {

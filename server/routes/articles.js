@@ -6,9 +6,13 @@ const { authenticate, requireInstructor } = require('../middleware/rbac');
 // Get all published articles (with optional filtering)
 router.get('/', async (req, res) => {
     try {
-        const query = { isPublished: true };
+        const query = {};
+        if (req.query.authorId) {
+            query.authorId = req.query.authorId;
+        } else {
+            query.isPublished = true;
+        }
         if (req.query.category) query.category = req.query.category;
-        if (req.query.authorId) query.authorId = req.query.authorId; // [NEW] Filter by author
 
         const articles = await Article.find(query)
             .populate('authorId', 'name avatar')
@@ -40,13 +44,24 @@ router.get('/:slug', async (req, res) => {
 // Create article (Instructor only)
 router.post('/', authenticate, requireInstructor, async (req, res) => {
     try {
+        console.log('Creating article with payload:', {
+            ...req.body,
+            authorId: req.user._id
+        });
         const article = new Article({
             ...req.body,
             authorId: req.user._id
         });
         await article.save();
+        console.log('Article created successfully:', article._id);
         res.status(201).json(article);
     } catch (error) {
+        console.error('Error creating article:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+            code: error.code
+        });
         res.status(500).json({ message: 'Error creating article', error: error.message });
     }
 });

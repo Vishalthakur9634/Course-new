@@ -59,6 +59,28 @@ router.post('/purchase', async (req, res) => {
 
         await payment.save();
 
+        // 4. Handle Referral Commission
+        // Check req.body.referralCode
+        const { referralCode } = req.body;
+        if (referralCode) {
+            const referrer = await User.findOne({ referralCode });
+            // Prevent self-referral
+            if (referrer && referrer._id.toString() !== userId) {
+                const commissionRate = 0.10; // 10%
+                const commission = course.price * commissionRate;
+
+                // Update Referrer
+                referrer.referralStats.totalEarnings = (referrer.referralStats.totalEarnings || 0) + commission;
+                referrer.earnings.pending = (referrer.earnings.pending || 0) + commission; // Add to accessible earnings
+                referrer.referralStats.totalReferrals = (referrer.referralStats.totalReferrals || 0) + 1;
+                await referrer.save();
+
+                console.log(`Commission of $${commission} recorded for referrer ${referrer.email}`);
+
+                // Ideally, create a Transaction record for the referrer too
+            }
+        }
+
         // Return success with payment ID so frontend can call enroll
         res.json({
             success: true,

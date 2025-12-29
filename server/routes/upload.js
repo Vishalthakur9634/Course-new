@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { authenticate, requireInstructor } = require('../middleware/rbac');
 
 // Configure Multer
 const storage = multer.diskStorage({
@@ -20,11 +21,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit for reels/files
 });
 
 // Single file upload
-router.post('/', upload.single('file'), (req, res) => {
+router.post('/', authenticate, upload.single('file'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'No file uploaded' });
@@ -36,6 +37,7 @@ router.post('/', upload.single('file'), (req, res) => {
 
         res.json({
             url: fileUrl,
+            filePath: fileUrl, // Backwards compatibility
             filename: req.file.originalname,
             type: req.file.mimetype
         });

@@ -9,7 +9,8 @@ const articleSchema = new mongoose.Schema({
     slug: {
         type: String,
         unique: true,
-        lowercase: true
+        lowercase: true,
+        sparse: true
     },
     content: {
         type: String,
@@ -30,6 +31,10 @@ const articleSchema = new mongoose.Schema({
     category: {
         type: String,
         default: 'general'
+    },
+    videoUrl: {
+        type: String,
+        default: ''
     },
     isPublished: {
         type: Boolean,

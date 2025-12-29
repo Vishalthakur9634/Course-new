@@ -9,6 +9,7 @@ const StudentAnnouncements = () => {
     const [selectedCourseId, setSelectedCourseId] = useState('all');
     const [loading, setLoading] = useState(true);
     const messagesEndRef = useRef(null);
+    const containerRef = useRef(null);
 
     useEffect(() => {
         fetchData();
@@ -27,7 +28,9 @@ const StudentAnnouncements = () => {
     }, [filteredAnnouncements]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (containerRef.current) {
+            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+        }
     };
 
     const fetchData = async () => {
@@ -58,7 +61,7 @@ const StudentAnnouncements = () => {
     if (loading) return <div className="p-8 text-center text-white">Loading...</div>;
 
     return (
-        <div className="flex h-[calc(100vh-2rem)] bg-dark-bg overflow-hidden rounded-xl border border-dark-layer2 shadow-2xl">
+        <div className="flex h-full bg-dark-bg overflow-hidden rounded-xl border border-dark-layer2 shadow-2xl">
             {/* Sidebar - Course List */}
             <div className="w-80 bg-dark-layer1 border-r border-dark-layer2 flex flex-col">
                 <div className="p-4 border-b border-dark-layer2">
@@ -137,7 +140,9 @@ const StudentAnnouncements = () => {
                 </div>
 
                 {/* Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-opacity-50"
+                <div
+                    ref={containerRef}
+                    className="flex-1 overflow-y-auto p-4 space-y-4 bg-opacity-50 scroll-smooth"
                     style={{ backgroundImage: 'url("https://web.telegram.org/img/bg_0.png")', backgroundBlendMode: 'overlay', backgroundColor: '#0e1621' }}>
 
                     {filteredAnnouncements.length === 0 ? (

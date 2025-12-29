@@ -49,7 +49,8 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
             const response = await api.post('/payment/purchase', {
                 userId,
                 courseId: course._id,
-                paymentDetails: formData
+                paymentDetails: formData,
+                referralCode: localStorage.getItem('currentReferral') // [NEW]
             });
 
             if (response.data.success) {

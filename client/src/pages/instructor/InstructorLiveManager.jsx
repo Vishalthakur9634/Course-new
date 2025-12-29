@@ -36,7 +36,7 @@ const InstructorLiveManager = () => {
     const fetchCourses = async () => {
         try {
             const { data } = await api.get('/instructor/courses');
-            setCourses(data.courses || []);
+            setCourses(data || []);
         } catch (error) {
             console.error('Error fetching courses:', error);
         }
@@ -151,6 +151,15 @@ const InstructorLiveManager = () => {
                                     className="w-full bg-dark-layer2 border border-white/10 rounded-xl p-3 text-white"
                                     value={formData.title}
                                     onChange={e => setFormData({ ...formData, title: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-dark-muted mb-2">Description</label>
+                                <textarea
+                                    required
+                                    className="w-full bg-dark-layer2 border border-white/10 rounded-xl p-3 text-white h-24 resize-none"
+                                    value={formData.description}
+                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">

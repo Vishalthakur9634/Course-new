@@ -13,6 +13,7 @@ const InstructorArticleManager = () => {
         category: 'general',
         tags: '',
         coverImage: '',
+        videoFile: null,
         isPublished: true
     });
 
@@ -22,17 +23,9 @@ const InstructorArticleManager = () => {
 
     const fetchArticles = async () => {
         try {
-            // Check if there is an endpoint for 'my articles', otherwise filter client side or use the public one if it returns authorId
-            // For MVP we might need to adjust the backend to return *all* articles for the instructor, even drafts.
-            // currently GET /articles returns all published. 
-            // Let's rely on GET /articles for now and maybe add a client side filter if needed, 
-            // BUT simpler is to assume Instructors want to see what they published.
-            // Ideally we need a GET /articles/my endpoint.
-            const { data } = await api.get('/articles');
             const user = JSON.parse(localStorage.getItem('user'));
-            // Filter client-side for now as per current backend implementation
-            const myArticles = data.filter(a => a.authorId?._id === user._id || a.authorId === user._id);
-            setArticles(myArticles);
+            const { data } = await api.get(`/articles?authorId=${user._id || user.id}`);
+            setArticles(data);
         } catch (error) {
             console.error('Error fetching articles:', error);
         } finally {
@@ -45,7 +38,7 @@ const InstructorArticleManager = () => {
         try {
             const payload = {
                 ...formData,
-                tags: formData.tags.split(',').map(t => t.trim())
+                tags: formData.tags.split(',').map(t => t.trim()).filter(t => t !== '')
             };
             await api.post('/articles', payload);
             fetchArticles();
@@ -158,14 +151,34 @@ const InstructorArticleManager = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-dark-muted mb-2">Cover Image URL</label>
-                                    <input
-                                        type="url"
-                                        className="w-full bg-dark-layer2 border border-white/10 rounded-xl p-3 text-white focus:border-brand-primary outline-none"
-                                        placeholder="https://..."
-                                        value={formData.coverImage}
-                                        onChange={e => setFormData({ ...formData, coverImage: e.target.value })}
-                                    />
+                                    <label className="block text-sm font-bold text-dark-muted mb-2">Cover Image</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            id="articleCover"
+                                            onChange={async (e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    const upData = new FormData();
+                                                    upData.append('file', file);
+                                                    try {
+                                                        const { data } = await api.post('/upload', upData);
+                                                        setFormData({ ...formData, coverImage: data.url });
+                                                    } catch (err) {
+                                                        alert('Failed to upload image');
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <label htmlFor="articleCover" className="flex-1 bg-dark-layer2 border border-white/10 rounded-xl p-3 text-white cursor-pointer hover:border-brand-primary truncate">
+                                            {formData.coverImage ? 'Change Image' : 'Upload Image'}
+                                        </label>
+                                        {formData.coverImage && (
+                                            <img src={formData.coverImage} alt="Preview" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 

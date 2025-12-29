@@ -17,9 +17,19 @@ const assessmentSchema = new mongoose.Schema({
         required: true
     },
     questions: [{
+        type: { type: String, enum: ['mcq', 'coding', 'subjective'], default: 'mcq' },
         questionText: { type: String, required: true },
-        options: [{ type: String, required: true }],
-        correctAnswerIndex: { type: Number, required: true },
+        // For MCQ
+        options: [{ type: String }],
+        correctAnswerIndex: { type: Number },
+        // For Coding
+        starterCode: { type: String },
+        testCases: [{
+            input: String,
+            expectedOutput: String,
+            hidden: { type: Boolean, default: false }
+        }],
+        // For all
         points: { type: Number, default: 1 }
     }],
     passingScore: {

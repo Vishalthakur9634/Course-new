@@ -1,5 +1,7 @@
-import { MessageSquare, FileText, Info, Send, ThumbsUp, Reply, User, BookOpen, PenTool } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, FileText, Info, Send, ThumbsUp, Reply, User, BookOpen, PenTool, Sparkles, X, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UserLink from './UserLink';
 
 const VideoTabs = ({ video, course, currentTime }) => {
     const navigate = useNavigate();
@@ -156,7 +158,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
     return (
         <div className="flex flex-col h-full bg-dark-layer1 border border-dark-layer2 rounded-lg overflow-hidden">
             {/* Tab Headers */}
-            <div className="flex border-b border-dark-layer2 overflow-x-auto no-scrollbar">
+            <div className="flex border-b border-dark-layer2 overflow-x-auto scrollbar-hide">
                 {/* Only show tabs if enabled by instructor */}
                 {(course.instructorAdminSettings?.enableOverview !== false) && (
                     <button
@@ -227,13 +229,12 @@ const VideoTabs = ({ video, course, currentTime }) => {
                             <div className="border-t border-dark-layer2 pt-4">
                                 <h3 className="font-semibold text-white mb-3">Instructor</h3>
                                 <div className="flex items-start gap-4">
-                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-white font-bold text-xl">
-                                            {course.instructorId.name?.charAt(0).toUpperCase() || 'I'}
-                                        </span>
-                                    </div>
+                                    <UserLink
+                                        user={course.instructorId}
+                                        avatarSize="w-16 h-16"
+                                        nameClass="text-lg font-bold text-white"
+                                    />
                                     <div className="flex-1">
-                                        <p className="text-lg font-bold text-white">{course.instructorId.name}</p>
                                         {course.instructorId.instructorProfile?.headline && (
                                             <p className="text-sm text-dark-muted mt-1">
                                                 {course.instructorId.instructorProfile.headline}
@@ -318,80 +319,78 @@ const VideoTabs = ({ video, course, currentTime }) => {
                         ) : (
                             <div className="space-y-6">
                                 {comments.map((comment) => (
-                                    <div key={comment._id} className="flex gap-3">
-                                        {/* Avatar */}
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                            {comment.user.avatar ? (
-                                                <img src={comment.user.avatar} alt={comment.user.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-xs font-bold text-white">{comment.user.name.charAt(0)}</span>
-                                            )}
-                                        </div>
-
+                                    <div key={comment._id} className="flex gap-4">
+                                        <UserLink
+                                            user={comment.user}
+                                            showAvatar={true}
+                                            avatarSize="w-10 h-10"
+                                            nameClass="hidden"
+                                        />
                                         <div className="flex-1">
-                                            {/* Comment Header */}
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold text-white text-sm">{comment.user.name}</span>
-                                                <span className="text-xs text-dark-muted">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                                                <UserLink
+                                                    user={comment.user}
+                                                    showAvatar={false}
+                                                    nameClass="font-bold text-white text-sm"
+                                                />
+                                                <span className="text-[10px] text-dark-muted font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleDateString()}</span>
                                             </div>
+                                            <p className="text-dark-text text-sm leading-relaxed mb-3">{comment.text}</p>
 
-                                            {/* Comment Text */}
-                                            <p className="text-dark-text text-sm mb-2">{comment.text}</p>
-
-                                            {/* Actions */}
-                                            <div className="flex items-center gap-4 text-xs text-dark-muted mb-2">
+                                            <div className="flex items-center gap-6 text-xs text-dark-muted mb-4">
                                                 <button
                                                     onClick={() => handleLike(comment._id)}
-                                                    className={`flex items-center gap-1 hover:text-white transition-colors ${comment.likes.includes(currentUser?.id) ? 'text-brand-primary' : ''}`}
+                                                    className={`flex items-center gap-1.5 hover:text-white transition-colors ${comment.likes?.includes(currentUser?.id) ? 'text-brand-primary' : ''}`}
                                                 >
-                                                    <ThumbsUp size={14} /> {comment.likes.length || 0}
+                                                    <ThumbsUp size={14} className={comment.likes?.includes(currentUser?.id) ? 'fill-current' : ''} />
+                                                    <span className="font-black">{comment.likes?.length || 0}</span>
                                                 </button>
                                                 <button
                                                     onClick={() => setActiveReplyId(activeReplyId === comment._id ? null : comment._id)}
-                                                    className="flex items-center gap-1 hover:text-white transition-colors"
+                                                    className="flex items-center gap-1.5 hover:text-white transition-colors"
                                                 >
-                                                    <Reply size={14} /> Reply
+                                                    <Reply size={14} /> <span className="font-black">REPLY</span>
                                                 </button>
                                             </div>
 
-                                            {/* Reply Input */}
                                             {activeReplyId === comment._id && (
-                                                <div className="flex gap-2 mb-4 mt-2">
+                                                <div className="flex gap-2 mb-6 animate-in slide-in-from-top-2 duration-300">
                                                     <input
                                                         type="text"
                                                         value={replyText}
                                                         onChange={(e) => setReplyText(e.target.value)}
                                                         placeholder="Write a reply..."
-                                                        className="flex-1 bg-dark-layer2 border border-dark-layer2 rounded px-3 py-1 text-sm text-white focus:border-brand-primary focus:outline-none"
+                                                        className="flex-1 bg-dark-layer2 border border-dark-layer2 rounded-xl px-4 py-2 text-sm text-white focus:border-brand-primary focus:outline-none"
                                                         autoFocus
                                                     />
                                                     <button
                                                         onClick={() => handleReply(comment._id)}
-                                                        className="bg-brand-primary text-white px-3 py-1 rounded text-xs font-bold hover:bg-brand-hover"
+                                                        className="bg-brand-primary text-dark-bg px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-hover transition-all"
                                                     >
-                                                        Reply
+                                                        Post
                                                     </button>
                                                 </div>
                                             )}
 
-                                            {/* Replies List */}
                                             {comment.replies && comment.replies.length > 0 && (
-                                                <div className="space-y-3 mt-2 pl-4 border-l-2 border-dark-layer2">
+                                                <div className="space-y-4 mt-2 pl-4 border-l-2 border-dark-layer2">
                                                     {comment.replies.map((reply, idx) => (
                                                         <div key={idx} className="flex gap-3">
-                                                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                                                {reply.user?.avatar ? (
-                                                                    <img src={reply.user.avatar} alt={reply.user.name} className="w-full h-full object-cover" />
-                                                                ) : (
-                                                                    <span className="text-[10px] font-bold text-white">{reply.user?.name?.charAt(0) || 'U'}</span>
-                                                                )}
-                                                            </div>
-                                                            <div>
+                                                            <UserLink
+                                                                user={reply.user}
+                                                                avatarSize="w-8 h-8"
+                                                                nameClass="hidden"
+                                                            />
+                                                            <div className="flex-1">
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-white text-xs">{reply.user?.name || 'Unknown User'}</span>
-                                                                    <span className="text-[10px] text-dark-muted">{new Date(reply.createdAt).toLocaleDateString()}</span>
+                                                                    <UserLink
+                                                                        user={reply.user}
+                                                                        showAvatar={false}
+                                                                        nameClass="font-bold text-white text-xs"
+                                                                    />
+                                                                    <span className="text-[9px] text-dark-muted font-bold uppercase tracking-widest">{new Date(reply.createdAt).toLocaleDateString()}</span>
                                                                 </div>
-                                                                <p className="text-dark-text text-xs mt-0.5">{reply.text}</p>
+                                                                <p className="text-dark-text text-xs mt-1 leading-relaxed">{reply.text}</p>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -405,205 +404,213 @@ const VideoTabs = ({ video, course, currentTime }) => {
                     </div>
                 )}
 
-                {activeTab === 'studentNotes' && (
-                    <div className="flex flex-col h-full space-y-6">
-                        {/* Note Input */}
-                        <div className="bg-dark-layer2 p-4 rounded-xl border border-white/5">
-                            <div className="flex items-center justify-between mb-3 px-1">
-                                <span className="text-xs font-bold text-dark-muted flex items-center gap-2">
-                                    <FileText size={14} className="text-brand-primary" />
-                                    Note at {formatTime(currentTime)}
-                                </span>
-                                <span className="text-[10px] text-dark-muted uppercase font-black tracking-widest">Auto-timestamp</span>
+                {
+                    activeTab === 'studentNotes' && (
+                        <div className="flex flex-col h-full space-y-6">
+                            {/* Note Input */}
+                            <div className="bg-dark-layer2 p-4 rounded-xl border border-white/5">
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <span className="text-xs font-bold text-dark-muted flex items-center gap-2">
+                                        <FileText size={14} className="text-brand-primary" />
+                                        Note at {formatTime(currentTime)}
+                                    </span>
+                                    <span className="text-[10px] text-dark-muted uppercase font-black tracking-widest">Auto-timestamp</span>
+                                </div>
+                                <form onSubmit={handleAddNote} className="space-y-3">
+                                    <textarea
+                                        value={newNoteContent}
+                                        onChange={(e) => setNewNoteContent(e.target.value)}
+                                        placeholder="Add a private note at this moment..."
+                                        className="w-full bg-dark-layer1 border border-white/5 rounded-lg p-3 text-sm text-white focus:border-brand-primary focus:outline-none min-h-[100px] resize-none"
+                                    />
+                                    <div className="flex justify-end">
+                                        <button
+                                            type="submit"
+                                            disabled={!newNoteContent.trim() || isSavingNote}
+                                            className="bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all"
+                                        >
+                                            {isSavingNote ? 'Saving...' : 'Save Note'}
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                            <form onSubmit={handleAddNote} className="space-y-3">
-                                <textarea
-                                    value={newNoteContent}
-                                    onChange={(e) => setNewNoteContent(e.target.value)}
-                                    placeholder="Add a private note at this moment..."
-                                    className="w-full bg-dark-layer1 border border-white/5 rounded-lg p-3 text-sm text-white focus:border-brand-primary focus:outline-none min-h-[100px] resize-none"
-                                />
-                                <div className="flex justify-end">
-                                    <button
-                                        type="submit"
-                                        disabled={!newNoteContent.trim() || isSavingNote}
-                                        className="bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all"
+
+                            {/* Notes List */}
+                            <div className="space-y-4">
+                                {studentNotes.length === 0 ? (
+                                    <div className="py-12 text-center">
+                                        <FileText className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
+                                        <p className="text-sm text-dark-muted">Your private notes will appear here.</p>
+                                    </div>
+                                ) : (
+                                    studentNotes.map((note) => (
+                                        <div key={note._id} className="group bg-dark-layer2/50 border border-white/5 rounded-xl p-4 hover:border-brand-primary/30 transition-all">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const player = document.querySelector('video');
+                                                        if (player) player.currentTime = note.timestamp;
+                                                    }}
+                                                    className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider hover:bg-brand-primary hover:text-white transition-all"
+                                                >
+                                                    {formatTime(note.timestamp)}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteNote(note._id)}
+                                                    className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                >
+                                                    <X size={14} />
+                                                    {/* X icon helper not imported, just using text for now if missing, but likely covered by handleDeleteNote usage elsewhere */}
+                                                </button>
+                                            </div>
+                                            <p className="text-sm text-dark-text leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                            <div className="mt-3 text-[10px] text-dark-muted font-medium">
+                                                Last edited: {new Date(note.updatedAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )
+                }
+
+                {
+                    activeTab === 'notes' && (
+                        <div className="space-y-4 text-white">
+                            <div className="flex items-center gap-2 mb-4">
+                                <FileText className="text-brand-primary" size={24} />
+                                <h2 className="text-xl font-bold">Video Summary</h2>
+                            </div>
+
+                            {/* PDF Note Download */}
+                            {video.notePdf && (
+                                <div className="bg-dark-layer2 p-4 rounded-lg border border-dark-layer2 mb-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-red-500/20 p-2 rounded text-red-400">
+                                            <FileText size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-medium">Lecture Notes</h3>
+                                            <p className="text-xs text-dark-muted">PDF Document</p>
+                                        </div>
+                                    </div>
+                                    <a
+                                        href={video.notePdf}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-4 py-2 bg-brand-primary text-white text-sm rounded hover:bg-brand-hover transition-colors"
                                     >
-                                        {isSavingNote ? 'Saving...' : 'Save Note'}
-                                    </button>
+                                        View / Download
+                                    </a>
                                 </div>
-                            </form>
-                        </div>
-
-                        {/* Notes List */}
-                        <div className="space-y-4">
-                            {studentNotes.length === 0 ? (
-                                <div className="py-12 text-center">
-                                    <FileText className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                    <p className="text-sm text-dark-muted">Your private notes will appear here.</p>
-                                </div>
-                            ) : (
-                                studentNotes.map((note) => (
-                                    <div key={note._id} className="group bg-dark-layer2/50 border border-white/5 rounded-xl p-4 hover:border-brand-primary/30 transition-all">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <button
-                                                onClick={() => {
-                                                    const player = document.querySelector('video');
-                                                    if (player) player.currentTime = note.timestamp;
-                                                }}
-                                                className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider hover:bg-brand-primary hover:text-white transition-all"
-                                            >
-                                                {formatTime(note.timestamp)}
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteNote(note._id)}
-                                                className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
-                                            >
-                                                <XIcon />
-                                                {/* X icon helper not imported, just using text for now if missing, but likely covered by handleDeleteNote usage elsewhere */}
-                                            </button>
-                                        </div>
-                                        <p className="text-sm text-dark-text leading-relaxed whitespace-pre-wrap">{note.content}</p>
-                                        <div className="mt-3 text-[10px] text-dark-muted font-medium">
-                                            Last edited: {new Date(note.updatedAt).toLocaleDateString()}
-                                        </div>
-                                    </div>
-                                ))
                             )}
-                        </div>
-                    </div>
-                )}
 
-                {activeTab === 'notes' && (
-                    <div className="space-y-4 text-white">
-                        <div className="flex items-center gap-2 mb-4">
-                            <FileText className="text-brand-primary" size={24} />
-                            <h2 className="text-xl font-bold">Video Summary</h2>
-                        </div>
-
-                        {/* PDF Note Download */}
-                        {video.notePdf && (
-                            <div className="bg-dark-layer2 p-4 rounded-lg border border-dark-layer2 mb-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-red-500/20 p-2 rounded text-red-400">
-                                        <FileText size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-white font-medium">Lecture Notes</h3>
-                                        <p className="text-xs text-dark-muted">PDF Document</p>
-                                    </div>
-                                </div>
-                                <a
-                                    href={video.notePdf}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="px-4 py-2 bg-brand-primary text-white text-sm rounded hover:bg-brand-hover transition-colors"
-                                >
-                                    View / Download
-                                </a>
+                            <div className="bg-dark-layer2 p-6 rounded-lg border border-dark-layer2">
+                                {video.summary ? (
+                                    <p className="text-dark-text leading-relaxed whitespace-pre-wrap">{video.summary}</p>
+                                ) : (
+                                    <p className="text-dark-muted italic">No text summary available for this video.</p>
+                                )}
                             </div>
-                        )}
-
-                        <div className="bg-dark-layer2 p-6 rounded-lg border border-dark-layer2">
-                            {video.summary ? (
-                                <p className="text-dark-text leading-relaxed whitespace-pre-wrap">{video.summary}</p>
-                            ) : (
-                                <p className="text-dark-muted italic">No text summary available for this video.</p>
-                            )}
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Assignments Tab */}
-                {activeTab === 'assignments' && (
-                    <div className="space-y-6 text-white">
-                        <div className="flex items-center gap-2 mb-4">
-                            <BookOpen className="text-brand-primary" size={24} />
-                            <h2 className="text-xl font-bold">Course Assignments & Quizzes</h2>
-                        </div>
+                {
+                    activeTab === 'assignments' && (
+                        <div className="space-y-6 text-white">
+                            <div className="flex items-center gap-2 mb-4">
+                                <BookOpen className="text-brand-primary" size={24} />
+                                <h2 className="text-xl font-bold">Course Assignments & Quizzes</h2>
+                            </div>
 
-                        {assessment ? (
-                            <div className="bg-dark-layer2 p-6 rounded-xl border border-dark-layer2">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white mb-2">{assessment.title}</h3>
-                                        <p className="text-dark-muted mb-4">
-                                            Test your knowledge with this comprehensive assessment.
-                                        </p>
-                                        <div className="flex gap-4 text-sm text-dark-muted mb-6">
-                                            <span className="bg-dark-layer1 px-3 py-1 rounded">Questions: {assessment.questions.length}</span>
-                                            <span className="bg-dark-layer1 px-3 py-1 rounded">Passing Score: {assessment.passingScore}%</span>
-                                            {assessment.durationLimit > 0 && (
-                                                <span className="bg-dark-layer1 px-3 py-1 rounded">Time Limit: {assessment.durationLimit} mins</span>
-                                            )}
+                            {assessment ? (
+                                <div className="bg-dark-layer2 p-6 rounded-xl border border-dark-layer2">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white mb-2">{assessment.title}</h3>
+                                            <p className="text-dark-muted mb-4">
+                                                Test your knowledge with this comprehensive assessment.
+                                            </p>
+                                            <div className="flex gap-4 text-sm text-dark-muted mb-6">
+                                                <span className="bg-dark-layer1 px-3 py-1 rounded">Questions: {assessment.questions.length}</span>
+                                                <span className="bg-dark-layer1 px-3 py-1 rounded">Passing Score: {assessment.passingScore}%</span>
+                                                {assessment.durationLimit > 0 && (
+                                                    <span className="bg-dark-layer1 px-3 py-1 rounded">Time Limit: {assessment.durationLimit} mins</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="bg-brand-primary/10 p-4 rounded-full">
+                                            <Award size={32} className="text-brand-primary" />
                                         </div>
                                     </div>
-                                    <div className="bg-brand-primary/10 p-4 rounded-full">
-                                        <Award size={32} className="text-brand-primary" />
-                                    </div>
+                                    <button
+                                        onClick={() => navigate(`/course/${course._id}/assessment`)}
+                                        className="w-full bg-brand-primary hover:bg-brand-hover text-dark-bg font-black py-4 rounded-2xl transition-all shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-2 group"
+                                    >
+                                        <Sparkles size={18} className="group-hover:animate-spin" /> START MASTERY TEST
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => alert('Assessment taking feature coming soon!')}
-                                    className="w-full bg-brand-primary hover:bg-brand-hover text-white font-bold py-3 rounded-lg transition-colors"
-                                >
-                                    Start Assessment
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
-                                <BookOpen className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                <p className="text-dark-muted">No assignments have been assigned for this course yet.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
+                            ) : (
+                                <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
+                                    <BookOpen className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
+                                    <p className="text-dark-muted">No assignments have been assigned for this course yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
 
                 {/* Articles Tab */}
-                {activeTab === 'articles' && (
-                    <div className="space-y-6 text-white">
-                        <div className="flex items-center gap-2 mb-4">
-                            <PenTool className="text-brand-primary" size={24} />
-                            <h2 className="text-xl font-bold">From the Instructor's Blog</h2>
-                        </div>
+                {
+                    activeTab === 'articles' && (
+                        <div className="space-y-6 text-white">
+                            <div className="flex items-center gap-2 mb-4">
+                                <PenTool className="text-brand-primary" size={24} />
+                                <h2 className="text-xl font-bold">From the Instructor's Blog</h2>
+                            </div>
 
-                        {instructorArticles.length > 0 ? (
-                            <div className="grid gap-4">
-                                {instructorArticles.map(article => (
-                                    <div
-                                        key={article._id}
-                                        onClick={() => navigate(`/blog/${article.slug}`)}
-                                        className="bg-dark-layer2 p-4 rounded-xl border border-dark-layer2 hover:border-brand-primary transition-all cursor-pointer flex gap-4"
-                                    >
-                                        <div className="w-24 h-24 bg-dark-layer1 rounded-lg overflow-hidden flex-shrink-0">
-                                            {article.coverImage ? (
-                                                <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-dark-muted bg-dark-layer1">
-                                                    <FileText size={24} />
-                                                </div>
-                                            )}
+                            {instructorArticles.length > 0 ? (
+                                <div className="grid gap-4">
+                                    {instructorArticles.map(article => (
+                                        <div
+                                            key={article._id}
+                                            onClick={() => navigate(`/blog/${article.slug}`)}
+                                            className="bg-dark-layer2 p-4 rounded-xl border border-dark-layer2 hover:border-brand-primary transition-all cursor-pointer flex gap-4"
+                                        >
+                                            <div className="w-24 h-24 bg-dark-layer1 rounded-lg overflow-hidden flex-shrink-0">
+                                                {article.coverImage ? (
+                                                    <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-dark-muted bg-dark-layer1">
+                                                        <FileText size={24} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-bold text-white mb-1 line-clamp-1">{article.title}</h3>
+                                                <div className="text-xs text-brand-primary mb-2 uppercase font-bold tracking-wider">{article.category}</div>
+                                                <p className="text-sm text-dark-muted line-clamp-2 mb-3">
+                                                    {article.content.substring(0, 100).replace(/<[^>]*>/g, '')}...
+                                                </p>
+                                                <span className="text-xs text-dark-muted">{new Date(article.createdAt).toLocaleDateString()}</span>
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-white mb-1 line-clamp-1">{article.title}</h3>
-                                            <div className="text-xs text-brand-primary mb-2 uppercase font-bold tracking-wider">{article.category}</div>
-                                            <p className="text-sm text-dark-muted line-clamp-2 mb-3">
-                                                {article.content.substring(0, 100).replace(/<[^>]*>/g, '')}...
-                                            </p>
-                                            <span className="text-xs text-dark-muted">{new Date(article.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
-                                <PenTool className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                <p className="text-dark-muted">The instructor hasn't published any articles yet.</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
+                                    <PenTool className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
+                                    <p className="text-dark-muted">The instructor hasn't published any articles yet.</p>
+                                </div>
+                            )}
+                        </div>
+                    )
+                }
+            </div >
+        </div >
     );
 };
 

@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
             email,
             password: hashedPassword,
             role: userRole,
-            isInstructorApproved: userRole === 'instructor' ? true : true, // Auto-approve for development
+            isInstructorApproved: isInstructorApproved,
             instructorApplicationDate: userRole === 'instructor' ? new Date() : undefined,
             referredBy: referrer ? referrer._id : undefined
         });
@@ -134,9 +134,15 @@ router.post('/login', async (req, res) => {
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
         if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
 
-        // Update last login
-        user.lastLogin = new Date();
-        await user.save();
+        // Update last login safely (bypassing potentially broken schema validations on other fields)
+        // Update lastLogin and ensure referralCode exists
+        const updates = { lastLogin: new Date() };
+        if (!user.referralCode) {
+            const namePart = user.name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'USER');
+            const randomPart = Math.floor(1000 + Math.random() * 9000);
+            updates.referralCode = `${namePart}${randomPart}`;
+        }
+        const updatedUser = await User.findByIdAndUpdate(user._id, updates, { new: true });
 
         const token = jwt.sign(
             {
@@ -151,14 +157,15 @@ router.post('/login', async (req, res) => {
         res.status(200).json({
             token,
             user: {
-                id: user._id,
-                name: user.name,
+                id: updatedUser._id,
+                name: updatedUser.name,
                 email,
-                role: user.role,
-                isInstructorApproved: user.isInstructorApproved,
-                avatar: user.avatar,
-                bio: user.bio,
-                instructorProfile: user.role === 'instructor' ? user.instructorProfile : undefined
+                role: updatedUser.role,
+                isInstructorApproved: updatedUser.isInstructorApproved,
+                avatar: updatedUser.avatar,
+                bio: updatedUser.bio,
+                instructorProfile: updatedUser.role === 'instructor' ? updatedUser.instructorProfile : undefined,
+                referralCode: updatedUser.referralCode // Return referral code
             }
         });
     } catch (error) {

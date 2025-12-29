@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .pb-safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 :root {
   --orbit-bg: #1a1a1a;
   --orbit-layer1: #282828;
@@ -22,8 +28,17 @@
   --brand-hover: #e59114;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
 body {
-  @apply bg-dark-bg text-dark-text font-sans scroll-smooth;
+  @apply bg-dark-bg text-dark-text font-sans;
 }
 
 /* Custom Scrollbar */

@@ -25,6 +25,7 @@ router.get('/', authenticate, async (req, res) => {
 
         res.json(sessions);
     } catch (error) {
+        console.error('Error fetching live sessions:', error);
         res.status(500).json({ message: 'Error fetching live sessions', error: error.message });
     }
 });
@@ -48,6 +49,7 @@ router.post('/', authenticate, requireInstructor, async (req, res) => {
         await session.save();
         res.status(201).json(session);
     } catch (error) {
+        console.error('Error creating live session:', error);
         res.status(500).json({ message: 'Error creating session', error: error.message });
     }
 });

@@ -85,7 +85,7 @@ const couponSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Indexes
-couponSchema.index({ code: 1 });
+// couponSchema.index({ code: 1 }); // Removed duplicate index
 couponSchema.index({ validFrom: 1, validUntil: 1 });
 couponSchema.index({ isActive: 1 });
 

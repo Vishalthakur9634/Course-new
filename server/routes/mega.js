@@ -4,6 +4,7 @@ const { authenticate, requireInstructor, requireSuperAdmin } = require('../middl
 const SubscriptionPlan = require('../models/SubscriptionPlan');
 const Bundle = require('../models/Bundle');
 const Assessment = require('../models/Assessment');
+const AssessmentSubmission = require('../models/AssessmentSubmission');
 const Coupon = require('../models/Coupon');
 
 // --- SUBSCRIPTION PLANS (Super Admin Managed) ---
@@ -100,6 +101,37 @@ router.post('/assessments', authenticate, requireInstructor, async (req, res) =>
     }
 });
 
+// Submit an assessment (Student)
+router.post('/assessments/:id/submit', authenticate, async (req, res) => {
+    try {
+        const submission = new AssessmentSubmission({
+            assessmentId: req.params.id,
+            studentId: req.user._id,
+            answers: req.body.answers,
+            totalScore: req.body.totalScore,
+            status: 'Submitted',
+            submittedAt: new Date()
+        });
+        await submission.save();
+        res.status(201).json(submission);
+    } catch (error) {
+        res.status(500).json({ message: 'Error submitting assessment', error: error.message });
+    }
+});
+
+// Get student's submission for an assessment
+router.get('/assessments/:id/my-submission', authenticate, async (req, res) => {
+    try {
+        const submission = await AssessmentSubmission.findOne({
+            assessmentId: req.params.id,
+            studentId: req.user._id
+        }).sort({ createdAt: -1 });
+        res.json(submission);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching submission', error: error.message });
+    }
+});
+
 
 // --- COUPONS (Instructor/Admin) ---
 
@@ -125,6 +157,33 @@ router.post('/coupons', authenticate, requireInstructor, async (req, res) => {
         res.status(201).json(coupon);
     } catch (error) {
         res.status(500).json({ message: 'Error creating coupon', error: error.message });
+    }
+});
+
+// Get all submissions for an assessment (Instructor)
+router.get('/assessments/:id/submissions', authenticate, requireInstructor, async (req, res) => {
+    try {
+        const submissions = await AssessmentSubmission.find({ assessmentId: req.params.id })
+            .populate('studentId', 'name email avatar')
+            .sort({ createdAt: -1 });
+        res.json(submissions);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching assessment submissions', error: error.message });
+    }
+});
+
+// Grade an assessment submission (Instructor)
+router.put('/assessment-submissions/:id/grade', authenticate, requireInstructor, async (req, res) => {
+    try {
+        const { answers, totalScore, status } = req.body;
+        const submission = await AssessmentSubmission.findByIdAndUpdate(req.params.id, {
+            answers,
+            totalScore,
+            status: status || 'Graded'
+        }, { new: true });
+        res.json(submission);
+    } catch (error) {
+        res.status(500).json({ message: 'Error grading assessment', error: error.message });
     }
 });
 

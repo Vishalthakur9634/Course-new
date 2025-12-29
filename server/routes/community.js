@@ -154,7 +154,7 @@ router.get('/posts', async (req, res) => {
 
         const posts = await Post.find(query)
             .populate('authorId', 'name avatar role')
-            .populate('communityId', 'name category color')
+            .populate('communityId', 'name category color moderators')
             .populate('comments.authorId', 'name avatar')
             .sort(sortQuery)
             .limit(parseInt(limit))

@@ -46,7 +46,11 @@ const requireInstructor = (req, res, next) => {
         isInstructorApproved: req.user?.isInstructorApproved
     });
 
-    if (!['instructor', 'admin', 'superadmin'].includes(req.user.role)) {
+    if (req.user.role === 'superadmin' || req.user.role === 'admin') {
+        return next();
+    }
+
+    if (req.user.role !== 'instructor') {
         console.log('Access Denied: Role not allowed');
         return res.status(403).json({ message: 'Access denied. Instructor role required.' });
     }

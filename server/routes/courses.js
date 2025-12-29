@@ -6,6 +6,8 @@ const fs = require('fs');
 const Course = require('../models/Course');
 const Video = require('../models/Video');
 const { processVideo } = require('../utils/videoProcessor');
+const { authenticate } = require('../middleware/rbac');
+const User = require('../models/User'); // Need User model for my-learning
 
 const router = express.Router();
 
@@ -31,6 +33,32 @@ router.post('/', async (req, res) => {
         res.status(201).json(course);
     } catch (error) {
         res.status(500).json({ message: 'Error creating course', error });
+    }
+});
+
+// Get Enrolled Courses (My Learning)
+router.get('/my-learning', authenticate, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).populate({
+            path: 'enrolledCourses.courseId',
+            select: 'title description thumbnail instructorId progress'
+        });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Filter out null courses (in case course was deleted)
+        const courses = user.enrolledCourses
+            .filter(enrollment => enrollment.courseId)
+            .map(enrollment => ({
+                ...enrollment.courseId.toObject(),
+                progress: enrollment.progress,
+                enrolledAt: enrollment.enrolledAt
+            }));
+
+        res.json(courses);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error fetching enrolled courses', error: error.message });
     }
 });
 
@@ -70,10 +98,14 @@ router.get('/:id', async (req, res) => {
 // Update Course
 router.put('/:id', async (req, res) => {
     try {
-        const { title, description, price, category, thumbnail } = req.body;
+        const { title, description, price, category, thumbnail, isPublished, approvalStatus } = req.body;
+        const updateData = { title, description, price, category, thumbnail };
+        if (typeof isPublished !== 'undefined') updateData.isPublished = isPublished;
+        if (approvalStatus) updateData.approvalStatus = approvalStatus;
+
         const course = await Course.findByIdAndUpdate(
             req.params.id,
-            { title, description, price, category, thumbnail },
+            updateData,
             { new: true }
         );
         if (!course) return res.status(404).json({ message: 'Course not found' });

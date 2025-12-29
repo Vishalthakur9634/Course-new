@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { Search, Filter, Heart, Users, DollarSign, Star } from 'lucide-react';
+import { Search, Filter, Heart, Users, DollarSign, Star, Share2 } from 'lucide-react';
+import UserLink from '../../components/UserLink';
 
 const CourseBrowse = () => {
     const [courses, setCourses] = useState([]);
@@ -305,15 +306,36 @@ const CourseBrowse = () => {
                                     </div>
                                 )}
                                 {/* Wishlist Button */}
-                                <button
-                                    onClick={(e) => toggleWishlist(e, course._id)}
-                                    className="absolute bottom-2 right-2 p-2 rounded-full bg-black/50 hover:bg-brand-primary/80 transition-colors z-10"
-                                >
-                                    <Heart
-                                        size={18}
-                                        className={isWishlisted ? "text-red-500 fill-red-500" : "text-white"}
-                                    />
-                                </button>
+                                <div className="absolute bottom-2 right-2 flex gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            const userStr = localStorage.getItem('user');
+                                            if (!userStr) {
+                                                alert('Login to share and earn!');
+                                                return;
+                                            }
+                                            const u = JSON.parse(userStr);
+                                            const refLink = `${window.location.origin}/course/${course._id}?ref=${u.referralCode}`;
+                                            navigator.clipboard.writeText(refLink);
+                                            alert('Referral link copied! Share this with your friends to earn rewards.');
+                                        }}
+                                        className="p-2 rounded-full bg-black/50 hover:bg-green-500/80 transition-colors z-10 text-white"
+                                        title="Share & Earn"
+                                    >
+                                        <Share2 size={18} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => toggleWishlist(e, course._id)}
+                                        className="p-2 rounded-full bg-black/50 hover:bg-brand-primary/80 transition-colors z-10"
+                                    >
+                                        <Heart
+                                            size={18}
+                                            className={isWishlisted ? "text-red-500 fill-red-500" : "text-white"}
+                                        />
+                                    </button>
+                                </div>
                             </div>
                             <div className="p-5">
                                 <div className="flex justify-between items-start mb-2">
@@ -330,20 +352,19 @@ const CourseBrowse = () => {
 
                                 {/* Instructor Info */}
                                 {course.instructorId && (
-                                    <Link
-                                        to={`/instructor/profile/${course.instructorId._id}`}
-                                        className="flex items-center gap-2 mb-4 hover:bg-dark-layer2 p-2 rounded transition-colors"
+                                    <div
+                                        className="mb-4"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                        }}
                                     >
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
-                                            {course.instructorId.name?.charAt(0).toUpperCase() || 'I'}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-xs text-dark-muted">Course Provider</p>
-                                            <p className="text-sm text-white font-medium truncate hover:text-brand-primary">
-                                                {course.instructorId.name}
-                                            </p>
-                                        </div>
-                                    </Link>
+                                        <UserLink
+                                            user={course.instructorId}
+                                            avatarSize="w-10 h-10"
+                                            nameClass="text-sm text-white font-medium hover:text-brand-primary"
+                                        />
+                                    </div>
                                 )}
 
                                 <div className="flex justify-between items-center pt-4 border-t border-dark-layer2">
