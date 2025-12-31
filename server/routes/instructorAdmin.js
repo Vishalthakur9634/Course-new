@@ -3,11 +3,11 @@ const router = express.Router();
 const Course = require('../models/Course');
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
+const Review = require('../models/Review');
+const Video = require('../models/Video');
+const Certificate = require('../models/Certificate');
 
-const { authenticate } = require('../middleware/rbac');
-
-// Middleware to check if user is instructor or admin
-const { requireInstructor } = require('../middleware/rbac');
+const { authenticate, requireInstructor } = require('../middleware/rbac');
 
 // Apply authentication to all routes
 router.use(authenticate);
@@ -97,16 +97,23 @@ router.get('/courses', requireInstructor, async (req, res) => {
             .lean();
 
         // Fetch reviews for each course separately since they aren't in the Course model
-        const Review = require('../models/Review');
         const coursesWithReviews = await Promise.all(courses.map(async (course) => {
-            const reviews = await Review.find({ course: course._id }).populate('user', 'name avatar');
-            return { ...course, reviews };
+            try {
+                const reviews = await Review.find({ course: course._id })
+                    .populate('user', 'name avatar')
+                    .lean(); // Use lean for performance
+                return { ...course, reviews: reviews || [] };
+            } catch (revErr) {
+                console.error(`Error fetching reviews for course ${course._id}:`, revErr);
+                return { ...course, reviews: [] };
+            }
         }));
 
         res.json(coursesWithReviews);
     } catch (error) {
         console.error('Error fetching instructor courses:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Stack:', error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message, stack: error.stack });
     }
 });
 
@@ -162,23 +169,31 @@ router.get('/courses/:id/students', requireInstructor, async (req, res) => {
 
         // Calculate progress for each student
         const studentsWithProgress = enrollments
-            .filter(e => e.studentId) // Filter out deleted users
             .map(enrollment => {
                 const user = enrollment.studentId;
+                if (!user) return null;
+
                 const courseVideos = course.videos ? course.videos.length : 0;
-                const watchedVideos = user.watchHistory ? user.watchHistory.filter(h =>
-                    h.courseId && h.courseId.toString() === req.params.id && h.completed
-                ).length : 0;
+
+                // Extra safety for watchHistory
+                let watchedVideos = 0;
+                if (user.watchHistory && Array.isArray(user.watchHistory)) {
+                    watchedVideos = new Set(user.watchHistory
+                        .filter(h => h && h.courseId && h.courseId.toString() === req.params.id && h.completed && h.videoId)
+                        .map(h => h.videoId.toString())
+                    ).size;
+                }
 
                 return {
                     ...enrollment.toObject(),
-                    progress: courseVideos > 0 ? Math.round((watchedVideos / courseVideos) * 100) : 0,
+                    progress: courseVideos > 0 ? Math.min(100, Math.round((watchedVideos / courseVideos) * 100)) : 0,
                     watchedVideos,
                     totalVideos: courseVideos,
-                    studentId: user, // Ensure frontend gets the populated user object
-                    userId: user // Alias for frontend
+                    studentId: user,
+                    userId: user
                 };
-            });
+            })
+            .filter(student => student !== null);
 
         res.json(studentsWithProgress);
     } catch (error) {
@@ -294,11 +309,11 @@ router.get('/reviews', requireInstructor, async (req, res) => {
         const courses = await Course.find({ instructorId: req.user._id });
         const courseIds = courses.map(c => c._id);
 
-        const Review = require('../models/Review');
         const reviews = await Review.find({ course: { $in: courseIds } })
             .populate('user', 'name email avatar')
             .populate('course', 'title')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json(reviews);
     } catch (error) {
@@ -331,18 +346,19 @@ router.get('/students', requireInstructor, async (req, res) => {
         res.json(robustEnrollments);
     } catch (error) {
         console.error('Error fetching students:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error('Stack:', error.stack);
+        res.status(500).json({ message: 'Server error', error: error.message, stack: error.stack });
     }
 });
 
 // Get all certificates issued for instructor's courses
 router.get('/certificates', requireInstructor, async (req, res) => {
     try {
-        const Certificate = require('../models/Certificate');
         const certificates = await Certificate.find({ instructorId: req.user._id })
             .populate('userId', 'name email avatar')
             .populate('courseId', 'title')
-            .sort({ issueDate: -1 });
+            .sort({ issueDate: -1 })
+            .lean();
 
         res.json(certificates);
     } catch (error) {

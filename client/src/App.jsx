@@ -35,6 +35,12 @@ import StudentPractice from './pages/student/StudentPractice'; // [NEW]
 import TakeAssessment from './pages/student/TakeAssessment'; // [NEW]
 import Reels from './pages/student/Reels'; // [NEW]
 
+// Futuristic Overhaul Pages [NEW]
+import NeuralTutor from './pages/NeuralTutor';
+import SkillTrees from './pages/SkillTrees';
+import ResourceVault from './pages/ResourceVault';
+import DiscoverSectors from './pages/DiscoverSectors';
+
 // Instructor Pages
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import InstructorAdmin from './pages/instructor/InstructorAdmin';
@@ -78,9 +84,13 @@ import ContactUs from './pages/ContactUs';
 import Referral from './pages/Referral';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import CourseBundles from './pages/CourseBundles';
+import UnifiedFeed from './pages/UnifiedFeed';
+import TrendingHub from './pages/TrendingHub';
+import YouTubeWatchPage from './pages/student/YouTubeWatchPage';
 
 // Student Specific
 import Leaderboard from './pages/student/Leaderboard';
+import DirectMessage from './pages/student/DirectMessage';
 
 // Placeholder
 import ComingSoon from './components/ComingSoon';
@@ -206,9 +216,24 @@ const PublicRoute = ({ children }) => {
 // Unified Layout with Sidebar for ALL users
 import MobileNav from './components/MobileNav';
 
+import ResizablePanel from './components/ResizablePanel';
+import CommandPalette from './components/CommandPalette';
+
 const AppLayout = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                setIsCommandPaletteOpen(prev => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     useEffect(() => {
         const userStr = localStorage.getItem('user');
@@ -223,19 +248,30 @@ const AppLayout = ({ children }) => {
 
     return (
         <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden relative">
-            <Navbar />
+            <Navbar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
             <div className="h-[60px] md:h-[72px] flex-shrink-0" /> {/* Spacer for fixed Navbar */}
             <div className="flex flex-1 overflow-hidden min-h-0 relative">
                 {user && (
-                    <aside className="hidden md:flex flex-col h-full border-r border-white/5 flex-shrink-0 overflow-hidden">
+                    <ResizablePanel
+                        position="left"
+                        minWidth={240}
+                        maxWidth={400}
+                        defaultWidth={280}
+                        storageKey="main-sidebar-width"
+                        className="hidden md:flex flex-col border-r border-white/5"
+                    >
                         <RoleSidebar user={user} onLogout={handleLogout} />
-                    </aside>
+                    </ResizablePanel>
                 )}
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 flex flex-col min-h-0 custom-scrollbar relative">
                     {children}
                 </main>
             </div>
             {user && <MobileNav user={user} />}
+            <CommandPalette
+                isOpen={isCommandPaletteOpen}
+                onClose={() => setIsCommandPaletteOpen(false)}
+            />
         </div>
     );
 };
@@ -270,7 +306,7 @@ function App() {
                 <Route path="/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/categories" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><Categories /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/certificates" element={<PrivateRoute><AppLayout><Certificates /></AppLayout></PrivateRoute>} />
-                <Route path="/course/:id" element={<PrivateRoute><AppLayout><CourseDetail /></AppLayout></PrivateRoute>} />
+                <Route path="/course/:id" element={<PrivateRoute><AppLayout><YouTubeWatchPage /></AppLayout></PrivateRoute>} />
                 <Route path="/live" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentLiveSessions /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/my-notes" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyNotes /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/purchase-history" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><PurchaseHistory /></AppLayout></RoleRoute></PrivateRoute>} />
@@ -321,6 +357,16 @@ function App() {
                 <Route path="/referral" element={<AppLayout><Referral /></AppLayout>} />
                 <Route path="/subscriptions" element={<AppLayout><SubscriptionPlans /></AppLayout>} />
                 <Route path="/bundles" element={<AppLayout><CourseBundles /></AppLayout>} />
+                <Route path="/social" element={<PrivateRoute><AppLayout><UnifiedFeed /></AppLayout></PrivateRoute>} />
+                <Route path="/trending" element={<PrivateRoute><AppLayout><TrendingHub /></AppLayout></PrivateRoute>} />
+                <Route path="/messages" element={<PrivateRoute><AppLayout><DirectMessage /></AppLayout></PrivateRoute>} />
+                <Route path="/messages/:userId" element={<PrivateRoute><AppLayout><DirectMessage /></AppLayout></PrivateRoute>} />
+
+                {/* Futuristic Routes [NEW] */}
+                <Route path="/intelligent-tutor" element={<PrivateRoute><AppLayout><NeuralTutor /></AppLayout></PrivateRoute>} />
+                <Route path="/skill-paths" element={<PrivateRoute><AppLayout><SkillTrees /></AppLayout></PrivateRoute>} />
+                <Route path="/storage-vault" element={<PrivateRoute><AppLayout><ResourceVault /></AppLayout></PrivateRoute>} />
+                <Route path="/discover-sectors" element={<PrivateRoute><AppLayout><DiscoverSectors /></AppLayout></PrivateRoute>} />
             </Routes>
         </Router>
     );

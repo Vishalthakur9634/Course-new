@@ -91,7 +91,8 @@ const MyCourses = () => {
                             <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${course.approvalStatus === 'approved' ? 'bg-green-500/20 text-green-400' :
                                     course.approvalStatus === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                        'bg-red-500/20 text-red-400'
+                                        course.approvalStatus === 'draft' ? 'bg-blue-500/20 text-blue-400' :
+                                            'bg-red-500/20 text-red-400'
                                     }`}>
                                     {course.approvalStatus}
                                 </span>

@@ -14,6 +14,16 @@ router.get('/stats', async (req, res) => {
         const totalVideos = await Video.countDocuments();
         const totalUsers = await User.countDocuments();
 
+        // Detailed Statuses
+        const activeCourses = await Course.countDocuments({ approvalStatus: 'approved' });
+        const pendingCourses = await Course.countDocuments({ approvalStatus: 'pending' });
+        const draftCourses = await Course.countDocuments({ approvalStatus: 'draft' });
+
+        // User Distribution
+        const students = await User.countDocuments({ role: 'student' });
+        const instructors = await User.countDocuments({ role: 'instructor' });
+        const admins = await User.countDocuments({ role: { $in: ['admin', 'superadmin'] } });
+
         // Calculate total storage (approximate)
         const uploadsDir = path.join(__dirname, '../uploads/courses');
         let totalSize = 0;
@@ -34,7 +44,6 @@ router.get('/stats', async (req, res) => {
                                     size += stats.size;
                                 }
                             } catch (fileError) {
-                                // Skip files that can't be accessed
                                 console.warn('Could not access file:', file);
                             }
                         });
@@ -47,16 +56,59 @@ router.get('/stats', async (req, res) => {
             }
         } catch (storageError) {
             console.error('Error calculating storage:', storageError.message);
-            // Continue with totalSize = 0
         }
 
         const totalStorageGB = (totalSize / (1024 * 1024 * 1024)).toFixed(2);
+
+        // Trend Data (Last 6 Months)
+        const Enrollment = require('../models/Enrollment');
+        const Payment = require('../models/Payment');
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        const enrollmentTrend = await Enrollment.aggregate([
+            { $match: { enrolledAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$enrolledAt' },
+                        month: { $month: '$enrolledAt' }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        const revenueTrend = await Payment.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo }, status: 'completed' } },
+            {
+                $group: {
+                    _id: {
+                        year: { $year: '$createdAt' },
+                        month: { $month: '$createdAt' }
+                    },
+                    revenue: { $sum: '$amount' }
+                }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
 
         res.json({
             totalCourses,
             totalVideos,
             totalUsers,
-            totalStorageGB
+            totalStorageGB,
+            activeCourses,
+            pendingCourses,
+            draftCourses,
+            usersByRole: {
+                student: students,
+                instructor: instructors,
+                admin: admins
+            },
+            enrollmentTrend,
+            revenueTrend
         });
     } catch (error) {
         console.error('Error fetching stats:', error);

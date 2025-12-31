@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../utils/api';
-import { Search, Filter, Heart, Users, DollarSign, Star, Share2 } from 'lucide-react';
+import { Search, Filter, Heart, Users, DollarSign, Star, Share2, Zap } from 'lucide-react';
 import UserLink from '../../components/UserLink';
 
 const CourseBrowse = () => {
@@ -51,8 +51,10 @@ const CourseBrowse = () => {
         }
 
         const user = JSON.parse(userStr);
+        const userId = user.id || user._id;
+
         try {
-            const { data } = await api.post(`/users/${user.id}/wishlist/${courseId}`);
+            const { data } = await api.post(`/users/${userId}/wishlist/${courseId}`);
             if (data.action === 'added') {
                 setWishlist([...wishlist, courseId]);
             } else {
@@ -70,14 +72,14 @@ const CourseBrowse = () => {
             setCourses(published);
             setFilteredCourses(published);
 
-            const cats = ['All', ...new Set(published.map(c => c.category))];
-            setCategories(cats);
+            // Extract unique categories and instructors
+            const uniqueCategories = ['All', ...new Set(published.map(c =>
+                (c.category || '').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+            ).filter(Boolean))];
+            setCategories(uniqueCategories);
 
-            // Get unique instructors
-            const uniqueInstructors = [...new Map(published
-                .filter(c => c.instructorId)
-                .map(c => [c.instructorId._id, c.instructorId])
-            ).values()];
+            const uniqueInstructors = Array.from(new Map(published.map(c => [c.instructorId?._id, c.instructorId])).values())
+                .filter(Boolean); // Filter out null/undefined instructors
             setInstructors(uniqueInstructors);
         } catch (error) {
             console.error('Error fetching courses:', error);
@@ -143,30 +145,39 @@ const CourseBrowse = () => {
     if (loading) return <div className="text-white">Loading...</div>;
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h1 className="text-3xl font-bold text-white">Browse Courses</h1>
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-muted" size={20} />
+        <div className="space-y-10 pb-20">
+            {/* Sector Header */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-8 px-2">
+                <div className="space-y-2">
+                    <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter leading-none">
+                        STELLAR <span className="text-gradient">DISCOVERY</span>
+                    </h1>
+                    <div className="flex items-center gap-3">
+                        <div className="h-[2px] w-8 bg-brand-primary" />
+                        <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.4em]">Live Database Scanning</p>
+                    </div>
+                </div>
+                <div className="relative w-full xl:w-[450px]">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-brand-primary" size={20} />
                     <input
                         type="text"
-                        placeholder="Search courses..."
+                        placeholder="INPUT SEARCH KEYWORDS..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded-lg py-2 pl-10 pr-4 text-white focus:border-brand-primary focus:outline-none"
+                        className="w-full bg-dark-layer1 border border-brand-primary/20 rounded-2xl py-5 pl-16 pr-6 text-xs font-black text-white uppercase tracking-widest focus:border-brand-primary focus:outline-none focus:shadow-[0_0_20px_rgba(255,204,0,0.1)] transition-all placeholder:text-dark-muted/40"
                     />
                 </div>
             </div>
 
             {/* Categories */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar">
                 {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat
-                            ? 'bg-brand-primary text-white'
-                            : 'bg-dark-layer1 text-dark-muted hover:bg-dark-layer2'
+                        className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border shadow-lg ${selectedCategory === cat
+                            ? 'bg-brand-primary text-dark-bg border-brand-primary shadow-brand-primary/20 scale-105'
+                            : 'bg-dark-layer1 text-dark-muted hover:text-white border-white/5 hover:border-white/10'
                             }`}
                     >
                         {cat}
@@ -175,41 +186,43 @@ const CourseBrowse = () => {
             </div>
 
             {/* Advanced Filters Toggle */}
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 px-4 py-2 bg-dark-layer1 border border-dark-layer2 rounded-lg text-white hover:border-brand-primary transition-colors"
-                >
-                    <Filter size={18} />
-                    {showFilters ? 'Hide' : 'Show'} Filters
-                </button>
-                <span className="text-dark-muted text-sm">{filteredCourses.length} courses found</span>
-                {(priceRange[0] !== 0 || priceRange[1] !== 1000 || minRating > 0 || selectedLevel !== 'all' || selectedInstructor !== 'all') && (
+            <div className="flex items-center justify-between bg-dark-layer1/30 p-4 rounded-3xl border border-white/5 backdrop-blur-sm">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] border transition-all ${showFilters ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-white/5 text-white border-white/10 hover:bg-white/10'}`}
+                    >
+                        <Filter size={14} strokeWidth={3} />
+                        {showFilters ? 'Lock Coordinates' : 'Sector Filters'}
+                    </button>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-dark-muted">
+                        <span className="text-white font-black italic">{filteredCourses.length}</span> Signals Detected
+                    </span>
+                </div>
+                {(priceRange[0] !== 0 || priceRange[1] !== 1000 || minRating > 0 || selectedLevel !== 'all' || selectedInstructor !== 'all' || selectedCategory !== 'All' || searchTerm) && (
                     <button
                         onClick={clearFilters}
-                        className="text-brand-primary hover:text-brand-hover text-sm"
+                        className="flex items-center gap-2 text-brand-primary hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest"
                     >
-                        Clear Filters
+                        Reset Array
                     </button>
                 )}
             </div>
 
             {/* Advanced Filters Panel */}
             {showFilters && (
-                <div className="bg-dark-layer1 border border-dark-layer2 rounded-lg p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-dark-layer1/80 border border-white/10 rounded-[2.5rem] p-10 grid grid-cols-1 md:grid-cols-4 gap-10 backdrop-blur-xl animate-in slide-in-from-top-4 duration-500">
                     {/* Price Range */}
-                    <div>
-                        <label className="block text-sm font-medium text-white mb-2">
-                            Price Range: ${priceRange[0]} - ${priceRange[1]}
-                        </label>
-                        <div className="space-y-2">
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">Price Spectrum: <span className="text-white italic">${priceRange[0]} - ${priceRange[1]}</span></label>
+                        <div className="space-y-4 pt-2">
                             <input
                                 type="range"
                                 min="0"
                                 max="1000"
                                 value={priceRange[0]}
                                 onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                                className="w-full"
+                                className="w-full h-1.5 bg-dark-layer2 rounded-full appearance-none cursor-pointer accent-brand-primary"
                             />
                             <input
                                 type="range"
@@ -217,34 +230,34 @@ const CourseBrowse = () => {
                                 max="1000"
                                 value={priceRange[1]}
                                 onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                                className="w-full"
+                                className="w-full h-1.5 bg-dark-layer2 rounded-full appearance-none cursor-pointer accent-brand-primary"
                             />
                         </div>
                     </div>
 
                     {/* Rating */}
-                    <div>
-                        <label className="block text-sm font-medium text-white mb-2">Minimum Rating</label>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">User Rating</label>
                         <select
                             value={minRating}
                             onChange={(e) => setMinRating(parseFloat(e.target.value))}
-                            className="w-full bg-dark-layer2 border border-dark-layer2 rounded-lg px-3 py-2 text-white"
+                            className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-5 py-3 text-sm font-bold text-white focus:border-brand-primary outline-none transition-all"
                         >
                             <option value="0">All Ratings</option>
-                            <option value="4.5">4.5★ & above</option>
-                            <option value="4.0">4.0★ & above</option>
-                            <option value="3.5">3.5★ & above</option>
-                            <option value="3.0">3.0★ & above</option>
+                            <option value="4.5">4.5★ & Above</option>
+                            <option value="4.0">4.0★ & Above</option>
+                            <option value="3.5">3.5★ & Above</option>
+                            <option value="3.0">3.0★ & Above</option>
                         </select>
                     </div>
 
                     {/* Level */}
-                    <div>
-                        <label className="block text-sm font-medium text-white mb-2">Level</label>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">Difficulty Tier</label>
                         <select
                             value={selectedLevel}
                             onChange={(e) => setSelectedLevel(e.target.value)}
-                            className="w-full bg-dark-layer2 border border-dark-layer2 rounded-lg px-3 py-2 text-white"
+                            className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-5 py-3 text-sm font-bold text-white focus:border-brand-primary outline-none transition-all"
                         >
                             <option value="all">All Levels</option>
                             <option value="beginner">Beginner</option>
@@ -254,12 +267,12 @@ const CourseBrowse = () => {
                     </div>
 
                     {/* Instructor */}
-                    <div>
-                        <label className="block text-sm font-medium text-white mb-2">Instructor</label>
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em]">Curator</label>
                         <select
                             value={selectedInstructor}
                             onChange={(e) => setSelectedInstructor(e.target.value)}
-                            className="w-full bg-dark-layer2 border border-dark-layer2 rounded-lg px-3 py-2 text-white"
+                            className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-5 py-3 text-sm font-bold text-white focus:border-brand-primary outline-none transition-all"
                         >
                             <option value="all">All Instructors</option>
                             {instructors.map(instructor => (
@@ -272,10 +285,9 @@ const CourseBrowse = () => {
                 </div>
             )}
 
-            {/* Courses Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Mission Nodes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
                 {filteredCourses.map(course => {
-                    // Calculate sponsored price
                     const isSponsored = course.sponsorship?.isSponsored;
                     const sponsorshipType = course.sponsorship?.sponsorshipType;
                     const discount = course.sponsorship?.sponsorshipDiscount || 0;
@@ -292,96 +304,81 @@ const CourseBrowse = () => {
                         <Link
                             key={course._id}
                             to={`/course/${course._id}`}
-                            className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden hover:border-brand-primary transition-all group"
+                            className="group bg-dark-layer1 border border-white/5 rounded-[3.5rem] overflow-hidden hover:border-brand-primary transition-all duration-500 flex flex-col h-full shadow-2xl relative"
                         >
-                            <div className="aspect-video bg-dark-layer2 relative">
-                                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
-                                <div className="absolute top-2 right-2 bg-black/80 px-2 py-1 rounded text-xs font-bold text-white">
-                                    {course.videos?.length || 0} Videos
-                                </div>
-                                {/* Sponsorship Badge */}
-                                {isSponsored && (
-                                    <div className="absolute top-2 left-2 bg-yellow-500/90 px-3 py-1 rounded flex items-center gap-1">
-                                        <span className="text-xs font-bold text-black">🎁 Sponsored</span>
+                            <div className="aspect-[16/10] bg-dark-layer2 relative overflow-hidden">
+                                <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2000ms]" />
+
+                                <div className="absolute inset-0 bg-gradient-to-t from-dark-bg/90 via-transparent to-transparent flex flex-col justify-between p-8">
+                                    <div className="flex justify-between items-start">
+                                        {isSponsored && (
+                                            <div className="bg-stellar-gold text-dark-bg px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-2xl flex items-center gap-2">
+                                                <Zap size={12} fill="currentColor" /> SPONSORED MISSION
+                                            </div>
+                                        )}
+                                        <div className="flex gap-2 ml-auto">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    const userStr = localStorage.getItem('user');
+                                                    if (!userStr) return alert('Login required');
+                                                    const u = JSON.parse(userStr);
+                                                    const refLink = `${window.location.origin}/course/${course._id}?ref=${u.referralCode || u.id}`;
+                                                    navigator.clipboard.writeText(refLink);
+                                                    alert('TRANSMISSION COPIED');
+                                                }}
+                                                className="p-3 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-brand-primary hover:text-dark-bg transition-all"
+                                            >
+                                                <Share2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => toggleWishlist(e, course._id)}
+                                                className="p-3 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 text-white hover:bg-brand-primary hover:text-dark-bg transition-all"
+                                            >
+                                                <Heart size={16} className={isWishlisted ? "fill-current text-red-500" : ""} />
+                                            </button>
+                                        </div>
                                     </div>
-                                )}
-                                {/* Wishlist Button */}
-                                <div className="absolute bottom-2 right-2 flex gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            const userStr = localStorage.getItem('user');
-                                            if (!userStr) {
-                                                alert('Login to share and earn!');
-                                                return;
-                                            }
-                                            const u = JSON.parse(userStr);
-                                            const refLink = `${window.location.origin}/course/${course._id}?ref=${u.referralCode}`;
-                                            navigator.clipboard.writeText(refLink);
-                                            alert('Referral link copied! Share this with your friends to earn rewards.');
-                                        }}
-                                        className="p-2 rounded-full bg-black/50 hover:bg-green-500/80 transition-colors z-10 text-white"
-                                        title="Share & Earn"
-                                    >
-                                        <Share2 size={18} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => toggleWishlist(e, course._id)}
-                                        className="p-2 rounded-full bg-black/50 hover:bg-brand-primary/80 transition-colors z-10"
-                                    >
-                                        <Heart
-                                            size={18}
-                                            className={isWishlisted ? "text-red-500 fill-red-500" : "text-white"}
-                                        />
-                                    </button>
+
+                                    <div className="flex justify-between items-end">
+                                        <span className="bg-brand-primary/20 backdrop-blur-xl border border-brand-primary/30 text-brand-primary px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                                            {course.category}
+                                        </span>
+                                        <div className="w-14 h-14 rounded-[2rem] bg-brand-primary text-dark-bg flex items-center justify-center group-hover:scale-110 group-hover:rotate-12 transition-all transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 shadow-xl shadow-brand-primary/40">
+                                            <Search size={24} />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="p-5">
-                                <div className="flex justify-between items-start mb-2">
-                                    <span className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-1 rounded font-bold uppercase">
-                                        {course.category}
-                                    </span>
-                                    <div className="flex items-center gap-1 text-yellow-500 text-sm">
-                                        <Star size={14} fill="currentColor" />
-                                        <span>{course.rating || 4.5}</span>
-                                    </div>
+
+                            <div className="p-10 flex-1 flex flex-col space-y-6">
+                                <div className="space-y-3">
+                                    <h3 className="text-2xl font-black text-white italic leading-tight group-hover:text-brand-primary transition-colors tracking-tighter uppercase line-clamp-1">
+                                        {course.title}
+                                    </h3>
+                                    <p className="text-xs text-dark-muted font-bold line-clamp-2 leading-relaxed opacity-70 italic">
+                                        "{course.description}"
+                                    </p>
                                 </div>
-                                <h3 className="font-bold text-white mb-2 line-clamp-2">{course.title}</h3>
-                                <p className="text-dark-muted text-sm line-clamp-2 mb-3">{course.description}</p>
 
-                                {/* Instructor Info */}
-                                {course.instructorId && (
-                                    <div
-                                        className="mb-4"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                        }}
-                                    >
-                                        <UserLink
-                                            user={course.instructorId}
-                                            avatarSize="w-10 h-10"
-                                            nameClass="text-sm text-white font-medium hover:text-brand-primary"
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between items-center pt-4 border-t border-dark-layer2">
-                                    <div className="flex items-center gap-1 text-sm text-dark-muted">
-                                        <Users size={14} />
-                                        <span>{course.enrollmentCount || 0}</span>
+                                <div className="flex justify-between items-center py-6 border-t border-white/5 mt-auto">
+                                    <div className="flex items-center gap-6">
+                                        <div className="flex items-center gap-2 text-stellar-gold font-black text-[10px] uppercase">
+                                            <Star size={14} fill="currentColor" /> {course.rating || 4.9}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-dark-muted font-black text-[10px] uppercase">
+                                            <Users size={14} /> {course.enrollmentCount || 0}
+                                        </div>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        {isSponsored && sponsorshipType === 'free' ? (
-                                            <span className="font-bold text-xl text-green-400">FREE</span>
-                                        ) : isSponsored ? (
-                                            <>
-                                                <span className="font-bold text-xl text-white">${finalPrice.toFixed(2)}</span>
-                                                <span className="text-xs text-dark-muted line-through">${originalPrice}</span>
-                                            </>
+                                        {finalPrice === 0 ? (
+                                            <span className="text-3xl font-black text-green-400 italic">FREE</span>
                                         ) : (
-                                            <span className="font-bold text-xl text-white">${originalPrice}</span>
+                                            <div className="flex items-baseline gap-2">
+                                                {isSponsored && <span className="text-xs text-dark-muted line-through opacity-50">${originalPrice}</span>}
+                                                <span className="text-3xl font-black text-white">${finalPrice}</span>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

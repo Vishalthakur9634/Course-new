@@ -12,6 +12,8 @@ const StudentPublicProfile = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('achievements');
     const [isOwner, setIsOwner] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
     const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -23,6 +25,17 @@ const StudentPublicProfile = () => {
         }
         fetchProfile();
     }, [studentKey]);
+
+    useEffect(() => {
+        if (profile && !isOwner) {
+            const userStr = localStorage.getItem('user');
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+            if (currentUser) {
+                const followingIds = currentUser.following || [];
+                setIsFollowing(followingIds.includes(profile._id));
+            }
+        }
+    }, [profile, isOwner]);
 
     const fetchProfile = async () => {
         setLoading(true);
@@ -70,6 +83,46 @@ const StudentPublicProfile = () => {
         }
     };
 
+    const handleFollow = async () => {
+        if (followLoading) return;
+        setFollowLoading(true);
+        try {
+            const { data } = await api.post(`/users/follow/${profile._id}`);
+            setIsFollowing(true);
+            setProfile(prev => ({
+                ...prev,
+                followers: [...(prev.followers || []), 'temp-id']
+            }));
+            const user = JSON.parse(localStorage.getItem('user'));
+            user.following = data.following;
+            localStorage.setItem('user', JSON.stringify(user));
+        } catch (error) {
+            console.error('Follow error:', error);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
+
+    const handleUnfollow = async () => {
+        if (followLoading) return;
+        setFollowLoading(true);
+        try {
+            const { data } = await api.post(`/users/unfollow/${profile._id}`);
+            setIsFollowing(false);
+            setProfile(prev => ({
+                ...prev,
+                followers: (prev.followers || []).filter(id => id !== 'temp-id')
+            }));
+            const user = JSON.parse(localStorage.getItem('user'));
+            user.following = data.following;
+            localStorage.setItem('user', JSON.stringify(user));
+        } catch (error) {
+            console.error('Unfollow error:', error);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
+
     if (loading) return (
         <div className="h-full flex items-center justify-center bg-dark-bg">
             <div className="flex flex-col items-center gap-4">
@@ -93,101 +146,123 @@ const StudentPublicProfile = () => {
 
     return (
         <div className="max-w-6xl mx-auto px-4 md:px-8 space-y-12 pb-24">
-            {/* Header Section - Modern High Fidelity */}
-            <div className="relative group p-1 bg-gradient-to-br from-white/10 to-transparent rounded-[3.5rem] shadow-2xl overflow-hidden">
-                <div className="absolute inset-0 bg-dark-layer1 rounded-[3.4rem] z-0"></div>
+            {/* Header Section - 3D Quantum Interface */}
+            <div className="relative group p-[2px] bg-gradient-to-br from-brand-primary/40 to-brand-hover/40 rounded-[4rem] shadow-2xl overflow-hidden glass-panel">
+                <div className="absolute inset-0 bg-dark-layer1 rounded-[3.9rem] z-0"></div>
 
-                <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-10">
-                    {/* Avatar with Progress */}
+                {/* Stellar Grid Background */}
+                <div className="absolute inset-0 opacity-10 pointer-events-none z-1" style={{ backgroundImage: 'linear-gradient(var(--brand-primary) 1px, transparent 1px), linear-gradient(90deg, var(--brand-primary) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+
+                <div className="relative z-10 p-10 md:p-16 flex flex-col md:flex-row items-center gap-14">
+                    {/* Avatar with Stellar Aura */}
                     <div className="relative group/avatar">
-                        <div className="absolute inset-0 bg-brand-primary rounded-[2.8rem] blur-2xl opacity-20 group-hover/avatar:opacity-40 transition-opacity"></div>
+                        <div className="absolute inset-0 bg-brand-primary rounded-[3.5rem] blur-[60px] opacity-20 group-hover/avatar:opacity-50 transition-all duration-1000"></div>
                         <div
                             onClick={handleAvatarClick}
-                            className={`relative w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] p-1.5 bg-dark-layer2 border border-white/10 shadow-2xl transition-all duration-500 overflow-hidden ${isOwner ? 'cursor-pointer hover:scale-105 active:scale-95' : ''}`}
+                            className={`relative w-48 h-48 md:w-56 md:h-56 rounded-[3rem] p-[2px] bg-gradient-to-br from-brand-primary to-brand-hover shadow-2xl transition-all duration-700 overflow-hidden ${isOwner ? 'cursor-pointer hover:scale-105 hover:rotate-2 border-none' : ''}`}
                         >
-                            <div className="w-full h-full rounded-[2rem] bg-gradient-to-br from-gray-800 to-black overflow-hidden relative border border-white/5">
+                            <div className="w-full h-full rounded-[2.9rem] bg-dark-bg overflow-hidden relative border border-white/10 shadow-inner">
                                 {profile.avatar ? (
-                                    <img src={profile.avatar} className="w-full h-full object-cover" alt={profile.name} />
+                                    <img src={profile.avatar} className="w-full h-full object-cover group-hover/avatar:scale-110 transition-transform duration-1000" alt={profile.name} />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <User size={64} className="text-white/20" />
+                                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-dark-layer1 to-black">
+                                        <User size={80} className="text-white/10" />
                                     </div>
                                 )}
 
                                 {isOwner && (
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                        <Camera className="text-white" size={32} />
-                                        <span className="text-white text-[10px] font-black uppercase tracking-widest">Edit</span>
-                                    </div>
-                                )}
-
-                                {isUpdatingAvatar && (
-                                    <div className="absolute inset-0 bg-dark-bg/80 flex items-center justify-center">
-                                        <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <div className="absolute inset-0 bg-brand-primary/20 backdrop-blur-sm opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                        <Camera className="text-white animate-bounce" size={40} />
+                                        <span className="text-white text-[11px] font-black uppercase tracking-[0.3em]">UPDATE CORE</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
 
-                        {/* Level Badge Overlay */}
-                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-brand-primary text-dark-bg px-6 py-1.5 rounded-full font-black text-xs uppercase tracking-widest shadow-xl border-4 border-dark-layer1 flex items-center gap-2">
-                            <Zap size={14} fill="currentColor" /> Lvl {gamification?.level || 1}
+                        {/* Rank Badge */}
+                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 cyber-button bg-brand-primary text-dark-bg px-8 py-2.5 rounded-full font-black text-xs uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(255,204,0,0.4)] border-none">
+                            CORE LVL {gamification?.level || 1}
                         </div>
                     </div>
 
-                    <div className="flex-1 text-center md:text-left space-y-4">
-                        <div className="space-y-1">
-                            <div className="flex flex-col md:flex-row items-center gap-3">
-                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">{profile.name}</h1>
+                    <div className="flex-1 text-center md:text-left space-y-6">
+                        <div className="space-y-2">
+                            <div className="flex flex-col md:flex-row items-center gap-4">
+                                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic uppercase">{profile.name}</h1>
                                 {gamification?.level >= 10 && (
-                                    <Crown className="text-yellow-400 rotate-12 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]" size={32} fill="currentColor" />
+                                    <Crown className="text-stellar-gold drop-shadow-[0_0_20px_rgba(255,215,0,0.5)] animate-pulse" size={40} fill="currentColor" />
                                 )}
                             </div>
-                            <div className="flex items-center justify-center md:justify-start gap-3">
-                                <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-full text-[10px] font-black uppercase tracking-widest">
-                                    Strategic {profile.role}
+                            <div className="flex items-center justify-center md:justify-start gap-4">
+                                <span className="text-brand-primary font-black text-xs uppercase tracking-[0.5em] px-4 py-1.5 bg-brand-primary/10 border border-brand-primary/30 rounded-xl">
+                                    STELLAR {profile.role}
                                 </span>
-                                <span className="text-dark-muted font-black text-[10px] uppercase tracking-widest opacity-50">Orbit Member ID: #{profile._id?.slice(-6).toUpperCase()}</span>
+                                <span className="text-dark-muted font-black text-[10px] uppercase tracking-[0.2em] opacity-40">NODE SIG: #{profile._id?.slice(-8).toUpperCase()}</span>
                             </div>
                         </div>
 
-                        <p className="text-lg text-dark-muted font-medium max-w-2xl leading-relaxed italic">
-                            {profile.bio || "This expert explorer is currently formulating their master strategy. Progress unfolding..."}
+                        <p className="text-xl text-dark-muted font-bold max-w-2xl leading-relaxed italic opacity-80">
+                            {profile.bio || "INITIALIZING STRATEGIC BIOGRAPHY: EXPLORER IDENTIFIED."}
                         </p>
 
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-6 pt-2">
-                            <div className="flex items-center gap-2 text-[10px] font-black text-dark-muted uppercase tracking-widest">
-                                <Calendar size={16} className="text-brand-primary" /> Established {new Date(profile.createdAt).toLocaleDateString()}
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-8 pt-4">
+                            <div className="flex items-center gap-3 text-[11px] font-black text-dark-muted uppercase tracking-[0.2em]">
+                                <Calendar size={18} className="text-brand-primary" /> RECORDED {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'INITIALIZING'}
                             </div>
-                            <div className="flex items-center gap-2 text-[10px] font-black text-dark-muted uppercase tracking-widest">
-                                <Shield size={16} className="text-brand-primary" /> Verified Profile
+                            <div className="flex items-center gap-6 pl-6 border-l border-white/10">
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-white leading-none">{profile.followers?.length || 0}</p>
+                                    <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-2">Force Links</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-white leading-none">{profile.following?.length || 0}</p>
+                                    <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-2">Neural Links</p>
+                                </div>
                             </div>
                         </div>
+
+                        {!isOwner && (
+                            <div className="flex gap-6 pt-8">
+                                <button
+                                    onClick={isFollowing ? handleUnfollow : handleFollow}
+                                    disabled={followLoading}
+                                    className={`px-12 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] transition-all shadow-2xl ${isFollowing
+                                        ? 'bg-white/5 text-white border border-white/20 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/40'
+                                        : 'bg-brand-primary text-dark-bg hover:scale-105 shadow-brand-primary/40'
+                                        }`}
+                                >
+                                    {followLoading ? 'SYNCING...' : isFollowing ? 'DISCONNECT' : 'ESTABLISH LINK'}
+                                </button>
+                                <button className="glass-panel px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] text-white hover:bg-brand-primary/10 border border-white/10 transition-all">
+                                    SECURE BEAM
+                                </button>
+                            </div>
+                        )}
                     </div>
 
-                    {/* XP Overview Card */}
-                    <div className="w-full md:w-48 bg-white/5 border border-white/10 rounded-[2.5rem] p-6 text-center space-y-2 group/xp hover:border-brand-primary/30 transition-all">
-                        <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest group-hover/xp:text-brand-primary transition-colors">Cumulative XP</p>
-                        <p className="text-4xl font-black text-white tracking-tighter">{gamification?.xp?.toLocaleString() || 0}</p>
-                        <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden mt-4">
+                    {/* XP Strategic View */}
+                    <div className="w-full md:w-64 glass-panel p-10 rounded-[3.5rem] text-center space-y-6 relative overflow-hidden group/xp border-brand-primary/20">
+                        <div className="absolute inset-0 bg-brand-primary/5 opacity-0 group-hover/xp:opacity-100 transition-opacity" />
+                        <p className="text-[11px] font-black text-brand-primary uppercase tracking-[0.4em]">Integrated XP</p>
+                        <p className="text-5xl font-black text-white tracking-tighter italic">{gamification?.xp?.toLocaleString() || 0}</p>
+                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 relative">
                             <div
-                                className="h-full bg-brand-primary transition-all duration-1000"
+                                className="h-full bg-gradient-to-r from-brand-primary to-quantum-purple shadow-[0_0_15px_rgba(0,242,255,0.5)] transition-all duration-2000"
                                 style={{ width: `${(gamification?.xp % 1000) / 10}%` }}
                             ></div>
                         </div>
-                        <p className="text-[9px] font-bold text-dark-muted uppercase pt-1">Next Level: {1000 - (gamification?.xp % 1000)} XP Remaining</p>
+                        <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.2em] opacity-60">NEXT TIER: {1000 - (gamification?.xp % 1000)} XP</p>
                     </div>
                 </div>
             </div>
-
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 {[
                     { label: 'Completed Paths', value: gamification?.coursesCompleted || 0, icon: BookOpen, color: 'text-blue-400' },
                     { label: 'Badges Unlocked', value: gamification?.badges?.length || 0, icon: Target, color: 'text-purple-400' },
                     { label: 'Certificates', value: profile.certificates?.length || 0, icon: Award, color: 'text-yellow-400' },
-                    { label: 'Active Days', value: Math.floor((new Date() - new Date(profile.createdAt)) / (1000 * 60 * 60 * 24)), icon: Flame, color: 'text-orange-400' }
+                    { label: 'Active Days', value: profile?.createdAt ? Math.floor((new Date() - new Date(profile.createdAt)) / (1000 * 60 * 60 * 24)) : 0, icon: Flame, color: 'text-orange-400' }
                 ].map((stat, i) => (
                     <div key={i} className="bg-dark-layer1 border border-white/5 rounded-3xl p-6 group hover:bg-dark-layer2 transition-all">
                         <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-4 ${stat.color} group-hover:scale-110 transition-transform`}>
@@ -326,7 +401,7 @@ const StudentPublicProfile = () => {
                             ))}
                             {(!profile.enrolledCourses || profile.enrolledCourses.length === 0) && (
                                 <div className="col-span-full py-32 text-center bg-dark-layer1 rounded-[3rem] border border-white/5 border-dashed">
-                                    <BookOpen size={64} className="mx-auto mb-4 opacity-10" />
+                                    < BookOpen size={64} className="mx-auto mb-4 opacity-10" />
                                     <p className="text-dark-muted font-black uppercase tracking-widest text-sm">No paths initiated yet.</p>
                                 </div>
                             )}

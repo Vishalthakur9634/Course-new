@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard, BookOpen, Users, DollarSign,
     Settings, LogOut, PlusCircle, BarChart, MessageSquare,
     Bell, Star, Award, Search, Sparkles, Package,
     LayoutGrid,
-    Upload, BarChart3, ChevronLeft, ChevronRight, Heart,
-    FileText, Clock, Video, PenTool, Film, ShieldCheck // [NEW]
+    Upload, BarChart3, ChevronLeft, ChevronRight, Heart, TrendingUp,
+    FileText, Clock, Video, PenTool, Film, ShieldCheck, ClipboardList, // [NEW]
+    Cpu, GitBranch, Database, Globe, Map // [FUTURISTIC NEW]
 } from 'lucide-react';
 import ResizablePanel from './ResizablePanel';
 
@@ -14,45 +15,90 @@ const RoleSidebar = ({ user, onLogout }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const scrollRef = useRef(null);
+
+    // Persist scroll position across route changes
+    useEffect(() => {
+        const savedScroll = localStorage.getItem(`sidebar-scroll-${user?.role}`);
+        if (savedScroll && scrollRef.current) {
+            scrollRef.current.scrollTop = parseInt(savedScroll, 10);
+        }
+
+        const handleScroll = () => {
+            if (scrollRef.current) {
+                localStorage.setItem(`sidebar-scroll-${user?.role}`, scrollRef.current.scrollTop);
+            }
+        };
+
+        const navElement = scrollRef.current;
+        if (navElement) {
+            navElement.addEventListener('scroll', handleScroll);
+        }
+
+        // Scroll active item into view
+        const activeLink = navElement?.querySelector('a.bg-brand-primary');
+        if (activeLink) {
+            activeLink.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        return () => {
+            if (navElement) {
+                navElement.removeEventListener('scroll', handleScroll);
+            }
+        };
+    }, [user?.role, location.pathname]);
 
     // Student navigation items
     const studentNav = [
         { icon: LayoutGrid, label: 'Dashboard', path: '/dashboard' },
         { icon: BookOpen, label: 'My Learning', path: '/my-learning' },
-        { icon: Film, label: 'Shorts', path: '/reels' }, // [NEW]
-        { icon: FileText, label: 'Practice', path: '/practice' }, // [NEW]
-        { icon: FileText, label: 'Assignments', path: '/assignments' }, // [NEW]
-        { icon: Video, label: 'Live Sessions', path: '/live' }, // [NEW]
-        { icon: FileText, label: 'My Notes', path: '/my-notes' }, // [NEW]
+        { icon: Film, label: 'Shorts', path: '/reels' },
+        { icon: FileText, label: 'My Assessments', path: '/practice' },
+        { icon: ClipboardList, label: 'Course Assignments', path: '/assignments' },
+        { icon: Video, label: 'Live Sessions', path: '/live' },
+        { icon: FileText, label: 'My Notes', path: '/my-notes' },
         { icon: Heart, label: 'Wishlist', path: '/wishlist' },
         { icon: MessageSquare, label: 'Chats', path: '/announcements' },
-        { icon: Clock, label: 'History', path: '/purchase-history' }, // [NEW]
-        { icon: MessageSquare, label: 'Reviews', path: '/my-reviews' }, // [NEW]
+        { icon: Clock, label: 'History', path: '/purchase-history' },
+        { icon: MessageSquare, label: 'Reviews', path: '/my-reviews' },
+        { icon: Sparkles, label: 'Social Feed', path: '/social' },
+        { icon: TrendingUp, label: 'Trending Hub', path: '/trending' },
+        { icon: MessageSquare, label: 'Messages', path: '/messages' },
+        { icon: Globe, label: 'Discover Sectors', path: '/discover-sectors' },
+        { icon: Cpu, label: 'Neural Tutor', path: '/intelligent-tutor' },
+        { icon: GitBranch, label: 'Skill Paths', path: '/skill-paths' },
+        { icon: Database, label: 'Storage Vault', path: '/storage-vault' },
         { icon: Settings, label: 'Profile', path: '/profile' },
     ];
 
     // Instructor navigation items
     const instructorNav = [
         { icon: BarChart3, label: 'Dashboard', path: '/instructor' },
-        // { icon: ShieldCheck, label: 'Admin Panel', path: '/instructor/admin' }, // Redundant
         { icon: BookOpen, label: 'My Courses', path: '/instructor/courses' },
-        { icon: Film, label: 'Shorts', path: '/reels' }, // [NEW]
+        { icon: Film, label: 'Shorts', path: '/reels' },
         { icon: Video, label: 'Live Sessions', path: '/instructor/live' },
-        { icon: PenTool, label: 'Blog Articles', path: '/instructor/articles' }, // [NEW]
-        { icon: FileText, label: 'Practice', path: '/instructor/practice' }, // [NEW]
-        { icon: FileText, label: 'Assignments', path: '/instructor/assignments' }, // [NEW]
-        { icon: MessageSquare, label: 'Community', path: '/community' }, // [NEW]
+        { icon: PenTool, label: 'Blog Articles', path: '/instructor/articles' },
+        { icon: FileText, label: 'Quiz Manager', path: '/instructor/practice' },
+        { icon: ClipboardList, label: 'Assignment Manager', path: '/instructor/assignments' },
+        { icon: MessageSquare, label: 'Community', path: '/community' },
         { icon: Upload, label: 'Upload Content', path: '/instructor/upload' },
         { icon: MessageSquare, label: 'Chats', path: '/instructor/announcements' },
-        { icon: Users, label: 'Students', path: '/instructor/students' },
-        { icon: DollarSign, label: 'Earnings', path: '/instructor/earnings' },
+        // { icon: Users, label: 'Students', path: '/instructor/students' }, // Navbar
+        // { icon: DollarSign, label: 'Earnings', path: '/instructor/earnings' }, // Navbar
         { icon: BarChart3, label: 'Analytics', path: '/instructor/analytics' },
         { icon: MessageSquare, label: 'Reviews', path: '/instructor/reviews' },
         { icon: PlusCircle, label: 'Promotions', path: '/instructor/promotions' },
         { icon: Package, label: 'Bundle Creator', path: '/instructor/bundles' },
         { icon: Award, label: 'Assessments', path: '/instructor/assessments' },
-        { icon: Award, label: 'Certificates', path: '/instructor/certificates' }, // [NEW]
-        { icon: Settings, label: 'Settings', path: '/instructor/settings' },
+        { icon: Award, label: 'Certificates', path: '/instructor/certificates' },
+        { icon: Sparkles, label: 'Social Feed', path: '/social' },
+        { icon: TrendingUp, label: 'Trending Hub', path: '/trending' },
+        { icon: MessageSquare, label: 'Messages', path: '/messages' },
+        { icon: Globe, label: 'Discover Sectors', path: '/discover-sectors' },
+        { icon: Cpu, label: 'Neural Tutor', path: '/intelligent-tutor' },
+        { icon: GitBranch, label: 'Skill Paths', path: '/skill-paths' },
+        { icon: Database, label: 'Storage Vault', path: '/storage-vault' },
+        { icon: Settings, label: 'Profile Settings', path: '/instructor/settings' },
     ];
 
     // Super Admin navigation items
@@ -132,7 +178,7 @@ const RoleSidebar = ({ user, onLogout }) => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto p-3 space-y-1 min-h-0 custom-scrollbar">
+            <nav ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-1 min-h-0 custom-scrollbar">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;

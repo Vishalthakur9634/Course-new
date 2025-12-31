@@ -13,8 +13,9 @@ const Wishlist = () => {
 
     const fetchWishlist = async () => {
         try {
-            const userId = JSON.parse(localStorage.getItem('user')).id;
-            const { data } = await api.get(`/wishlist/${userId}`);
+            const userObj = JSON.parse(localStorage.getItem('user'));
+            const userId = userObj.id || userObj._id;
+            const { data } = await api.get(`/users/${userId}/wishlist`);
             setWishlist(data);
         } catch (error) {
             console.error('Error fetching wishlist:', error);
@@ -25,8 +26,9 @@ const Wishlist = () => {
 
     const removeFromWishlist = async (courseId) => {
         try {
-            const userId = JSON.parse(localStorage.getItem('user')).id;
-            await api.post('/wishlist/remove', { userId, courseId });
+            const userObj = JSON.parse(localStorage.getItem('user'));
+            const userId = userObj.id || userObj._id;
+            await api.post(`/users/${userId}/wishlist/${courseId}`);
             setWishlist(wishlist.filter(course => course._id !== courseId));
         } catch (error) {
             alert('Failed to remove from wishlist');

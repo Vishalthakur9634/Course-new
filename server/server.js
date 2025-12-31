@@ -112,6 +112,35 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
+const server = require('http').createServer(app);
+const io = require('socket.io')(server, {
+    cors: {
+        origin: "*", // Adjust in production
+        methods: ["GET", "POST"]
+    }
+});
+
+// Socket.io Connection Logic
+io.on('connection', (socket) => {
+    console.log('👤 New User Connected:', socket.id);
+
+    socket.on('join_room', (roomId) => {
+        socket.join(roomId);
+        console.log(`🏠 User joined room: ${roomId}`);
+    });
+
+    socket.on('send_message', (data) => {
+        // Broadcast to specific room (conversationId)
+        io.to(data.conversationId).emit('receive_message', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 User Disconnected');
+    });
+});
+
+// Make io accessible in routes
+app.set('io', io);
 
 // Ensure upload directories exist
 const uploadDirs = ['uploads', 'uploads/profiles', 'uploads/files', 'uploads/courses', 'uploads/temp'];
@@ -119,6 +148,7 @@ uploadDirs.forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
 });
+

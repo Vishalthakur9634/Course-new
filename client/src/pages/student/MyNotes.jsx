@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { Book, Clock, Video, FileText, ArrowRight, Play } from 'lucide-react';
+import { Book, Clock, Video, FileText, ArrowRight, Play, Paperclip } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const MyNotes = () => {
@@ -79,6 +79,23 @@ const MyNotes = () => {
                                     <div className="prose prose-invert max-w-none">
                                         <p className="text-dark-text whitespace-pre-wrap">{note.content}</p>
                                     </div>
+
+                                    {note.attachments && note.attachments.length > 0 && (
+                                        <div className="flex flex-wrap gap-2">
+                                            {note.attachments.map((file, idx) => (
+                                                <a
+                                                    key={idx}
+                                                    href={file.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-xs text-dark-muted bg-dark-layer2 px-3 py-2 rounded-lg hover:bg-dark-layer3 border border-white/5 transition-all group"
+                                                >
+                                                    <Paperclip size={14} className="text-brand-primary" />
+                                                    <span className="group-hover:text-white transition-colors">{file.filename}</span>
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="pt-4 flex justify-end">
                                         <Link
                                             to={`/course/${note.courseId?._id}/learn/${note.videoId?._id}?t=${Math.floor(note.timestamp)}`}

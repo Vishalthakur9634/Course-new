@@ -67,6 +67,27 @@ router.post('/bundles', authenticate, requireInstructor, async (req, res) => {
     }
 });
 
+// Get instructor's own bundles
+router.get('/bundles/my-bundles', authenticate, requireInstructor, async (req, res) => {
+    try {
+        const bundles = await Bundle.find({ instructorId: req.user._id }).populate('courses', 'title price thumbnail');
+        res.json(bundles);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching your bundles', error: error.message });
+    }
+});
+
+// Delete a bundle
+router.delete('/bundles/:id', authenticate, requireInstructor, async (req, res) => {
+    try {
+        const bundle = await Bundle.findOneAndDelete({ _id: req.params.id, instructorId: req.user._id });
+        if (!bundle) return res.status(404).json({ message: 'Bundle not found or unauthorized' });
+        res.json({ message: 'Bundle deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting bundle', error: error.message });
+    }
+});
+
 
 // --- ASSESSMENTS (Instructor Managed) ---
 

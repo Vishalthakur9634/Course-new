@@ -143,25 +143,96 @@ const PlatformAnalytics = () => {
                 </div>
             </div>
 
-            {/* Additional Info */}
+            {/* Trend Charts */}
+            <div className="grid grid-cols-1 gap-6">
+                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <TrendingUp size={20} className="text-brand-primary" />
+                        Enrollment Trend (Last 6 Months)
+                    </h3>
+                    <div className="h-64 flex items-end justify-between gap-2 px-4">
+                        {stats.enrollmentTrend?.length > 0 ? (
+                            stats.enrollmentTrend.map((item, idx) => {
+                                const maxVal = Math.max(...stats.enrollmentTrend.map(i => i.count)) || 1;
+                                const height = (item.count / maxVal) * 100;
+                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                return (
+                                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                        <div className="absolute -top-8 bg-brand-primary text-dark-bg px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-all">
+                                            {item.count}
+                                        </div>
+                                        <div
+                                            className="w-full bg-brand-primary/20 hover:bg-brand-primary/40 transition-all rounded-t-lg border-x border-t border-brand-primary/30"
+                                            style={{ height: `${height}%`, minHeight: '4px' }}
+                                        />
+                                        <span className="text-[10px] text-dark-muted font-bold uppercase truncate w-full text-center">
+                                            {monthNames[item._id.month - 1]}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-dark-muted italic">
+                                No enrollment data available for the last 6 months
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <DollarSign size={20} className="text-green-500" />
+                        Revenue Trend ($)
+                    </h3>
+                    <div className="h-64 flex items-end justify-between gap-2 px-4">
+                        {stats.revenueTrend?.length > 0 ? (
+                            stats.revenueTrend.map((item, idx) => {
+                                const maxVal = Math.max(...stats.revenueTrend.map(i => i.revenue)) || 1;
+                                const height = (item.revenue / maxVal) * 100;
+                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                return (
+                                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                        <div className="absolute -top-8 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold opacity-0 group-hover:opacity-100 transition-all">
+                                            ${item.revenue.toFixed(0)}
+                                        </div>
+                                        <div
+                                            className="w-full bg-green-500/20 hover:bg-green-500/40 transition-all rounded-t-lg border-x border-t border-green-500/30"
+                                            style={{ height: `${height}%`, minHeight: '4px' }}
+                                        />
+                                        <span className="text-[10px] text-dark-muted font-bold uppercase truncate w-full text-center">
+                                            {monthNames[item._id.month - 1]}
+                                        </span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-dark-muted italic">
+                                No revenue data available for the last 6 months
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Stats Grid */}
             <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
-                <h3 className="text-xl font-bold text-white mb-4">Quick Stats</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-brand-primary">{stats.totalVideos}</p>
-                        <p className="text-sm text-dark-muted mt-1">Videos Uploaded</p>
+                <h3 className="text-xl font-bold text-white mb-6">Quick Overview</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="p-4 bg-dark-layer2 rounded-xl border border-white/5 text-center">
+                        <p className="text-3xl font-black text-brand-primary font-mono">{stats.totalVideos}</p>
+                        <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-1">Total Videos</p>
                     </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-green-500">{stats.totalCourses}</p>
-                        <p className="text-sm text-dark-muted mt-1">Courses Created</p>
+                    <div className="p-4 bg-dark-layer2 rounded-xl border border-white/5 text-center">
+                        <p className="text-3xl font-black text-green-500 font-mono">{stats.totalCourses}</p>
+                        <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-1">Total Courses</p>
                     </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-purple-500">{stats.totalUsers}</p>
-                        <p className="text-sm text-dark-muted mt-1">Registered Users</p>
+                    <div className="p-4 bg-dark-layer2 rounded-xl border border-white/5 text-center">
+                        <p className="text-3xl font-black text-purple-500 font-mono">{stats.totalUsers}</p>
+                        <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-1">Total Users</p>
                     </div>
-                    <div className="text-center">
-                        <p className="text-3xl font-bold text-blue-500">{stats.totalStorageGB}</p>
-                        <p className="text-sm text-dark-muted mt-1">GB Storage Used</p>
+                    <div className="p-4 bg-dark-layer2 rounded-xl border border-white/5 text-center">
+                        <p className="text-3xl font-black text-orange-500 font-mono">{stats.totalStorageGB}</p>
+                        <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-1">Storage (GB)</p>
                     </div>
                 </div>
             </div>

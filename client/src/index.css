@@ -9,13 +9,28 @@
 }
 
 :root {
-  --orbit-bg: #1a1a1a;
-  --orbit-layer1: #282828;
-  --orbit-layer2: #3e3e3e;
+  --orbit-bg: #0a0a0c;
+  --orbit-layer1: #15151a;
+  --orbit-layer2: #1c1c24;
   --orbit-text: #eff1f6;
-  --orbit-muted: #8a8a8a;
-  --brand-primary: #ffa116;
-  --brand-hover: #e59114;
+  --orbit-muted: #94a3b8;
+
+  /* Stellar Palette */
+  --brand-primary: #ffcc00;
+  /* Hyper Gold */
+  --brand-hover: #e6b800;
+  --quantum-purple: #ff8800;
+  --stellar-gold: #ffcc00;
+  --deep-space: #050507;
+
+  /* Glassmorphism */
+  --glass-bg: rgba(21, 21, 26, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+::selection {
+  background: rgba(255, 204, 0, 0.3);
+  color: #fff;
 }
 
 .light {
@@ -24,8 +39,8 @@
   --orbit-layer2: #f1f5f9;
   --orbit-text: #0f172a;
   --orbit-muted: #64748b;
-  --brand-primary: #ffa116;
-  --brand-hover: #e59114;
+  --brand-primary: #0ea5e9;
+  --brand-hover: #0284c7;
 }
 
 html,
@@ -35,10 +50,49 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+  background-color: var(--orbit-bg);
 }
 
 body {
-  @apply bg-dark-bg text-dark-text font-sans;
+  @apply text-dark-text font-sans;
+  background-color: var(--orbit-bg);
+  background-image:
+    linear-gradient(rgba(255, 204, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 204, 0, 0.03) 1px, transparent 1px),
+    radial-gradient(circle at 20% 30%, rgba(255, 204, 0, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 136, 0, 0.05) 0%, transparent 40%);
+  background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Futuristic Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.neon-border {
+  border: 1px solid var(--brand-primary);
+  box-shadow: 0 0 15px rgba(255, 204, 0, 0.2);
+}
+
+.cyber-button {
+  @apply relative overflow-hidden transition-all duration-300;
+}
+
+.cyber-button::after {
+  content: '';
+  @apply absolute inset-0 bg-white/10 translate-x-[-100%] transition-transform duration-500;
+}
+
+.cyber-button:hover::after {
+  @apply translate-x-[100%];
+}
+
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-quantum-purple;
 }
 
 /* Custom Scrollbar */

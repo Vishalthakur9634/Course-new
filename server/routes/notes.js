@@ -35,10 +35,42 @@ router.get('/', async (req, res) => {
     }
 });
 
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const mongoose = require('mongoose');
+
+// Multer setup for note attachments
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = 'uploads/notes';
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    }
+});
+const upload = multer({ storage });
+
+// Apply authentication to all routes (already done at top)
+
+// Get all notes for a video (user-specific)
+// ... already defined above ...
+
 // Create a new note
-router.post('/', async (req, res) => {
+router.post('/', upload.single('attachment'), async (req, res) => {
     try {
-        const { videoId, courseId, content, timestamp, attachments } = req.body;
+        const { videoId, courseId, content, timestamp } = req.body;
+
+        const attachments = [];
+        if (req.file) {
+            attachments.push({
+                filename: req.file.originalname,
+                url: `/uploads/notes/${req.file.filename}`,
+                fileType: req.file.mimetype
+            });
+        }
 
         const note = new Note({
             userId: req.user.id,
@@ -46,7 +78,7 @@ router.post('/', async (req, res) => {
             courseId,
             content,
             timestamp: timestamp || 0,
-            attachments: attachments || []
+            attachments
         });
 
         await note.save();

@@ -234,8 +234,8 @@ router.put('/:courseId/progress', authenticate, requireCourseAccess, async (req,
         // Calculate overall progress
         const course = await Course.findById(courseId).populate('videos');
         const totalVideos = course.videos.length;
-        const completedCount = enrollment.completedVideos.length;
-        enrollment.progress = totalVideos > 0 ? (completedCount / totalVideos) * 100 : 0;
+        const completedCount = new Set(enrollment.completedVideos.map(v => v.videoId.toString())).size;
+        enrollment.progress = totalVideos > 0 ? Math.min(100, (completedCount / totalVideos) * 100) : 0;
 
         await enrollment.save();
 
@@ -405,12 +405,12 @@ router.get('/leaderboard', async (req, res) => {
         const enrollments = await Enrollment.aggregate([
             {
                 $match: {
-                    userId: { $ne: null }
+                    studentId: { $ne: null }
                 }
             },
             {
                 $group: {
-                    _id: '$userId',
+                    _id: '$studentId',
                     coursesEnrolled: { $sum: 1 },
                     coursesCompleted: {
                         $sum: {
@@ -425,24 +425,23 @@ router.get('/leaderboard', async (req, res) => {
                     from: 'users',
                     localField: '_id',
                     foreignField: '_id',
-                    as: 'userId'
+                    as: 'student'
                 }
             },
             {
-                $unwind: '$userId'
+                $unwind: '$student'
             },
             {
                 $project: {
                     _id: 1,
                     userId: {
-                        _id: '$userId._id',
-                        name: '$userId.name',
-                        avatar: '$userId.avatar'
+                        _id: '$student._id',
+                        name: '$student.name',
+                        avatar: '$student.avatar'
                     },
                     coursesEnrolled: 1,
                     coursesCompleted: 1,
-                    points: { $multiply: ['$coursesCompleted', 100] },
-                    rank: 1
+                    points: { $multiply: ['$coursesCompleted', 100] }
                 }
             },
             {

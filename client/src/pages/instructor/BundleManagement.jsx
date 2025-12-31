@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Package, Search, Flame, Loader2, Sparkles, Check } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Search, Flame, Loader2, Sparkles, Check, X } from 'lucide-react';
 import api from '../../utils/api';
 
 const BundleManagement = () => {
@@ -24,11 +24,11 @@ const BundleManagement = () => {
     const fetchData = async () => {
         try {
             const [bundleRes, courseRes] = await Promise.all([
-                api.get('/mega/bundles'),
+                api.get('/mega/bundles/my-bundles'),
                 api.get('/instructor/courses')
             ]);
-            setBundles(bundleRes.data);
-            setCourses(courseRes.data);
+            setBundles(bundleRes.data || []);
+            setCourses(courseRes.data || []);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -68,6 +68,17 @@ const BundleManagement = () => {
         }
     };
 
+    const handleDelete = async (bundleId) => {
+        if (!window.confirm('Are you sure you want to delete this bundle?')) return;
+        try {
+            await api.delete(`/mega/bundles/${bundleId}`);
+            fetchData();
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Error deleting bundle');
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             title: '',
@@ -104,7 +115,12 @@ const BundleManagement = () => {
                             <div className={`p-4 rounded-3xl bg-gradient-to-br ${bundle.bg} text-white shadow-lg`}>
                                 <Package size={32} />
                             </div>
-                            <button className="p-2 hover:bg-red-500/10 rounded-xl text-red-400 transition-colors"><Trash2 size={20} /></button>
+                            <button
+                                onClick={() => handleDelete(bundle._id)}
+                                className="p-2 hover:bg-red-500/10 rounded-xl text-red-400 transition-colors"
+                            >
+                                <Trash2 size={20} />
+                            </button>
                         </div>
                         <div className="space-y-4 flex-1">
                             <h3 className="text-2xl font-black text-white leading-tight">{bundle.title}</h3>

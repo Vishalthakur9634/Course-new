@@ -241,7 +241,7 @@ const InstructorDashboard = () => {
                                         <td className="p-4 text-white">{enrollment.courseId?.title || "Unknown Course"}</td>
                                         <td className="p-4 text-dark-muted">{new Date(enrollment.enrolledAt).toLocaleDateString()}</td>
                                         <td className="p-4">
-                                            <button className="text-brand-primary hover:text-brand-hover text-sm font-medium">View Details</button>
+                                            <Link to={`/u/${enrollment.userId?._id}`} className="text-brand-primary hover:text-brand-hover text-sm font-medium">View Details</Link>
                                         </td>
                                     </tr>
                                 ))}

@@ -9,8 +9,9 @@ import {
     Sun, Moon, TrendingUp, History, Zap, ArrowRight
 } from 'lucide-react';
 import api from '../utils/api';
+import NotificationCenter from './NotificationCenter';
 
-const Navbar = () => {
+const Navbar = ({ onOpenCommandPalette }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const searchRef = useRef(null);
@@ -20,16 +21,30 @@ const Navbar = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
-    // Removed isMobileMenuOpen
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
+    const [token, setToken] = useState(localStorage.getItem('token'));
     const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const [popularCourses, setPopularCourses] = useState([]);
     const [trendingCategories, setTrendingCategories] = useState([]);
 
-    // Safety check for localStorage
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : {};
+    useEffect(() => {
+        const syncUser = () => {
+            setUser(JSON.parse(localStorage.getItem('user')) || {});
+            setToken(localStorage.getItem('token'));
+        };
+
+        window.addEventListener('storage', syncUser);
+        // Custom event for same-window updates
+        window.addEventListener('profileUpdate', syncUser);
+
+        return () => {
+            window.removeEventListener('storage', syncUser);
+            window.removeEventListener('profileUpdate', syncUser);
+        };
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -113,8 +128,21 @@ const Navbar = () => {
                 console.error('Error fetching popular data:', error);
             }
         };
+
+        const fetchUnreadCount = async () => {
+            if (token) {
+                try {
+                    const { data } = await api.get('/notifications');
+                    setUnreadCount(data.unreadCount);
+                } catch (error) {
+                    console.error('Error fetching unread count:', error);
+                }
+            }
+        };
+
         fetchPopularData();
-    }, []);
+        fetchUnreadCount();
+    }, [token]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -140,12 +168,11 @@ const Navbar = () => {
             { name: 'Bundles', path: '/bundles', icon: Package },
             { name: 'Community', path: '/community', icon: MessageSquare },
             { name: 'Leaderboard', path: '/leaderboard', icon: Award },
-            { name: 'Shorts', path: '/reels', icon: Film },
         ],
         instructor: [
             { name: 'Dashboard', path: '/instructor', icon: Grid3x3 },
             { name: 'Courses', path: '/instructor/courses', icon: BookOpen },
-            { name: 'Shorts', path: '/reels', icon: Film },
+
             { name: 'Students', path: '/instructor/students', icon: Users },
             { name: 'Earnings', path: '/instructor/earnings', icon: DollarSign },
         ],
@@ -167,14 +194,14 @@ const Navbar = () => {
 
 
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled ? 'bg-dark-bg/80 backdrop-blur-xl border-b border-white/10 py-3' : 'bg-dark-bg/95 border-b border-white/5 py-5'
+        <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 glass-panel ${isScrolled ? 'py-3 border-b-brand-primary/20' : 'py-5 border-none'
             }`}>
             <div className="max-w-[1440px] mx-auto px-6 flex justify-between items-center">
                 {/* Logo Section */}
                 <div className="flex items-center gap-8">
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-orange-600 rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-brand-primary/20">
-                            <Rocket size={22} className="text-white fill-current" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-brand-hover rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-brand-primary/40">
+                            <Rocket size={22} className="text-dark-bg fill-current" />
                         </div>
                         <span className="hidden md:inline text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 group-hover:to-brand-primary transition-all">
                             Orbit<span className="text-brand-primary">Quest</span>
@@ -188,10 +215,10 @@ const Navbar = () => {
                                 <Link
                                     key={link.path}
                                     to={link.path}
-                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all hover:bg-white/5 flex items-center gap-2 ${location.pathname === link.path ? 'text-brand-primary bg-brand-primary/10' : 'text-dark-text/70 hover:text-white'
+                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-brand-primary/10 flex items-center gap-2 ${location.pathname === link.path ? 'text-brand-primary bg-brand-primary/5 border border-brand-primary/20 shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'text-dark-muted hover:text-white'
                                         }`}
                                 >
-                                    <link.icon size={16} />
+                                    <link.icon size={14} className={location.pathname === link.path ? 'animate-pulse' : ''} />
                                     {link.name}
                                 </Link>
                             ))}
@@ -201,27 +228,124 @@ const Navbar = () => {
 
                 <div className="flex items-center gap-4 flex-1 justify-end max-w-2xl">
                     <div ref={searchRef} className={`hidden md:flex flex-1 max-w-md relative group ${user.role === 'instructor' ? 'invisible pointer-events-none' : ''}`}>
-                        <div className={`flex items-center w-full bg-dark-layer1/50 border rounded-2xl transition-all ${isSearchFocused ? 'border-brand-primary bg-dark-layer1 shadow-lg shadow-brand-primary/10' : 'border-dark-layer2 shadow-none'
+                        <div className={`flex items-center w-full bg-dark-layer1/50 border rounded-2xl transition-all ${isSearchFocused ? 'border-brand-primary bg-dark-layer1 shadow-lg shadow-brand-primary/20' : 'border-white/5 shadow-none hover:border-white/10'
                             }`}>
                             <Search className={`ml-4 transition-colors ${isSearchFocused ? 'text-brand-primary' : 'text-dark-muted'}`} size={18} />
                             <input
                                 type="text"
-                                placeholder="Explore courses, skills..."
-                                className="w-full bg-transparent border-none py-2.5 pl-3 pr-4 text-sm focus:outline-none placeholder:text-dark-muted/50 text-white font-medium"
+                                placeholder="INITIALIZE SCAN..."
+                                className="w-full bg-transparent border-none py-2.5 pl-3 pr-4 text-xs focus:outline-none placeholder:text-dark-muted/50 text-white font-black uppercase tracking-widest"
                                 value={searchQuery}
-                                onFocus={() => setIsSearchFocused(true)}
+                                onFocus={() => {
+                                    setIsSearchFocused(true);
+                                    if (onOpenCommandPalette) onOpenCommandPalette();
+                                }}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
-                            <div className="mr-4 flex items-center gap-1.5 px-2 py-0.5 rounded border border-dark-layer2 text-[10px] font-bold text-dark-muted select-none group-hover:border-dark-muted/30 transition-colors">
+                            <div
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onOpenCommandPalette) onOpenCommandPalette();
+                                }}
+                                className="mr-4 flex items-center gap-1.5 px-2 py-0.5 rounded border border-brand-primary/20 text-[10px] font-black text-brand-primary select-none bg-brand-primary/10 transition-colors animate-pulse cursor-pointer"
+                            >
                                 <span className="text-xs">⌘</span> K
                             </div>
                         </div>
 
-                        {/* Search Results Dropdown Logic (Simulated) */}
-                        {isSearchFocused && (
-                            /* ... Simplified Search Results ... */
-                            <div className="absolute top-full left-0 right-0 mt-3 w-full bg-dark-layer1 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[9999]">
-                                {/* ... (Keeping existing search result logic) ... */}
+                        {isSearchFocused && (searchQuery.length >= 2 || (popularCourses.length > 0 && searchQuery.length === 0)) && (
+                            <div className="absolute top-full left-0 right-0 mt-3 w-full bg-dark-layer1 border border-white/10 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[99999]">
+                                {isSearching ? (
+                                    <div className="p-8 text-center">
+                                        <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                        <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Scanning Database...</p>
+                                    </div>
+                                ) : searchQuery.length >= 2 ? (
+                                    <>
+                                        {searchResults.length > 0 ? (
+                                            <div className="p-2">
+                                                <div className="px-4 py-2 border-b border-white/5 mb-2">
+                                                    <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Found {searchResults.length} Matches</p>
+                                                </div>
+                                                {searchResults.map(course => (
+                                                    <button
+                                                        key={course._id}
+                                                        onClick={() => {
+                                                            navigate(`/course/${course._id}`);
+                                                            setIsSearchFocused(false);
+                                                            setSearchQuery('');
+                                                        }}
+                                                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-all group"
+                                                    >
+                                                        <div className="w-12 h-12 rounded-lg bg-dark-layer2 overflow-hidden flex-shrink-0 border border-white/5">
+                                                            <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <p className="text-sm font-bold text-white group-hover:text-brand-primary transition-colors">{course.title}</p>
+                                                            <p className="text-[10px] text-dark-muted uppercase font-black">{course.category}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                                <Link
+                                                    to="/browse"
+                                                    onClick={() => setIsSearchFocused(false)}
+                                                    className="block text-center py-3 text-[10px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/10 transition-all mt-2"
+                                                >
+                                                    View All Signals
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <div className="p-12 text-center">
+                                                <p className="text-sm text-dark-muted font-bold">No curriculum found for "{searchQuery}"</p>
+                                                <p className="text-[10px] text-dark-muted/50 uppercase font-black mt-2">Try different coordinates</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="p-6">
+                                        <div className="px-2 mb-4">
+                                            <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Trending Sectors</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 mb-6">
+                                            {trendingCategories.map(cat => (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => {
+                                                        navigate(`/browse?category=${cat}`);
+                                                        setIsSearchFocused(false);
+                                                    }}
+                                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-white transition-all border border-white/5"
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {popularCourses.length > 0 && (
+                                            <>
+                                                <div className="px-2 mb-4">
+                                                    <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Popular Transmissions</p>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {popularCourses.map(course => (
+                                                        <button
+                                                            key={course._id}
+                                                            onClick={() => {
+                                                                navigate(`/course/${course._id}`);
+                                                                setIsSearchFocused(false);
+                                                            }}
+                                                            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all text-left"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-lg bg-dark-layer2 overflow-hidden border border-white/5">
+                                                                <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
+                                                            </div>
+                                                            <span className="text-xs font-bold text-dark-muted hover:text-white transition-colors truncate">{course.title}</span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -245,10 +369,22 @@ const Navbar = () => {
 
                         {token ? (
                             <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
-                                <button className="p-2.5 rounded-xl hover:bg-white/5 text-dark-text/70 hover:text-white transition-colors relative group">
-                                    <Bell size={20} />
-                                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-dark-bg animate-pulse"></span>
-                                </button>
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                        className={`p-2.5 rounded-xl transition-all relative group ${isNotificationsOpen ? 'bg-brand-primary text-dark-bg' : 'hover:bg-white/5 text-dark-text/70 hover:text-white'}`}
+                                    >
+                                        <Bell size={20} />
+                                        {unreadCount > 0 && (
+                                            <span className={`absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full border-2 animate-pulse ${isNotificationsOpen ? 'bg-dark-bg border-brand-primary' : 'bg-red-500 border-dark-bg'}`}></span>
+                                        )}
+                                    </button>
+
+                                    <NotificationCenter
+                                        isOpen={isNotificationsOpen}
+                                        onClose={() => setIsNotificationsOpen(false)}
+                                    />
+                                </div>
 
                                 <div className="relative">
                                     <button

@@ -38,7 +38,7 @@ const Profile = () => {
 
     const fetchProfile = async () => {
         try {
-            const currentUserId = JSON.parse(localStorage.getItem('user'))?.id;
+            const currentUserId = JSON.parse(localStorage.getItem('user'))?.id || JSON.parse(localStorage.getItem('user'))?._id;
             const targetId = paramId || currentUserId;
 
             if (!targetId) return;
@@ -47,21 +47,24 @@ const Profile = () => {
 
             const [profileRes, coursesRes, reelsRes] = await Promise.all([
                 api.get(`/users/profile/${targetId}`),
-                api.get(`/courses?instructorId=${targetId}`), // Fetch if they are instructor
+                api.get(`/courses?instructorId=${targetId}`),
                 api.get(`/reels/feed?instructorId=${targetId}`)
             ]);
 
             const data = profileRes.data;
+
             setUser(data);
             setFormData({
                 name: data.name,
                 email: data.email,
                 bio: data.bio || '',
-                twitter: data.socialLinks?.twitter || '',
-                linkedin: data.socialLinks?.linkedin || '',
-                github: data.socialLinks?.github || '',
-                website: data.socialLinks?.website || ''
+                twitter: data.instructorProfile?.socialLinks?.twitter || '',
+                linkedin: data.instructorProfile?.socialLinks?.linkedin || '',
+                github: data.instructorProfile?.socialLinks?.github || '',
+                website: data.instructorProfile?.socialLinks?.website || ''
             });
+            setCourses(coursesRes.data || []);
+            setReels(reelsRes.data || []);
             if (data.avatar) {
                 setPhotoPreview(data.avatar);
             }
@@ -108,8 +111,19 @@ const Profile = () => {
 
             setIsEditing(false);
             setPhotoFile(null);
+
+            // Sync with localStorage
+            const updatedUser = {
+                ...currentUser,
+                name: formData.name,
+                avatar: photoPreview || currentUser.avatar
+            };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setCurrentUser(updatedUser);
+            window.dispatchEvent(new Event('profileUpdate'));
+
             fetchProfile();
-            alert('Profile updated successfully');
+            alert('Profile Aura Synchronized Successfully');
         } catch (error) {
             console.error('Error updating profile:', error);
             alert('Failed to update profile');
@@ -129,7 +143,7 @@ const Profile = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dark-bg font-orbit text-white selection:bg-brand-primary/30 pb-20">
+        <div className="min-h-screen bg-dark-bg font-orbit text-white pb-20">
             {/* Dynamic Background Aura */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand-primary/10 blur-[120px] rounded-full animate-pulse"></div>
@@ -150,11 +164,11 @@ const Profile = () => {
                             <div className="absolute top-8 right-8 flex gap-4">
                                 <div className="bg-black/40 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-2xl text-center">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-brand-primary mb-1">XP Power</p>
-                                    <p className="text-xl font-black italic">{(user?.followerCount || 0) * 100 + (courses.length * 500)}</p>
+                                    <p className="text-xl font-black italic">{user?.gamification?.xp || 0}</p>
                                 </div>
                                 <div className="bg-brand-primary text-dark-bg px-6 py-3 rounded-2xl text-center shadow-lg shadow-brand-primary/20">
-                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Rank</p>
-                                    <p className="text-xl font-black italic">#{Math.floor(Math.random() * 100) + 1}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Level</p>
+                                    <p className="text-xl font-black italic">{user?.gamification?.level || 1}</p>
                                 </div>
                             </div>
                         </div>
@@ -299,19 +313,19 @@ const Profile = () => {
                             <div className="space-y-4">
                                 <div className="flex items-end justify-between">
                                     <div>
-                                        <div className="text-5xl font-black text-brand-primary">12</div>
+                                        <div className="text-5xl font-black text-brand-primary">{user?.gamification?.level || 12}</div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">Current Level</p>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-2xl font-black text-white">2,450</div>
+                                        <div className="text-2xl font-black text-white">{user?.gamification?.xp || 2450}</div>
                                         <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted">Total XP</p>
                                     </div>
                                 </div>
                                 <div className="relative h-3 bg-dark-layer2 rounded-full overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary to-purple-500 rounded-full" style={{ width: '65%' }}></div>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/50 to-purple-500/50 blur-md" style={{ width: '65%' }}></div>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary to-purple-500 rounded-full" style={{ width: `${(user?.gamification?.xp % 1000) / 10}%` }}></div>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-brand-primary/50 to-purple-500/50 blur-md" style={{ width: `${(user?.gamification?.xp % 1000) / 10}%` }}></div>
                                 </div>
-                                <p className="text-xs font-bold text-center text-dark-muted">350 XP to Level 13</p>
+                                <p className="text-xs font-bold text-center text-dark-muted">{1000 - (user?.gamification?.xp % 1000)} XP to Level {(user?.gamification?.level || 0) + 1}</p>
                             </div>
                         </div>
                     </div>
@@ -342,6 +356,57 @@ const Profile = () => {
                     </div>
                 </div>
 
+                {/* Referral Command Center (NEW) */}
+                {isOwner && (
+                    <div className="mt-12 bg-dark-layer1 rounded-[3rem] border border-white/5 overflow-hidden shadow-2xl">
+                        <div className="p-10 flex flex-col lg:flex-row items-center gap-12">
+                            <div className="flex-1 space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <UserPlus className="text-brand-primary" size={28} />
+                                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">Referral Intelligence</h3>
+                                </div>
+                                <p className="text-dark-muted font-medium text-sm leading-relaxed max-w-xl">
+                                    Expand the Orbit network by inviting fellow operatives. Earn 20% commission on every course purchase made through your unique transmission frequency.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <div className="flex-1 bg-dark-layer2 border border-white/5 p-4 rounded-2xl flex items-center justify-between">
+                                        <code className="text-brand-primary font-black tracking-widest text-lg">{user?.referralCode}</code>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(user?.referralCode);
+                                                alert('Code Copied to Clipboard');
+                                            }}
+                                            className="text-[10px] font-black uppercase tracking-widest text-dark-muted hover:text-white transition-colors"
+                                        >
+                                            Copy Code
+                                        </button>
+                                    </div>
+                                    <button className="bg-brand-primary text-dark-bg px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-brand-primary/20 hover:scale-105 active:scale-95 transition-all">
+                                        Deploy Invite
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full lg:w-fit shrink-0">
+                                <div className="bg-white/5 border border-white/5 p-6 rounded-[2rem] text-center min-w-[140px]">
+                                    <p className="text-3xl font-black italic">{user?.referralStats?.totalReferrals || 0}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted mt-1">Converts</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/5 p-6 rounded-[2rem] text-center min-w-[140px]">
+                                    <p className="text-3xl font-black italic">${user?.referralStats?.totalEarnings || 0}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted mt-1">Earnings</p>
+                                </div>
+                                <div className="bg-white/5 border border-white/5 p-6 rounded-[2rem] text-center min-w-[140px]">
+                                    <p className="text-3xl font-black italic">{user?.referralStats?.clicks || 0}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-dark-muted mt-1">Frequency Clicks</p>
+                                </div>
+                                <Link to="/referral" className="bg-brand-primary/10 border border-brand-primary/20 p-6 rounded-[2rem] text-center min-w-[140px] flex items-center justify-center hover:bg-brand-primary/20 transition-all">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-brand-primary">Full Intel</span>
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Achievement Badges Grid */}
                 <div className="mt-12 bg-dark-layer1 rounded-[3rem] border border-white/5 p-10">
                     <div className="flex items-center justify-between mb-8">
@@ -352,25 +417,16 @@ const Profile = () => {
                         <Award className="text-brand-primary" size={32} />
                     </div>
                     <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4">
-                        {[
-                            { icon: '🎓', name: 'First Course', unlocked: true, color: 'from-blue-500 to-cyan-500' },
-                            { icon: '⚡', name: '10 Day Streak', unlocked: true, color: 'from-orange-500 to-red-500' },
-                            { icon: '🏆', name: 'Top 100', unlocked: true, color: 'from-yellow-500 to-orange-500' },
-                            { icon: '🎯', name: '100% Complete', unlocked: true, color: 'from-green-500 to-teal-500' },
-                            { icon: '👥', name: '100 Followers', unlocked: true, color: 'from-pink-500 to-purple-500' },
-                            { icon: '📚', name: '10 Courses', unlocked: false, color: 'from-gray-500 to-gray-600' },
-                            { icon: '🔥', name: '30 Day Streak', unlocked: false, color: 'from-gray-500 to-gray-600' },
-                            { icon: '⭐', name: '5 Star Rating', unlocked: true, color: 'from-yellow-400 to-orange-400' },
-                            { icon: '💎', name: 'Premium', unlocked: true, color: 'from-cyan-500 to-blue-500' },
-                            { icon: '🚀', name: 'Fast Learner', unlocked: false, color: 'from-gray-500 to-gray-600' },
-                            { icon: '🎬', name: '10 Reels', unlocked: true, color: 'from-purple-500 to-pink-500' },
-                            { icon: '💬', name: 'Social Butterfly', unlocked: false, color: 'from-gray-500 to-gray-600' }
-                        ].map((badge, i) => (
+                        {(user?.gamification?.badges || [
+                            { icon: '🎓', name: 'First Course', unlocked: true, color: 'blue' },
+                            { icon: '⚡', name: 'Streak 10', unlocked: false, color: 'orange' },
+                            { icon: '🏆', name: 'Top Hunter', unlocked: false, color: 'yellow' }
+                        ]).map((badge, i) => (
                             <div key={i} className="relative group/badge">
-                                <div className={`aspect-square rounded-2xl bg-gradient-to-br ${badge.color} p-0.5 ${badge.unlocked ? 'opacity-100' : 'opacity-20'} transition-all group-hover/badge:scale-110`}>
-                                    <div className="w-full h-full rounded-[14px] bg-dark-bg flex flex-col items-center justify-center">
-                                        <div className="text-3xl mb-1">{badge.icon}</div>
-                                        <p className="text-[8px] font-black uppercase text-white/70 text-center px-1 leading-tight">{badge.name}</p>
+                                <div className={`aspect-square rounded-2xl bg-${badge.color}-500 p-0.5 ${badge.unlocked ? 'opacity-100' : 'opacity-20'} transition-all group-hover/badge:scale-110`}>
+                                    <div className="w-full h-full rounded-[14px] bg-dark-bg flex flex-col items-center justify-center text-center p-1">
+                                        <div className="text-2xl mb-1">{badge.icon === 'Sparkles' ? '✨' : badge.icon === 'BookOpen' ? '📖' : badge.icon === 'Flame' ? '🔥' : badge.icon === 'Award' ? '🏅' : badge.icon === 'Users' ? '👥' : '⭐'}</div>
+                                        <p className="text-[8px] font-black uppercase text-white/70 leading-tight">{badge.name}</p>
                                     </div>
                                 </div>
                                 {badge.unlocked && (

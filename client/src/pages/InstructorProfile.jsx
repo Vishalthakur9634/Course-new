@@ -18,6 +18,8 @@ const InstructorProfile = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('courses');
     const [isOwner, setIsOwner] = useState(false);
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [followLoading, setFollowLoading] = useState(false);
     const [isUpdatingAvatar, setIsUpdatingAvatar] = useState(false);
     const [activeReel, setActiveReel] = useState(null);
     const fileInputRef = useRef(null);
@@ -32,6 +34,17 @@ const InstructorProfile = () => {
         }
         fetchData();
     }, [instructorId]);
+
+    useEffect(() => {
+        if (instructor && !isOwner) {
+            const userStr = localStorage.getItem('user');
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+            if (currentUser) {
+                const followingIds = currentUser.following || [];
+                setIsFollowing(followingIds.includes(instructor._id));
+            }
+        }
+    }, [instructor, isOwner]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -95,6 +108,46 @@ const InstructorProfile = () => {
             alert('Failed to update profile picture.');
         } finally {
             setIsUpdatingAvatar(false);
+        }
+    };
+
+    const handleFollow = async () => {
+        if (followLoading) return;
+        setFollowLoading(true);
+        try {
+            const { data } = await api.post(`/users/follow/${instructor._id}`);
+            setIsFollowing(true);
+            setInstructor(prev => ({
+                ...prev,
+                followers: [...(prev.followers || []), 'temp-id']
+            }));
+            const user = JSON.parse(localStorage.getItem('user'));
+            user.following = data.following;
+            localStorage.setItem('user', JSON.stringify(user));
+        } catch (error) {
+            console.error('Follow error:', error);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
+
+    const handleUnfollow = async () => {
+        if (followLoading) return;
+        setFollowLoading(true);
+        try {
+            const { data } = await api.post(`/users/unfollow/${instructor._id}`);
+            setIsFollowing(false);
+            setInstructor(prev => ({
+                ...prev,
+                followers: (prev.followers || []).filter(id => id !== 'temp-id')
+            }));
+            const user = JSON.parse(localStorage.getItem('user'));
+            user.following = data.following;
+            localStorage.setItem('user', JSON.stringify(user));
+        } catch (error) {
+            console.error('Unfollow error:', error);
+        } finally {
+            setFollowLoading(false);
         }
     };
 
@@ -208,7 +261,31 @@ const InstructorProfile = () => {
                             <div className="flex items-center gap-3 px-6 py-3 bg-white/5 rounded-3xl border border-white/5 text-[10px] font-black text-dark-muted uppercase tracking-[0.2em]">
                                 <Users size={16} className="text-brand-primary" /> {totalStudents.toLocaleString()} Enrolled
                             </div>
+                            <div className="flex items-center gap-4 pl-4 border-l border-white/10">
+                                <div className="text-center">
+                                    <p className="text-lg font-black text-white leading-none">{instructor.followers?.length || 0}</p>
+                                    <p className="text-[9px] text-dark-muted font-black uppercase tracking-widest mt-1">Followers</p>
+                                </div>
+                            </div>
                         </div>
+
+                        {!isOwner && (
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    onClick={isFollowing ? handleUnfollow : handleFollow}
+                                    disabled={followLoading}
+                                    className={`px-10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all shadow-xl ${isFollowing ? 'bg-white/5 text-white border border-white/10 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30' : 'bg-brand-primary text-dark-bg hover:bg-brand-hover shadow-brand-primary/20'}`}
+                                >
+                                    {followLoading ? 'Syncing...' : isFollowing ? 'Unfollow' : 'Follow Architect'}
+                                </button>
+                                <button
+                                    onClick={() => navigate(`/messages/${instructor._id}`)}
+                                    className="px-8 py-4 bg-dark-layer2 text-white border border-white/10 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-white/5 transition-all"
+                                >
+                                    Secure Message
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

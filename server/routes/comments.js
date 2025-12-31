@@ -48,10 +48,11 @@ router.post('/:commentId/reply', async (req, res) => {
         comment.replies.push({ user: userId, text });
         await comment.save();
 
-        // Populate user details for the new reply
-        await comment.populate('replies.user', 'name avatar');
+        const populated = await Comment.findById(comment._id)
+            .populate('user', 'name avatar')
+            .populate('replies.user', 'name avatar');
 
-        res.json(comment);
+        res.json(populated);
     } catch (error) {
         res.status(500).json({ message: 'Error adding reply', error: error.message });
     }

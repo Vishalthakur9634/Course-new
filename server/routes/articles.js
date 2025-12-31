@@ -44,25 +44,44 @@ router.get('/:slug', async (req, res) => {
 // Create article (Instructor only)
 router.post('/', authenticate, requireInstructor, async (req, res) => {
     try {
-        console.log('Creating article with payload:', {
-            ...req.body,
-            authorId: req.user._id
-        });
+        const { title, content, coverImage, videoUrl, category, tags, isPublished } = req.body;
+
+        if (!title || !content) {
+            return res.status(400).json({ message: 'Title and content are required' });
+        }
+
+        const authorId = req.user._id || req.user.id;
+
         const article = new Article({
-            ...req.body,
-            authorId: req.user._id
+            title,
+            content,
+            coverImage: coverImage || '',
+            videoUrl: videoUrl || '',
+            category: category || 'general',
+            tags: Array.isArray(tags) ? tags : [],
+            isPublished: isPublished !== undefined ? isPublished : false,
+            authorId
         });
+
         await article.save();
-        console.log('Article created successfully:', article._id);
         res.status(201).json(article);
     } catch (error) {
-        console.error('Error creating article:', {
+        const fs = require('fs');
+        const path = require('path');
+        const errorDetail = {
             message: error.message,
             stack: error.stack,
-            name: error.name,
-            code: error.code
+            body: req.body,
+            userId: req.user?._id
+        };
+        fs.appendFileSync(path.join(__dirname, '../article_error.log'), `[${new Date().toISOString()}] ${JSON.stringify(errorDetail, null, 2)}\n\n`);
+
+        console.error('Core Article Creation Error:', error);
+        res.status(500).json({
+            message: 'Internal server error during article creation',
+            error: error.message,
+            details: error.errors // Include Mongoose validation errors if any
         });
-        res.status(500).json({ message: 'Error creating article', error: error.message });
     }
 });
 

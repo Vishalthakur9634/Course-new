@@ -21,7 +21,8 @@ const notificationSchema = new mongoose.Schema({
             'instructor_approved',
             'system_announcement',
             'course_update',
-            'new_message'
+            'new_message',
+            'new_follower'
         ],
         required: true
     },

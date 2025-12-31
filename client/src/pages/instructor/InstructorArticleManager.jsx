@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
-import { PenTool, Plus, Trash2, Eye, Layout, Image as ImageIcon } from 'lucide-react';
+import { PenTool, Plus, Trash2, Eye, Layout, Image as ImageIcon, Video, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const InstructorArticleManager = () => {
@@ -13,7 +13,7 @@ const InstructorArticleManager = () => {
         category: 'general',
         tags: '',
         coverImage: '',
-        videoFile: null,
+        videoUrl: '',
         isPublished: true
     });
 
@@ -44,7 +44,7 @@ const InstructorArticleManager = () => {
             fetchArticles();
             setShowModal(false);
             setFormData({
-                title: '', content: '', category: 'general', tags: '', coverImage: '', isPublished: true
+                title: '', content: '', category: 'general', tags: '', coverImage: '', videoUrl: '', isPublished: true
             });
         } catch (error) {
             console.error('Article creation error:', error);
@@ -121,8 +121,14 @@ const InstructorArticleManager = () => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-2xl font-black text-white mb-6">Write Article</h2>
+                    <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-black text-white">Write Article</h2>
+                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-full text-dark-muted hover:text-white transition-all whitespace-nowrap">
+                                <X size={20} />
+                            </button>
+                        </div>
+
                         <form onSubmit={handleCreate} className="space-y-6">
                             <div>
                                 <label className="block text-sm font-bold text-dark-muted mb-2">Title</label>
@@ -183,6 +189,39 @@ const InstructorArticleManager = () => {
                             </div>
 
                             <div>
+                                <label className="block text-sm font-bold text-dark-muted mb-2">Video Transmission (Optional)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="file"
+                                        accept="video/*"
+                                        className="hidden"
+                                        id="articleVideo"
+                                        onChange={async (e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                                const upData = new FormData();
+                                                upData.append('file', file);
+                                                try {
+                                                    const { data } = await api.post('/upload', upData);
+                                                    setFormData({ ...formData, videoUrl: data.url });
+                                                } catch (err) {
+                                                    alert('Failed to upload video: ' + (err.response?.data?.message || err.message));
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <label htmlFor="articleVideo" className="flex-1 bg-dark-layer2 border border-white/10 rounded-xl p-3 text-white cursor-pointer hover:border-brand-primary truncate">
+                                        {formData.videoUrl ? 'Change Video' : 'Upload Video'}
+                                    </label>
+                                    {formData.videoUrl && (
+                                        <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center border border-green-500/30">
+                                            <Video size={18} className="text-green-400" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
                                 <label className="block text-sm font-bold text-dark-muted mb-2">Content</label>
                                 <textarea
                                     required
@@ -191,7 +230,7 @@ const InstructorArticleManager = () => {
                                     value={formData.content}
                                     onChange={e => setFormData({ ...formData, content: e.target.value })}
                                 />
-                                <p className="text-xs text-dark-muted mt-2 text-right">Markdown supported</p>
+                                <p className="text-xs text-dark-muted mt-2 text-right font-bold uppercase tracking-widest text-[10px]">Markdown Encrypted</p>
                             </div>
 
                             <div>
@@ -204,9 +243,9 @@ const InstructorArticleManager = () => {
                                 />
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button type="submit" className="flex-1 bg-brand-primary text-dark-bg font-black py-4 rounded-xl hover:bg-brand-hover transition-colors">Publish Article</button>
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-white/5 text-white font-black py-4 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">Cancel</button>
+                            <div className="flex gap-4 pt-4 border-t border-white/5">
+                                <button type="submit" className="flex-1 bg-brand-primary text-dark-bg font-black py-4 rounded-2xl hover:bg-brand-hover transition-all shadow-lg shadow-brand-primary/20">Publish Transmission</button>
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 bg-white/5 text-white font-black py-4 rounded-2xl border border-white/10 hover:bg-white/10 transition-all">Abort</button>
                             </div>
                         </form>
                     </div>

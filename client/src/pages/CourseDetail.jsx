@@ -6,7 +6,7 @@ import CourseSidebar from '../components/CourseSidebar';
 import VideoTabs from '../components/VideoTabs';
 import Reviews from '../components/Reviews';
 import PaymentModal from '../components/PaymentModal';
-import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart, Check } from 'lucide-react';
+import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart, Check, Share2 } from 'lucide-react';
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -28,8 +28,9 @@ const CourseDetail = () => {
     useEffect(() => {
         const userStr = localStorage.getItem('user');
         if (userStr) {
-            setCurrentUser(JSON.parse(userStr));
-            checkWishlistStatus(JSON.parse(userStr).id);
+            const userObj = JSON.parse(userStr);
+            setCurrentUser(userObj);
+            checkWishlistStatus(userObj.id || userObj._id);
         }
 
         // Capture Referral Code
@@ -60,7 +61,8 @@ const CourseDetail = () => {
         }
 
         try {
-            const { data } = await api.post(`/users/${currentUser.id}/wishlist/${id}`);
+            const userId = currentUser.id || currentUser._id;
+            const { data } = await api.post(`/users/${userId}/wishlist/${id}`);
             setIsWishlisted(data.action === 'added');
         } catch (error) {
             console.error('Error toggling wishlist:', error);
@@ -75,7 +77,7 @@ const CourseDetail = () => {
                 return;
             }
             const user = JSON.parse(userStr);
-            const userId = user.id;
+            const userId = user.id || user._id;
 
             const [courseRes, userRes] = await Promise.all([
                 api.get(`/courses/${id}`),
@@ -261,16 +263,15 @@ const CourseDetail = () => {
                                     </button>
                                     <button
                                         onClick={() => {
-                                            if (!currentUser) return alert('Login to share');
-                                            const refLink = `${window.location.origin}/course/${course._id}?ref=${currentUser.referralCode}`;
-                                            navigator.clipboard.writeText(refLink);
-                                            alert('Referral link copied!');
+                                            const shareId = currentUser?.referralCode || currentUser?.id || currentUser?._id;
+                                            const shareLink = `${window.location.origin}/course/${course._id}${shareId ? `?ref=${shareId}` : ''}`;
+                                            navigator.clipboard.writeText(shareLink);
+                                            alert('Signal Propagation: Course link copied to clipboard!');
                                         }}
-                                        className="px-4 rounded-xl border-2 border-dark-layer2 hover:border-green-500 hover:text-green-500 text-white transition-colors flex items-center justify-center"
-                                        title="Share & Earn"
+                                        className="px-4 rounded-xl border-2 border-dark-layer2 hover:border-brand-primary hover:text-brand-primary text-white transition-colors flex items-center justify-center gap-2"
+                                        title="Share Course"
                                     >
-                                        <dollarSign size={24} /> {/* Assuming dollarSign or similar exists, or just text. Wait, Lucide import needed? */}
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-share-2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></svg>
+                                        <Share2 size={24} />
                                     </button>
                                 </div>
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
-import { Upload, Plus, X, FileVideo, FileText } from 'lucide-react';
+import { Upload, Plus, X, FileVideo, FileText, Layout, Info } from 'lucide-react';
 
 const UploadCourse = () => {
     const navigate = useNavigate();
@@ -15,6 +15,20 @@ const UploadCourse = () => {
         thumbnail: null
     });
     const [videos, setVideos] = useState([]);
+    const [existingCourses, setExistingCourses] = useState([]);
+    const [selectedCourseId, setSelectedCourseId] = useState('');
+
+    useEffect(() => {
+        const fetchExistingCourses = async () => {
+            try {
+                const { data } = await api.get('/instructor/courses');
+                setExistingCourses(data);
+            } catch (error) {
+                console.error('Error fetching existing courses:', error);
+            }
+        };
+        fetchExistingCourses();
+    }, []);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -45,27 +59,30 @@ const UploadCourse = () => {
         setVideos(updated);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e, shouldSubmit = false) => {
+        if (e) e.preventDefault();
         setLoading(true);
 
         try {
-            // Create course first
-            const formData = new FormData();
-            formData.append('title', courseData.title);
-            formData.append('description', courseData.description);
-            formData.append('category', courseData.category);
-            formData.append('level', courseData.level);
-            formData.append('price', courseData.price);
-            if (courseData.thumbnail) {
-                formData.append('thumbnail', courseData.thumbnail);
+            let courseId = selectedCourseId;
+
+            if (!courseId) {
+                const formData = new FormData();
+                formData.append('title', courseData.title);
+                formData.append('description', courseData.description);
+                formData.append('category', courseData.category);
+                formData.append('level', courseData.level);
+                formData.append('price', courseData.price);
+                if (courseData.thumbnail) {
+                    formData.append('thumbnail', courseData.thumbnail);
+                }
+
+                const { data: newCourse } = await api.post('/instructor/courses', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                courseId = newCourse._id;
             }
 
-            const { data: course } = await api.post('/instructor/courses', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            // Upload videos one by one
             for (const video of videos) {
                 if (video.file) {
                     const videoFormData = new FormData();
@@ -78,228 +95,243 @@ const UploadCourse = () => {
                     videoFormData.append('summary', video.summary);
                     videoFormData.append('order', video.order);
 
-                    await api.post(`/instructor/courses/${course._id}/videos`, videoFormData, {
+                    await api.post(`/instructor/courses/${courseId}/videos`, videoFormData, {
                         headers: { 'Content-Type': 'multipart/form-data' }
                     });
                 }
             }
 
-            // Submit for approval
-            await api.post(`/instructor/courses/${course._id}/submit`);
+            if (shouldSubmit) {
+                if (videos.length === 0 && !selectedCourseId) {
+                    alert('You must add at least one video to submit for review.');
+                    setLoading(false);
+                    return;
+                }
+                await api.post(`/instructor/courses/${courseId}/submit`);
+                alert('Course submitted successfully!');
+            } else {
+                alert('Saved successfully!');
+            }
 
-            alert('Course created and submitted for approval successfully!');
             navigate('/instructor/courses');
         } catch (error) {
-            console.error('Error creating course:', error);
-            alert(error.response?.data?.error || 'Failed to create course');
+            console.error('Error:', error);
+            alert(error.response?.data?.message || 'Operation failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <h1 className="text-3xl font-bold text-white">Upload New Course</h1>
+        <div className="max-w-4xl mx-auto space-y-8 pb-24">
+            <header className="flex flex-col gap-2">
+                <h1 className="text-4xl font-black text-white uppercase tracking-tighter">Course Content Hub</h1>
+                <p className="text-dark-muted font-bold uppercase tracking-widest text-xs">Deploy new knowledge or expand existing frontiers</p>
+            </header>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Course Details */}
-                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
-                    <h3 className="text-xl font-bold text-white mb-4">Course Details</h3>
+            <form onSubmit={handleSubmit} className="space-y-12">
+                {/* Mode Selector */}
+                <div className="bg-dark-layer1 border border-white/5 p-8 rounded-[2.5rem] space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button
+                            type="button"
+                            onClick={() => setSelectedCourseId('')}
+                            className={`p-6 rounded-3xl border transition-all text-left ${!selectedCourseId ? 'bg-brand-primary/10 border-brand-primary' : 'bg-dark-layer2 border-white/5 hover:border-white/20'}`}
+                        >
+                            <h4 className="text-white font-black uppercase tracking-tight mb-2">Create New Course</h4>
+                            <p className="text-xs text-dark-muted">Initiate a fresh course with new metadata.</p>
+                        </button>
 
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-dark-muted mb-2">Course Title *</label>
-                            <input
-                                type="text"
-                                name="title"
-                                value={courseData.title}
-                                onChange={handleInputChange}
-                                required
-                                className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
-                                placeholder="e.g., Complete Web Development Bootcamp"
-                            />
+                        <div className="relative">
+                            <select
+                                value={selectedCourseId}
+                                onChange={(e) => setSelectedCourseId(e.target.value)}
+                                className={`w-full p-6 h-full rounded-3xl border transition-all text-left appearance-none bg-dark-layer2 ${selectedCourseId ? 'bg-brand-primary/10 border-brand-primary text-white' : 'border-white/5 text-dark-muted hover:border-white/20'}`}
+                            >
+                                <option value="">Expand Existing Course...</option>
+                                {existingCourses.map(c => (
+                                    <option key={c._id} value={c._id}>{c.title}</option>
+                                ))}
+                            </select>
                         </div>
+                    </div>
+                </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-dark-muted mb-2">Description *</label>
-                            <textarea
-                                name="description"
-                                value={courseData.description}
-                                onChange={handleInputChange}
-                                required
-                                rows={4}
-                                className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
-                                placeholder="Describe what students will learn..."
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
+                {!selectedCourseId && (
+                    <div className="bg-dark-layer1 border border-white/5 p-8 rounded-[2.5rem] space-y-8 animate-in fade-in zoom-in duration-500">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl">
+                                <Info size={24} />
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium text-dark-muted mb-2">Category *</label>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Basic Information</h3>
+                                <p className="text-xs text-dark-muted font-bold uppercase tracking-widest">The core identity of your new course</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-dark-muted uppercase tracking-widest ml-4">Title</label>
+                                <input
+                                    type="text"
+                                    name="title"
+                                    value={courseData.title}
+                                    onChange={handleInputChange}
+                                    className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary font-medium"
+                                    placeholder="Enter Course Title"
+                                    required={!selectedCourseId}
+                                />
+                            </div>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-dark-muted uppercase tracking-widest ml-4">Category</label>
                                 <input
                                     type="text"
                                     name="category"
                                     value={courseData.category}
                                     onChange={handleInputChange}
-                                    required
-                                    className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
-                                    placeholder="e.g., Programming"
+                                    className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary font-medium"
+                                    placeholder="e.g. Design, Business"
+                                    required={!selectedCourseId}
                                 />
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-dark-muted mb-2">Level *</label>
-                                <select
-                                    name="level"
-                                    value={courseData.level}
-                                    onChange={handleInputChange}
-                                    className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
-                                >
-                                    <option value="beginner">Beginner</option>
-                                    <option value="intermediate">Intermediate</option>
-                                    <option value="advanced">Advanced</option>
-                                </select>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-dark-muted uppercase tracking-widest ml-4">Description</label>
+                            <textarea
+                                name="description"
+                                value={courseData.description}
+                                onChange={handleInputChange}
+                                className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary font-medium min-h-[120px]"
+                                placeholder="Describe the learning objectives"
+                                required={!selectedCourseId}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-dark-muted uppercase tracking-widest ml-4">Thumbnail</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleThumbnailChange}
+                                    className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-6 py-4 text-white file:hidden font-medium"
+                                />
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-dark-muted mb-2">Price ($) *</label>
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-dark-muted uppercase tracking-widest ml-4">Price ($)</label>
                                 <input
                                     type="number"
                                     name="price"
                                     value={courseData.price}
                                     onChange={handleInputChange}
-                                    required
-                                    min="0"
-                                    className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
+                                    className="w-full bg-dark-layer2 border border-white/10 rounded-2xl px-6 py-4 text-white focus:outline-none focus:border-brand-primary font-medium"
+                                    placeholder="0 for free"
                                 />
                             </div>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-dark-muted mb-2">Course Thumbnail</label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleThumbnailChange}
-                                required
-                                className="w-full bg-dark-layer2 border border-dark-layer2 rounded p-3 text-white"
-                            />
-                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* Videos */}
-                <div className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-white">Course Videos</h3>
+                {/* Videos Section */}
+                <div className="bg-dark-layer1 border border-white/5 p-8 rounded-[2.5rem] space-y-8 shadow-2xl">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-2xl">
+                                <FileVideo size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Curriculum Content</h3>
+                                <p className="text-xs text-dark-muted font-bold uppercase tracking-widest">Videos and resources</p>
+                            </div>
+                        </div>
                         <button
                             type="button"
                             onClick={addVideoSlot}
-                            className="flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-hover text-white rounded transition-colors"
+                            className="bg-brand-primary hover:bg-brand-hover text-dark-bg px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-brand-primary/20 transition-all flex items-center gap-2"
                         >
-                            <Plus size={18} />
-                            Add Video
+                            <Plus size={16} /> Add Video
                         </button>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {videos.map((video, index) => (
-                            <div key={index} className="bg-dark-layer2 p-4 rounded border border-dark-layer2">
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center gap-2">
-                                        <FileVideo size={20} className="text-brand-primary" />
-                                        <span className="text-white font-medium">Video {index + 1}</span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => removeVideoSlot(index)}
-                                        className="text-red-400 hover:text-red-300"
-                                    >
-                                        <X size={20} />
-                                    </button>
-                                </div>
+                            <div key={index} className="bg-dark-layer2 p-8 rounded-[2rem] border border-white/5 relative group animate-in slide-in-from-right duration-300">
+                                <button
+                                    type="button"
+                                    onClick={() => removeVideoSlot(index)}
+                                    className="absolute -top-3 -right-3 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all opacity-0 group-hover:opacity-100 shadow-lg"
+                                >
+                                    <X size={16} />
+                                </button>
 
-                                <div className="space-y-3">
-                                    <input
-                                        type="text"
-                                        value={video.title}
-                                        onChange={(e) => handleVideoChange(index, 'title', e.target.value)}
-                                        placeholder="Video title"
-                                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
-                                    />
-                                    <textarea
-                                        value={video.description}
-                                        onChange={(e) => handleVideoChange(index, 'description', e.target.value)}
-                                        placeholder="Video description"
-                                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
-                                        rows={2}
-                                    />
-                                    <textarea
-                                        value={video.summary}
-                                        onChange={(e) => handleVideoChange(index, 'summary', e.target.value)}
-                                        placeholder="Video summary (AI can help refine this later)"
-                                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
-                                        rows={3}
-                                    />
-                                    <input
-                                        type="file"
-                                        accept="video/*"
-                                        onChange={(e) => handleVideoFileChange(index, 'file', e.target.files[0])}
-                                        className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
-                                    />
-                                    {video.file && (
-                                        <p className="text-xs text-dark-muted">
-                                            Video: {video.file.name} ({(video.file.size / 1024 / 1024).toFixed(2)} MB)
-                                        </p>
-                                    )}
-
-                                    {/* PDF Note Upload */}
-                                    <div className="pt-2 border-t border-dark-layer2">
-                                        <label className="block text-xs font-medium text-dark-muted mb-1">Lecture Notes (PDF) - Optional</label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
                                         <input
-                                            type="file"
-                                            accept=".pdf"
-                                            onChange={(e) => handleVideoFileChange(index, 'notePdf', e.target.files[0])}
-                                            className="w-full bg-dark-layer1 border border-dark-layer2 rounded p-2 text-white text-sm"
+                                            type="text"
+                                            value={video.title}
+                                            onChange={(e) => handleVideoChange(index, 'title', e.target.value)}
+                                            className="w-full bg-dark-bg border border-white/5 rounded-xl px-5 py-3 text-white focus:outline-none focus:border-brand-primary text-sm font-bold"
+                                            placeholder="Video Title"
+                                            required
                                         />
-                                        {video.notePdf && (
-                                            <p className="text-xs text-dark-muted mt-1">
-                                                Note: {video.notePdf.name} ({(video.notePdf.size / 1024).toFixed(2)} KB)
-                                            </p>
-                                        )}
+                                        <textarea
+                                            value={video.description}
+                                            onChange={(e) => handleVideoChange(index, 'description', e.target.value)}
+                                            className="w-full bg-dark-bg border border-white/5 rounded-xl px-5 py-3 text-white focus:outline-none focus:border-brand-primary text-xs"
+                                            placeholder="Brief description"
+                                        />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <p className="text-[9px] font-black text-dark-muted uppercase tracking-widest ml-2">Video File</p>
+                                            <input
+                                                type="file"
+                                                accept="video/*"
+                                                onChange={(e) => handleVideoFileChange(index, 'file', e.target.files[0])}
+                                                className="w-full bg-dark-bg border border-white/5 rounded-xl px-5 py-2.5 text-xs text-white file:hidden cursor-pointer"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="text-[9px] font-black text-dark-muted uppercase tracking-widest ml-2">Extra Resources (PDF)</p>
+                                            <input
+                                                type="file"
+                                                accept=".pdf"
+                                                onChange={(e) => handleVideoFileChange(index, 'notePdf', e.target.files[0])}
+                                                className="w-full bg-dark-bg border border-white/5 rounded-xl px-5 py-2.5 text-xs text-white file:hidden cursor-pointer"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         ))}
 
                         {videos.length === 0 && (
-                            <div className="text-center text-dark-muted py-10">
-                                <FileVideo size={48} className="mx-auto mb-3 opacity-50" />
-                                <p>No videos added yet. Click "Add Video" to start.</p>
+                            <div className="py-16 text-center border-2 border-dashed border-white/5 rounded-[2rem]">
+                                <FileVideo size={48} className="mx-auto mb-4 opacity-10" />
+                                <p className="text-dark-muted text-xs font-bold uppercase tracking-widest">No segments added to this curriculum yet.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Submit */}
-                <div className="flex justify-end gap-4">
+                <div className="flex justify-end gap-6 pb-12">
                     <button
                         type="button"
-                        onClick={() => navigate('/instructor/courses')}
-                        className="px-6 py-3 bg-dark-layer2 text-white rounded hover:bg-dark-layer1 transition-colors"
+                        onClick={() => handleSubmit(null, false)}
+                        disabled={loading}
+                        className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-white/5"
                     >
-                        Cancel
+                        Save Strategy
                     </button>
                     <button
-                        type="submit"
+                        type="button"
+                        onClick={() => handleSubmit(null, true)}
                         disabled={loading}
-                        className={`flex items-center gap-2 px-6 py-3 rounded transition-colors ${loading
-                            ? 'bg-dark-layer2 text-dark-muted cursor-not-allowed'
-                            : 'bg-brand-primary hover:bg-brand-hover text-white'
-                            }`}
+                        className="px-10 py-4 bg-brand-primary hover:bg-brand-hover text-dark-bg rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-2xl shadow-brand-primary/20"
                     >
-                        <Upload size={18} />
-                        {loading ? 'Uploading...' : 'Create Course'}
+                        {loading ? 'Deploying...' : 'Deploy Content'}
                     </button>
                 </div>
             </form>

@@ -76,10 +76,10 @@ const StudentDashboard = () => {
                                 Your orbit is expanding. You've gained <span className="text-white font-bold">{stats.xp} XP</span> this phase. Ready to push the boundaries of your knowledge today?
                             </p>
                             <div className="flex flex-wrap gap-4 pt-4">
-                                <Link to="/student/browse" className="bg-brand-primary text-dark-bg px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-brand-hover shadow-xl shadow-brand-primary/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3">
+                                <Link to="/browse" className="bg-brand-primary text-dark-bg px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-brand-hover shadow-xl shadow-brand-primary/20 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-3">
                                     <Rocket size={18} /> Discover New Paths
                                 </Link>
-                                <Link to="/student/learning" className="bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-3">
+                                <Link to="/my-learning" className="bg-white/5 text-white border border-white/10 px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center gap-3">
                                     <Layout size={18} /> View Curriculum
                                 </Link>
                             </div>

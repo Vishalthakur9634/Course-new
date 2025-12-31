@@ -28,9 +28,14 @@ const CourseSidebar = ({ course, activeVideo, onVideoSelect, progressMap }) => {
                                 )}
                             </div>
                             <div>
-                                <h4 className={`text-sm font-medium line-clamp-2 ${isActive ? 'text-white' : 'text-dark-text'}`}>
-                                    {index + 1}. {video.title}
-                                </h4>
+                                <div className="flex items-center justify-between">
+                                    <h4 className={`text-sm font-medium line-clamp-1 ${isActive ? 'text-white' : 'text-dark-text'}`}>
+                                        {index + 1}. {video.title}
+                                    </h4>
+                                    {isCompleted && (
+                                        <span className="text-[8px] font-black bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">COMPLETED</span>
+                                    )}
+                                </div>
                                 <span className="text-xs text-dark-muted mt-1 block">{video.duration} min</span>
                             </div>
                         </button>

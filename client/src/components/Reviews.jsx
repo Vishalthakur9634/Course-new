@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Star, Send, User as UserIcon } from 'lucide-react';
+import UserLink from './UserLink';
 import api from '../utils/api';
 
 const Reviews = ({ courseId }) => {
@@ -56,8 +57,8 @@ const Reviews = ({ courseId }) => {
                     key={index}
                     size={interactive ? 24 : 16}
                     className={`${interactive ? 'cursor-pointer' : ''} transition-colors ${starValue <= (interactive ? (hoverRating || rating) : count)
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-gray-400'
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-gray-400'
                         }`}
                     onClick={() => interactive && setRating(starValue)}
                     onMouseEnter={() => interactive && setHoverRating(starValue)}
@@ -110,8 +111,8 @@ const Reviews = ({ courseId }) => {
                         type="submit"
                         disabled={loading || !rating}
                         className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${loading || !rating
-                                ? 'bg-dark-layer2 text-dark-muted cursor-not-allowed'
-                                : 'bg-brand-primary hover:bg-brand-hover text-white'
+                            ? 'bg-dark-layer2 text-dark-muted cursor-not-allowed'
+                            : 'bg-brand-primary hover:bg-brand-hover text-white'
                             }`}
                     >
                         <Send size={16} />
@@ -133,26 +134,22 @@ const Reviews = ({ courseId }) => {
                             className="bg-dark-layer1 p-6 rounded-lg border border-dark-layer2 hover:border-dark-layer2/80 transition-colors"
                         >
                             <div className="flex items-start gap-4">
-                                {/* Avatar */}
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex-shrink-0 flex items-center justify-center overflow-hidden">
-                                    {review.user?.avatar ? (
-                                        <img
-                                            src={review.user.avatar}
-                                            alt={review.user.name}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <UserIcon size={20} className="text-white" />
-                                    )}
-                                </div>
+                                {/* Avatar & Name */}
+                                <UserLink
+                                    user={review.user}
+                                    avatarSize="w-10 h-10"
+                                    nameClass="hidden"
+                                />
 
                                 {/* Review Content */}
                                 <div className="flex-1">
                                     <div className="flex items-center justify-between mb-2">
                                         <div>
-                                            <h4 className="font-semibold text-white">
-                                                {review.user?.name || 'Anonymous'}
-                                            </h4>
+                                            <UserLink
+                                                user={review.user}
+                                                showAvatar={false}
+                                                nameClass="font-semibold text-white"
+                                            />
                                             <div className="flex items-center gap-2 mt-1">
                                                 <div className="flex gap-0.5">{renderStars(review.rating)}</div>
                                                 <span className="text-xs text-dark-muted">

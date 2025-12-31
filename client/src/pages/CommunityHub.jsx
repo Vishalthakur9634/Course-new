@@ -465,7 +465,7 @@ const CommunityHub = () => {
                 {
                     showCreatePost && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-2xl w-full shadow-2xl">
+                            <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl custom-scrollbar">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-white">Create New Post</h2>
                                     <button onClick={() => setShowCreatePost(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">
@@ -656,7 +656,7 @@ const CommunityHub = () => {
                 {
                     showCreateCommunity && (
                         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                            <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-xl w-full shadow-2xl">
+                            <div className="bg-dark-layer1 rounded-3xl border border-white/10 p-8 max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl custom-scrollbar">
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-black text-white">Create Community</h2>
                                     <button onClick={() => setShowCreateCommunity(false)} className="p-2 hover:bg-white/5 rounded-xl transition-colors">

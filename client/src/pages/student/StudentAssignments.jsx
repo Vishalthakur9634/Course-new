@@ -28,7 +28,7 @@ const StudentAssignments = () => {
         try {
             // 1. Get my courses
             const { data: myLearning } = await api.get('/courses/my-learning');
-            const enrolledCourses = myLearning.map(item => item.courseId);
+            const enrolledCourses = myLearning.map(item => item.courseId).filter(Boolean);
             setCourses(enrolledCourses);
 
             if (enrolledCourses.length > 0) {
@@ -48,12 +48,18 @@ const StudentAssignments = () => {
             const { data: assData } = await api.get(`/assignments/course/${courseId}`);
             setAssignments(assData);
 
-            // Fetch my submissions for these assignments
+            // Fetch my submissions for these assignments in parallel
+            const submissionPromises = assData.map(ass =>
+                api.get(`/assignments/${ass._id}/my-submission`)
+                    .then(res => ({ id: ass._id, data: res.data }))
+                    .catch(() => ({ id: ass._id, data: null }))
+            );
+
+            const results = await Promise.all(submissionPromises);
             const submissionsMap = {};
-            for (const ass of assData) {
-                const { data: subData } = await api.get(`/assignments/${ass._id}/my-submission`);
-                if (subData) submissionsMap[ass._id] = subData;
-            }
+            results.forEach(res => {
+                if (res.data) submissionsMap[res.id] = res.data;
+            });
             setSubmissions(submissionsMap);
         } catch (error) {
             console.error('Error fetching assignments');
@@ -119,12 +125,12 @@ const StudentAssignments = () => {
                         onChange={(e) => {
                             const course = courses.find(c => c._id === e.target.value);
                             setSelectedCourse(course);
-                            fetchAssignments(course._id);
+                            if (course?._id) fetchAssignments(course._id);
                         }}
                         className="bg-dark-layer1 border border-white/10 rounded-2xl px-6 py-4 text-white font-black text-xs uppercase tracking-widest focus:ring-2 focus:ring-brand-primary focus:outline-none shadow-xl"
                     >
-                        {courses.map(course => (
-                            <option key={course._id} value={course._id}>{course.title}</option>
+                        {courses && courses.length > 0 && courses.filter(Boolean).map(course => (
+                            <option key={course?._id} value={course?._id}>{course?.title}</option>
                         ))}
                     </select>
                 </div>

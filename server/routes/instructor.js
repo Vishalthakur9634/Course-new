@@ -23,7 +23,21 @@ const storage = multer.diskStorage({
         cb(null, `${Date.now()}-${file.originalname}`);
     }
 });
-const upload = multer({ storage });
+const upload = multer({
+    storage,
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/webp',
+            'video/mp4', 'video/webm', 'video/ogg',
+            'application/pdf'
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only JPEG, PNG, WEBP, MP4, WEBM, OGG and PDF are allowed.'));
+        }
+    }
+});
 
 // Get instructor dashboard stats
 router.get('/dashboard', authenticate, requireInstructor, async (req, res) => {

@@ -52,13 +52,16 @@ const articleSchema = new mongoose.Schema({
 
 // Pre-save middleware to generate slug
 articleSchema.pre('save', function (next) {
-    if (this.isModified('title') && !this.slug) {
+    if (this.isModified('title') && this.title) {
         const baseSlug = this.title
             .toLowerCase()
-            .replace(/[^\w ]+/g, '')
-            .replace(/ +/g, '-');
-        // Add random suffix to ensure uniqueness
-        this.slug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
+            .trim()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s-]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+
+        // Add unique suffix to ensure uniqueness
+        this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
     }
     next();
 });

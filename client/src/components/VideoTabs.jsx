@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, FileText, Info, Send, ThumbsUp, Reply, User, BookOpen, PenTool, Sparkles, X, Award } from 'lucide-react';
+import {
+    Plus, Trash2, Edit2, Package, Search, Flame, Loader2, Sparkles, Check, X,
+    Info, MessageSquare, FileText, BookOpen, PenTool, Share2, Send, ThumbsUp,
+    Reply, Save, Paperclip, Award
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 import UserLink from './UserLink';
 
 const VideoTabs = ({ video, course, currentTime }) => {
@@ -14,6 +19,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [studentNotes, setStudentNotes] = useState([]);
     const [newNoteContent, setNewNoteContent] = useState('');
+    const [noteAttachment, setNoteAttachment] = useState(null);
     const [isSavingNote, setIsSavingNote] = useState(false);
 
     // New State for Assignments & Articles
@@ -78,14 +84,22 @@ const VideoTabs = ({ video, course, currentTime }) => {
 
         setIsSavingNote(true);
         try {
-            const { data } = await api.post('/notes', {
-                videoId: video._id,
-                courseId: course._id,
-                content: newNoteContent,
-                timestamp: currentTime || 0
+            const formData = new FormData();
+            formData.append('videoId', video._id);
+            formData.append('courseId', course._id);
+            formData.append('content', newNoteContent);
+            formData.append('timestamp', currentTime || 0);
+            if (noteAttachment) {
+                formData.append('attachment', noteAttachment);
+            }
+
+            const { data } = await api.post('/notes', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
+
             setStudentNotes([...studentNotes, data].sort((a, b) => a.timestamp - b.timestamp));
             setNewNoteContent('');
+            setNoteAttachment(null);
         } catch (error) {
             console.error('Error adding note', error);
         } finally {
@@ -115,7 +129,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
 
         try {
             const { data } = await api.post('/comments', {
-                userId: currentUser.id,
+                userId: currentUser._id || currentUser.id,
                 videoId: video._id,
                 text: newComment
             });
@@ -131,7 +145,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
 
         try {
             const { data } = await api.post(`/comments/${commentId}/reply`, {
-                userId: currentUser.id,
+                userId: currentUser._id || currentUser.id,
                 text: replyText
             });
 
@@ -147,7 +161,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
     const handleLike = async (commentId) => {
         try {
             const { data } = await api.put(`/comments/${commentId}/like`, {
-                userId: currentUser.id
+                userId: currentUser._id || currentUser.id
             });
             setComments(comments.map(c => c._id === commentId ? data : c));
         } catch (error) {
@@ -220,8 +234,23 @@ const VideoTabs = ({ video, course, currentTime }) => {
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-xl font-bold text-white mb-2">{video.title}</h2>
-                            <p className="text-dark-muted">{video.description || 'No description available for this video.'}</p>
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                    <h2 className="text-xl font-bold text-white mb-2">{video.title}</h2>
+                                    <p className="text-dark-muted">{video.description || 'No description available for this video.'}</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const shareLink = `${window.location.origin}/course/${course._id}${currentUser?.referralCode ? `?ref=${currentUser.referralCode}` : ''}`;
+                                        navigator.clipboard.writeText(shareLink);
+                                        alert('Course link copied to clipboard!');
+                                    }}
+                                    className="p-2 rounded-xl bg-dark-layer2 hover:bg-brand-primary/10 text-dark-muted hover:text-brand-primary transition-all border border-white/5"
+                                    title="Share Course"
+                                >
+                                    <Share2 size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Instructor Info */}
@@ -340,9 +369,9 @@ const VideoTabs = ({ video, course, currentTime }) => {
                                             <div className="flex items-center gap-6 text-xs text-dark-muted mb-4">
                                                 <button
                                                     onClick={() => handleLike(comment._id)}
-                                                    className={`flex items-center gap-1.5 hover:text-white transition-colors ${comment.likes?.includes(currentUser?.id) ? 'text-brand-primary' : ''}`}
+                                                    className={`flex items-center gap-1.5 hover:text-white transition-colors ${comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'text-brand-primary' : ''}`}
                                                 >
-                                                    <ThumbsUp size={14} className={comment.likes?.includes(currentUser?.id) ? 'fill-current' : ''} />
+                                                    <ThumbsUp size={14} className={comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'fill-current' : ''} />
                                                     <span className="font-black">{comment.likes?.length || 0}</span>
                                                 </button>
                                                 <button
@@ -423,15 +452,40 @@ const VideoTabs = ({ video, course, currentTime }) => {
                                         placeholder="Add a private note at this moment..."
                                         className="w-full bg-dark-layer1 border border-white/5 rounded-lg p-3 text-sm text-white focus:border-brand-primary focus:outline-none min-h-[100px] resize-none"
                                     />
-                                    <div className="flex justify-end">
+                                    <div className="flex gap-2">
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                id="note-attachment"
+                                                className="hidden"
+                                                onChange={(e) => setNoteAttachment(e.target.files[0])}
+                                            />
+                                            <label
+                                                htmlFor="note-attachment"
+                                                className={`p-2.5 rounded-lg cursor-pointer transition-colors flex items-center justify-center h-full border ${noteAttachment ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-dark-layer1 text-dark-text hover:bg-dark-layer3 border-white/5'}`}
+                                                title={noteAttachment ? noteAttachment.name : "Add attachment"}
+                                            >
+                                                <Paperclip size={18} />
+                                            </label>
+                                        </div>
                                         <button
                                             type="submit"
                                             disabled={!newNoteContent.trim() || isSavingNote}
-                                            className="bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all"
+                                            className="flex-1 bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                                         >
+                                            <Save size={16} />
                                             {isSavingNote ? 'Saving...' : 'Save Note'}
                                         </button>
                                     </div>
+                                    {noteAttachment && (
+                                        <div className="flex items-center gap-2 text-[10px] text-brand-primary mt-2 bg-brand-primary/10 px-2 py-1 rounded w-fit border border-brand-primary/20">
+                                            <FileText size={10} />
+                                            <span className="max-w-[150px] truncate">{noteAttachment.name}</span>
+                                            <button type="button" onClick={() => setNoteAttachment(null)} className="hover:text-white transition-colors">
+                                                <X size={10} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </form>
                             </div>
 
@@ -464,6 +518,24 @@ const VideoTabs = ({ video, course, currentTime }) => {
                                                 </button>
                                             </div>
                                             <p className="text-sm text-dark-text leading-relaxed whitespace-pre-wrap">{note.content}</p>
+
+                                            {note.attachments && note.attachments.length > 0 && (
+                                                <div className="mt-3 space-y-2">
+                                                    {note.attachments.map((file, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={file.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center gap-2 text-[10px] text-dark-muted bg-dark-layer1 p-2 rounded hover:bg-dark-layer3 border border-white/5 transition-all w-fit group/file"
+                                                        >
+                                                            <Paperclip size={12} className="text-brand-primary" />
+                                                            <span className="group-hover/file:text-white transition-colors">{file.filename}</span>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             <div className="mt-3 text-[10px] text-dark-muted font-medium">
                                                 Last edited: {new Date(note.updatedAt).toLocaleDateString()}
                                             </div>
