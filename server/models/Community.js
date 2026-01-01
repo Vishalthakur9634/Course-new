@@ -68,7 +68,7 @@ const postSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['discussion', 'question', 'showcase', 'announcement', 'poll'],
+        enum: ['discussion', 'question', 'showcase', 'announcement', 'poll', 'video', 'short'],
         default: 'discussion'
     },
     tags: [String],
@@ -80,6 +80,7 @@ const postSchema = new mongoose.Schema({
         url: String,
         filename: String
     }],
+    thumbnailUrl: String,
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

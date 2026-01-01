@@ -108,12 +108,12 @@ const DirectMessage = () => {
             {/* Sidebar - Conversations */}
             <div className={`w-full md:w-80 lg:w-96 bg-dark-layer1 border-r border-white/5 flex flex-col ${userId ? 'hidden md:flex' : 'flex'}`}>
                 <div className="p-6 border-b border-white/5">
-                    <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-4">Comms Hub</h2>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-4">Messages</h2>
                     <div className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-muted" size={18} />
                         <input
                             type="text"
-                            placeholder="Search operatives..."
+                            placeholder="Search users..."
                             className="w-full bg-dark-layer2 border border-white/5 rounded-2xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:border-brand-primary transition-all"
                         />
                     </div>
@@ -165,7 +165,7 @@ const DirectMessage = () => {
                                 <div>
                                     <h4 className="font-black text-white leading-none">{activeChat.name}</h4>
                                     <p className="text-[10px] text-green-500 font-black uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div> Encrypted Link
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div> Secure Connection
                                     </p>
                                 </div>
                             </div>
@@ -219,7 +219,7 @@ const DirectMessage = () => {
                                     type="text"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Execute transmission..."
+                                    placeholder="Type a message..."
                                     className="flex-1 bg-transparent border-none focus:outline-none text-sm text-white py-3 font-medium"
                                 />
                                 <div className="flex items-center gap-2 px-2">
@@ -245,9 +245,9 @@ const DirectMessage = () => {
                         <div className="w-24 h-24 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-brand-primary/20">
                             <MessageSquare size={48} className="text-brand-primary" />
                         </div>
-                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Secure Comms Node</h2>
+                        <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Start a Conversation</h2>
                         <p className="text-dark-muted max-w-sm mx-auto text-sm font-bold uppercase tracking-widest leading-relaxed">
-                            Select an operative from the hub to initiate a high-priority secure data stream.
+                            Select a user from the list to start messaging.
                         </p>
                     </div>
                 )}

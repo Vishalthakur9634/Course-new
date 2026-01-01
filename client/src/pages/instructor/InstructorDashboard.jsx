@@ -89,7 +89,11 @@ const InstructorDashboard = () => {
                             <TrendingUp size={24} />
                         </div>
                     </div>
-                    <p className="text-3xl font-bold text-white">4.8</p>
+                    <p className="text-3xl font-bold text-white">
+                        {stats?.courses?.length > 0
+                            ? (stats.courses.reduce((acc, curr) => acc + (curr.rating || 0), 0) / stats.courses.length).toFixed(1)
+                            : '0.0'}
+                    </p>
                 </div>
             </div>
 
@@ -155,7 +159,7 @@ const InstructorDashboard = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
                 <Link to="/instructor/courses" className="bg-brand-primary text-white px-6 py-3 rounded-lg font-bold hover:bg-opacity-90 flex items-center gap-2 shadow-lg shadow-brand-primary/20">
                     <Plus size={20} />
                     Create New Course
@@ -217,7 +221,7 @@ const InstructorDashboard = () => {
             {stats?.recentEnrollments && stats.recentEnrollments.length > 0 && (
                 <div>
                     <h2 className="text-2xl font-bold text-white mb-6">Recent Enrollments</h2>
-                    <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden">
+                    <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl overflow-hidden overflow-x-auto">
                         <table className="w-full">
                             <thead className="bg-dark-layer2">
                                 <tr>

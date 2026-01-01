@@ -169,8 +169,22 @@ router.post('/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login Error:', error);
-        res.status(500).json({ message: 'Something went wrong', error: error.message });
+        console.error('CRITICAL LOGIN ERROR:', {
+            timestamp: new Date().toISOString(),
+            message: error.message,
+            stack: error.stack,
+            body: { email: req.body.email } // Mask password for security
+        });
+
+        const fs = require('fs');
+        const logMsg = `[${new Date().toISOString()}] LOGIN 500 ERROR: ${error.message}\nStack: ${error.stack}\nBody: ${JSON.stringify({ email: req.body.email })}\n\n`;
+        fs.appendFileSync('auth_error.log', logMsg);
+
+        res.status(500).json({
+            message: 'Internal server error during login',
+            error: error.message,
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 });
 

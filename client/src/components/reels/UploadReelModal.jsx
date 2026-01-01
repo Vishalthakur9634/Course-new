@@ -31,13 +31,18 @@ const UploadReelModal = ({ onClose, onUpload }) => {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            // 2. Create Reel
+            // 2. Generate or use default thumbnail if none provided
+            // For now, we'll use a placeholder or the video URL if the backend supports generating it
+            // Ideally, we'd upload a selected thumbnail here too
+
+            // 3. Create Reel
             await api.post('/reels/upload', {
                 title,
-                videoUrl: uploadRes.data.url, // Ensure this matches upload response
+                videoUrl: uploadRes.data.url,
+                thumbnailUrl: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=600&fit=crop', // Placeholder for now
                 category,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-                duration: 60 // Placeholder, ideal to get from video metadata
+                duration: 60
             });
 
             onUpload();

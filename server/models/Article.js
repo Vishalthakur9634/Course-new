@@ -51,7 +51,7 @@ const articleSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Pre-save middleware to generate slug
-articleSchema.pre('save', function (next) {
+articleSchema.pre('save', async function () {
     if (this.isModified('title') && this.title) {
         const baseSlug = this.title
             .toLowerCase()
@@ -63,7 +63,6 @@ articleSchema.pre('save', function (next) {
         // Add unique suffix to ensure uniqueness
         this.slug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
     }
-    next();
 });
 
 module.exports = mongoose.model('Article', articleSchema);

@@ -26,10 +26,20 @@ router.post('/enroll', authenticate, async (req, res) => {
                 return res.status(400).json({ message: 'Payment not completed' });
             }
         } else {
-            // Direct enrollment (Free/Test Mode) - Create a completed payment record
+            // Direct enrollment (Free/Test Mode)
             const course = await Course.findById(courseId);
             if (!course) {
                 return res.status(404).json({ message: 'Course not found' });
+            }
+
+            // [SECURITY] Only allow direct enrollment if course is free OR user is an admin
+            const isFree = !course.price || course.price === 0;
+            const isAdmin = ['admin', 'superadmin'].includes(req.user.role);
+
+            if (!isFree && !isAdmin) {
+                return res.status(400).json({
+                    message: 'Payment required for this course. Direct enrollment (Test Mode) is only available for free courses or administrators.'
+                });
             }
 
             // Fallback for missing instructorId
@@ -155,7 +165,26 @@ router.get('/my-courses', authenticate, requireStudent, async (req, res) => {
             .populate('lastAccessedVideo', 'title')
             .sort({ lastAccessedAt: -1 });
 
-        res.json(enrollments);
+        // Merge with User model data to catch any out-of-sync enrollments
+        const userCourses = req.user.enrolledCourses || [];
+        const result = [...enrollments];
+
+        for (const uc of userCourses) {
+            if (!result.some(e => e.courseId?._id?.toString() === uc.courseId?.toString())) {
+                // Fetch course details if missing from Enrollment collection
+                const course = await Course.findById(uc.courseId).populate('instructorId', 'name instructorProfile.headline avatar');
+                if (course) {
+                    result.push({
+                        courseId: course,
+                        progress: uc.progress || 0,
+                        enrolledAt: uc.enrolledAt,
+                        isFromUserModel: true // Flag for debugging
+                    });
+                }
+            }
+        }
+
+        res.json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching enrolled courses', error: error.message });
     }
@@ -166,17 +195,21 @@ router.get('/:courseId/access', authenticate, async (req, res) => {
     try {
         const { courseId } = req.params;
 
-        // Super admin and instructor can access
-        if (req.user.role === 'superadmin') {
-            return res.json({ hasAccess: true, reason: 'superadmin' });
+        // Super admin and admin can access
+        if (['superadmin', 'admin'].includes(req.user.role)) {
+            return res.json({ hasAccess: true, reason: 'admin_bypass' });
         }
 
         const course = await Course.findById(courseId);
+        if (!course) {
+            return res.status(404).json({ message: 'Course not found' });
+        }
+
         if (req.user.role === 'instructor' && course.instructorId.toString() === req.user._id.toString()) {
             return res.json({ hasAccess: true, reason: 'course_owner' });
         }
 
-        // Check enrollment
+        // Check enrollment (with fallback to User model)
         const enrollment = await Enrollment.findOne({
             studentId: req.user._id,
             courseId
@@ -184,6 +217,15 @@ router.get('/:courseId/access', authenticate, async (req, res) => {
 
         if (enrollment) {
             return res.json({ hasAccess: true, reason: 'enrolled', enrollment });
+        }
+
+        // Fallback: Check user's own enrolledCourses array
+        const userEnrollment = req.user.enrolledCourses?.find(c =>
+            c.courseId && c.courseId.toString() === courseId
+        );
+
+        if (userEnrollment) {
+            return res.json({ hasAccess: true, reason: 'user_model_sync', enrollment: userEnrollment });
         }
 
         res.json({ hasAccess: false });

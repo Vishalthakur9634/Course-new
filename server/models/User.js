@@ -170,7 +170,20 @@ const userSchema = new mongoose.Schema({
     following: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    }]
+    }],
+
+    // Gamification
+    gamification: {
+        xp: { type: Number, default: 0 },
+        level: { type: Number, default: 1 },
+        badges: [{
+            name: { type: String },
+            awardedAt: { type: Date, default: Date.now },
+            icon: { type: String }
+        }],
+        streak: { type: Number, default: 0 },
+        lastActivity: { type: Date }
+    }
 }, { timestamps: true });
 
 // Indexes
@@ -180,14 +193,13 @@ userSchema.index({ isInstructorApproved: 1 });
 
 // userSchema.index({ referralCode: 1 }); // Removed duplicate index
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
     if (!this.referralCode) {
         // Generate simple referral code: Uppercase Name (first 4 chars) + Random 4 digits
         const namePart = this.name.substring(0, 4).toUpperCase().replace(/[^A-Z]/g, 'USER');
         const randomPart = Math.floor(1000 + Math.random() * 9000);
         this.referralCode = `${namePart}${randomPart}`;
     }
-    next();
 });
 
 module.exports = mongoose.model('User', userSchema);

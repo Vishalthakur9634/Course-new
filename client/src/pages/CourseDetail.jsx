@@ -6,7 +6,7 @@ import CourseSidebar from '../components/CourseSidebar';
 import VideoTabs from '../components/VideoTabs';
 import Reviews from '../components/Reviews';
 import PaymentModal from '../components/PaymentModal';
-import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart, Check, Share2 } from 'lucide-react';
+import { Menu, X, Lock, PlayCircle, ShieldCheck, Heart, Check, Share2, Award, Users, BookOpen, Clock, Activity } from 'lucide-react';
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -18,11 +18,9 @@ const CourseDetail = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [videoTime, setVideoTime] = useState(0);
 
-    // Access Control State
     const [hasAccess, setHasAccess] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
-
     const [isWishlisted, setIsWishlisted] = useState(false);
 
     useEffect(() => {
@@ -33,12 +31,10 @@ const CourseDetail = () => {
             checkWishlistStatus(userObj.id || userObj._id);
         }
 
-        // Capture Referral Code
         const params = new URLSearchParams(window.location.search);
         const refCode = params.get('ref');
         if (refCode) {
             localStorage.setItem('currentReferral', refCode);
-            // Optionally count clicks here via API
         }
 
         fetchCourseData();
@@ -86,7 +82,6 @@ const CourseDetail = () => {
 
             setCourse(courseRes.data);
 
-            // Check Access: Admin OR Enrolled OR Instructor (Owner)
             const isEnrolled = userRes.data.enrolledCourses?.some(enrollment => {
                 const courseId = enrollment.courseId?._id || enrollment.courseId;
                 return courseId === id;
@@ -101,7 +96,6 @@ const CourseDetail = () => {
                 }
             }
 
-            // Map progress
             const progress = {};
             if (userRes.data.watchHistory) {
                 userRes.data.watchHistory.forEach(h => {
@@ -120,31 +114,29 @@ const CourseDetail = () => {
     const handleVideoSelect = (video) => {
         if (!hasAccess) return;
         setActiveVideo(video);
-        if (window.innerWidth < 768) setSidebarOpen(false);
     };
 
     const handleProgress = async (currentTime, duration) => {
         if (!activeVideo || !course || !hasAccess) return;
 
-        const progress = currentTime;
-        const completed = (currentTime / duration) > 0.8; // Reduced to 80% for better UX
+        const completed = (currentTime / duration) > 0.8;
 
         try {
             setVideoTime(currentTime);
             const userId = JSON.parse(localStorage.getItem('user')).id;
             await api.put(`/enrollment/${course._id}/progress`, {
                 videoId: activeVideo._id,
-                progress: currentTime, // Send raw time or %? Backend expects 'progress' but treats it as value to store in watchHistory. Enrollment uses it for completedVideos logic if 'completed' is true. 
-                // enrollment.js: const { videoId, progress, timeSpent, completed } = req.body;
-                // It pushes completedVideos if completed is true.
+                progress: currentTime,
                 completed,
-                timeSpent: 5 // approx
+                timeSpent: 5
             });
 
-            setProgressMap(prev => ({
-                ...prev,
-                [activeVideo._id]: { ...prev[activeVideo._id], completed }
-            }));
+            if (completed) {
+                setProgressMap(prev => ({
+                    ...prev,
+                    [activeVideo._id]: { ...prev[activeVideo._id], completed: true }
+                }));
+            }
         } catch (error) {
             console.error('Error saving progress', error);
         }
@@ -152,59 +144,17 @@ const CourseDetail = () => {
 
     const handlePurchaseSuccess = () => {
         setHasAccess(true);
-        fetchCourseData(); // Refresh to get updated state
+        fetchCourseData();
     };
 
-    // Resizable Sidebar State
-    const [sidebarWidth, setSidebarWidth] = useState(320);
-    const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(380);
+    const [videoHeight, setVideoHeight] = useState(65);
 
-    // Resizable Video Player State
-    const [videoHeight, setVideoHeight] = useState(60); // vh
-    const [isResizingVideo, setIsResizingVideo] = useState(false);
-
-    const startResizingSidebar = (e) => {
-        setIsResizingSidebar(true);
-    };
-
-    const startResizingVideo = (e) => {
-        setIsResizingVideo(true);
-    };
-
-    const stopResizing = () => {
-        setIsResizingSidebar(false);
-        setIsResizingVideo(false);
-    };
-
-    const resize = (e) => {
-        if (isResizingSidebar) {
-            const newWidth = window.innerWidth - e.clientX;
-            if (newWidth > 200 && newWidth < 600) {
-                setSidebarWidth(newWidth);
-            }
-        }
-        if (isResizingVideo) {
-            const newHeight = (e.clientY / window.innerHeight) * 100;
-            if (newHeight > 30 && newHeight < 85) {
-                setVideoHeight(newHeight);
-            }
-        }
-    };
-
-    useEffect(() => {
-        window.addEventListener('mousemove', resize);
-        window.addEventListener('mouseup', stopResizing);
-        return () => {
-            window.removeEventListener('mousemove', resize);
-            window.removeEventListener('mouseup', stopResizing);
-        };
-    }, [isResizingSidebar, isResizingVideo]);
-
-    if (loading) return <div className="text-center mt-10 text-white">Loading course...</div>;
-    if (!course) return <div className="text-center mt-10 text-white">Course not found</div>;
+    if (loading) return <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white font-bold uppercase tracking-widest text-[10px]">Analyzing Curriculum Matrix...</div>;
+    if (!course) return <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] text-white font-bold uppercase tracking-widest text-[10px]">Course Not Found</div>;
 
     return (
-        <div className="flex h-full overflow-hidden bg-dark-bg relative rounded-xl border border-white/5">
+        <div className="flex h-screen bg-[#0a0a0a] relative font-inter text-white overflow-hidden">
             {showPaymentModal && (
                 <PaymentModal
                     course={course}
@@ -213,13 +163,10 @@ const CourseDetail = () => {
                 />
             )}
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0" style={{ marginRight: sidebarOpen ? 0 : 0 }}>
-                {/* Video Player Area */}
-                <div
-                    className="bg-black w-full relative flex-shrink-0 flex items-center justify-center md:h-[60vh] aspect-video md:aspect-auto"
-                    style={{ height: window.innerWidth >= 768 ? `${videoHeight}vh` : 'auto' }}
-                >
+            {/* HIGH-FIDELITY CONTENT AREA */}
+            <div className="flex-1 flex flex-col min-w-0">
+                {/* STRATEGIC VIDEO PLAYER */}
+                <div className="bg-black w-full relative flex-shrink-0 flex items-center justify-center aspect-video md:aspect-auto" style={{ height: `${videoHeight}vh` }}>
                     {hasAccess ? (
                         activeVideo ? (
                             <VideoPlayer
@@ -228,196 +175,229 @@ const CourseDetail = () => {
                                 onProgress={handleProgress}
                             />
                         ) : (
-                            <div className="text-white">Select a video to start learning</div>
+                            <div className="text-dark-muted font-bold text-[10px] uppercase tracking-[0.4em] opacity-30">Select a syllabus module to begin</div>
                         )
                     ) : (
-                        // Locked State / Paywall
-                        <div className="absolute inset-0 bg-dark-layer1/90 flex flex-col items-center justify-center p-8 text-center bg-[url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center bg-no-repeat bg-blend-overlay">
-                            <div className="bg-black/80 p-8 rounded-2xl backdrop-blur-md border border-brand-primary/30 max-w-lg w-full">
-                                <Lock size={48} className="text-brand-primary mx-auto mb-4" />
-                                <h2 className="text-3xl font-bold text-white mb-2">Unlock This Course</h2>
-                                <p className="text-dark-muted mb-6">Get full access to all videos, resources, and certification.</p>
-
-                                <div className="flex items-center justify-center gap-4 mb-8">
-                                    <div className="text-left">
-                                        <p className="text-sm text-dark-muted">One-time payment</p>
-                                        <p className="text-4xl font-bold text-white">${course.price}</p>
-                                    </div>
+                        <div className="absolute inset-0 bg-[#0a0a0a] flex flex-col items-center justify-center p-8 text-center">
+                            <div className="bg-[#141414] p-12 rounded-[2.5rem] border border-white/5 max-w-xl w-full shadow-3xl space-y-8 relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary to-transparent opacity-50 group-hover:opacity-100 transition-opacity" />
+                                <div className="w-20 h-20 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary mx-auto border border-brand-primary/20 shadow-xl">
+                                    <Lock size={36} />
+                                </div>
+                                <div className="space-y-3">
+                                    <h2 className="text-4xl font-bold uppercase tracking-tight">Access Restricted</h2>
+                                    <p className="text-dark-muted text-[11px] font-bold uppercase tracking-widest opacity-60">Professional Enrollment Required to Access Curriculum</p>
                                 </div>
 
-                                <div className="flex gap-4">
+                                <div className="py-8 border-y border-white/5 space-y-2">
+                                    <p className="text-[10px] font-bold text-dark-muted uppercase tracking-[0.4em] opacity-40">Program Investment</p>
+                                    <p className="text-6xl font-bold text-white tracking-tighter">${course.price}</p>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-5 pt-4">
                                     <button
                                         onClick={() => setShowPaymentModal(true)}
-                                        className="flex-1 bg-brand-primary hover:bg-brand-hover text-white font-bold py-4 rounded-xl text-lg transition-all transform hover:scale-[1.02] shadow-lg shadow-brand-primary/25"
+                                        className="flex-1 bg-brand-primary hover:brightness-110 text-dark-bg font-bold py-5 rounded-2xl text-[11px] uppercase tracking-[0.3em] transition-all shadow-2xl shadow-brand-primary/20"
                                     >
-                                        Buy Now
+                                        Execute Enrollment
                                     </button>
                                     <button
                                         onClick={toggleWishlist}
-                                        className={`px-4 rounded-xl border-2 transition-colors flex items-center justify-center ${isWishlisted
+                                        className={`px-8 rounded-2xl border transition-all flex items-center justify-center ${isWishlisted
                                             ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                                            : 'border-dark-layer2 hover:border-white text-white'
+                                            : 'border-white/10 hover:border-brand-primary/40 text-white bg-[#0a0a0a]'
                                             }`}
                                     >
-                                        <Heart size={24} className={isWishlisted ? "fill-red-500 text-red-500" : ""} />
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            const shareId = currentUser?.referralCode || currentUser?.id || currentUser?._id;
-                                            const shareLink = `${window.location.origin}/course/${course._id}${shareId ? `?ref=${shareId}` : ''}`;
-                                            navigator.clipboard.writeText(shareLink);
-                                            alert('Signal Propagation: Course link copied to clipboard!');
-                                        }}
-                                        className="px-4 rounded-xl border-2 border-dark-layer2 hover:border-brand-primary hover:text-brand-primary text-white transition-colors flex items-center justify-center gap-2"
-                                        title="Share Course"
-                                    >
-                                        <Share2 size={24} />
+                                        <Heart size={22} className={isWishlisted ? "fill-brand-primary" : ""} />
                                     </button>
                                 </div>
 
-                                <p className="mt-4 text-xs text-dark-muted flex items-center justify-center gap-1">
-                                    <ShieldCheck size={14} /> 30-Day Money-Back Guarantee
-                                </p>
+                                <div className="flex items-center justify-center gap-8 pt-4">
+                                    <div className="flex items-center gap-2.5 text-[9px] font-bold text-dark-muted uppercase tracking-widest">
+                                        <ShieldCheck size={16} className="text-green-500" /> Secure Registry
+                                    </div>
+                                    <div className="flex items-center gap-2.5 text-[9px] font-bold text-dark-muted uppercase tracking-widest">
+                                        <Award size={16} className="text-brand-primary" /> Verified Credential
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Vertical Resizer Handle (Desktop Only) */}
-                <div
-                    className="hidden md:block h-1 bg-dark-layer2 hover:bg-brand-primary cursor-row-resize transition-colors w-full z-10"
-                    onMouseDown={startResizingVideo}
-                />
+                {/* DOMAIN DETAILS MATRIX */}
+                <div className="flex-1 overflow-y-auto p-12 space-y-16 custom-scrollbar">
+                    <header className="flex flex-col md:flex-row md:items-start justify-between gap-10 pb-12 border-b border-white/5">
+                        <div className="space-y-6 max-w-4xl">
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                                    {course.category || 'Strategic Track'}
+                                </span>
+                                <div className="flex items-center gap-2.5 text-[10px] font-bold text-dark-muted uppercase tracking-widest opacity-60">
+                                    <Users size={14} className="text-brand-primary" /> {course.enrollmentCount || 0} Domain Learners
+                                </div>
+                            </div>
+                            <h1 className="text-5xl font-bold uppercase tracking-tighter leading-none text-white">{course.title}</h1>
+                            <p className="text-dark-muted text-[13px] font-medium leading-loose opacity-70 max-w-2xl">{course.description}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => {
+                                    const shareId = currentUser?.referralCode || currentUser?.id || currentUser?._id;
+                                    const shareLink = `${window.location.origin}/course/${course._id}${shareId ? `?ref=${shareId}` : ''}`;
+                                    navigator.clipboard.writeText(shareLink);
+                                    alert('Link copied to clipboard!');
+                                }}
+                                className="p-4 rounded-2xl bg-[#141414] border border-white/5 text-dark-muted hover:text-brand-primary hover:border-brand-primary/40 transition-all shadow-xl"
+                            >
+                                <Share2 size={24} />
+                            </button>
+                        </div>
+                    </header>
 
-                {/* Tabs & Instructor Area */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                    {hasAccess ? (
-                        <>
-                            <div className="flex flex-col lg:flex-row gap-8">
-                                <div className="flex-1 space-y-6">
-                                    {activeVideo && (
-                                        <VideoTabs
-                                            video={activeVideo}
-                                            course={course}
-                                            currentTime={videoTime}
-                                        />
-                                    )}
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-16">
+                        <div className="xl:col-span-2 space-y-16">
+                            {hasAccess && activeVideo && (
+                                <VideoTabs
+                                    video={activeVideo}
+                                    course={course}
+                                    currentTime={videoTime}
+                                />
+                            )}
 
-                                    {/* Course Progress Bar */}
-                                    <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <h3 className="text-white font-bold">Course Progress</h3>
-                                            <span className="text-brand-primary font-bold">
-                                                {Math.round((Object.values(progressMap).filter(p => p.completed).length / course.videos.length) * 100)}%
-                                            </span>
-                                        </div>
-                                        <div className="w-full bg-dark-layer2 rounded-full h-3">
-                                            <div
-                                                className="bg-brand-primary h-3 rounded-full transition-all duration-500 ease-out"
-                                                style={{ width: `${(Object.values(progressMap).filter(p => p.completed).length / course.videos.length) * 100}%` }}
-                                            />
-                                        </div>
-                                        <p className="text-dark-muted text-sm mt-2">
-                                            {Object.values(progressMap).filter(p => p.completed).length} of {course.videos.length} lessons completed
-                                        </p>
+                            <div className="bg-[#141414] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-2.5 bg-brand-primary/10 rounded-xl border border-brand-primary/20">
+                                        <Activity size={20} className="text-brand-primary" />
                                     </div>
+                                    <h3 className="text-xl font-bold uppercase tracking-tight text-white">Validation Performance</h3>
+                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex justify-between items-end text-[10px] font-bold uppercase tracking-[0.3em]">
+                                        <span className="text-dark-muted opacity-40">Completion Matrix Rate</span>
+                                        <span className="text-3xl font-black text-brand-primary tracking-tighter">
+                                            {Math.round((Object.values(progressMap).filter(p => p.completed).length / (course.videos.length || 1)) * 100)}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-[#0a0a0a] rounded-full h-2.5 overflow-hidden p-0.5 border border-white/5 shadow-inner">
+                                        <div
+                                            className="bg-brand-primary h-full rounded-full transition-all duration-1000 ease-out shadow-lg shadow-brand-primary/40"
+                                            style={{ width: `${(Object.values(progressMap).filter(p => p.completed).length / (course.videos.length || 1)) * 100}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-dark-muted text-[10px] font-bold uppercase tracking-[0.4em] opacity-40">
+                                        {Object.values(progressMap).filter(p => p.completed).length} MODULES VALIDATED OUT OF {course.videos.length} SYLLABUS NODES
+                                    </p>
+                                </div>
+                            </div>
 
-                                    {/* Instructor Section */}
-                                    {course.instructorId && (
-                                        <div className="bg-dark-layer1 border border-dark-layer2 rounded-xl p-6">
-                                            <h3 className="text-xl font-bold text-white mb-4">Course Provider</h3>
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                                                    {course.instructorId.avatar ? (
-                                                        <img src={course.instructorId.avatar} alt={course.instructorId.name} className="w-full h-full rounded-full object-cover" />
-                                                    ) : (
-                                                        course.instructorId.name?.charAt(0).toUpperCase()
-                                                    )}
+                            <Reviews courseId={id} />
+                        </div>
+
+                        <aside className="space-y-12">
+                            {course.instructorId && (
+                                <div className="bg-[#141414] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 blur-[60px] rounded-full group-hover:bg-brand-primary/10 transition-colors" />
+                                    <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-[0.4em] border-b border-white/5 pb-4 opacity-40">Lead Architect</h3>
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-20 h-20 rounded-[1.5rem] bg-[#0a0a0a] border border-white/10 overflow-hidden flex-shrink-0 p-0.5 group-hover:border-brand-primary/40 transition-all shadow-xl">
+                                            {course.instructorId.avatar ? (
+                                                <img src={course.instructorId.avatar} alt={course.instructorId.name} className="w-full h-full object-cover rounded-[1.25rem]" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-brand-primary font-bold text-3xl uppercase bg-[#0a0a0a] rounded-[1.25rem]">
+                                                    {course.instructorId.name?.charAt(0)}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <h4 className="text-lg font-bold text-white">{course.instructorId.name}</h4>
-                                                    {course.instructorId.instructorProfile?.headline && (
-                                                        <p className="text-brand-primary text-sm mb-2">{course.instructorId.instructorProfile.headline}</p>
-                                                    )}
-                                                    <p className="text-dark-muted text-sm line-clamp-2 mb-3">{course.instructorId.bio || 'No bio available.'}</p>
-                                                    <button
-                                                        onClick={() => navigate(`/instructor/profile/${course.instructorId._id}`)}
-                                                        className="text-white text-sm font-medium hover:text-brand-primary transition-colors"
-                                                    >
-                                                        View Full Profile
-                                                    </button>
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
-                                    )}
+                                        <div className="min-w-0 space-y-1">
+                                            <h4 className="text-lg font-bold text-white uppercase tracking-tight truncate flex items-center gap-2">
+                                                {course.instructorId.name} <ShieldCheck size={16} className="text-brand-primary" />
+                                            </h4>
+                                            <p className="text-brand-primary text-[10px] font-bold uppercase tracking-widest truncate">{course.instructorId.instructorProfile?.headline || 'Expert Architect'}</p>
+                                        </div>
+                                    </div>
+                                    <p className="text-dark-muted text-[13px] font-medium leading-relaxed line-clamp-4 opacity-70">
+                                        {course.instructorId.bio || 'Professional educator dedicated to high-impact technical curriculum and strategic domain mastery.'}
+                                    </p>
+                                    <button
+                                        onClick={() => navigate(`/instructor/profile/${course.instructorId._id}`)}
+                                        className="w-full py-4 rounded-2xl border border-white/10 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-white/5 hover:border-brand-primary/30 transition-all shadow-xl"
+                                    >
+                                        Architect Profile
+                                    </button>
+                                </div>
+                            )}
 
-                                    {/* Reviews Section */}
-                                    <div className="mt-6">
-                                        <Reviews courseId={id} />
+                            <div className="bg-[#141414] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8 relative overflow-hidden">
+                                <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-[0.4em] border-b border-white/5 pb-4 opacity-40">Validation Credential</h3>
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary flex-shrink-0 border border-brand-primary/20 shadow-xl">
+                                        <Award size={24} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-base font-bold text-white uppercase tracking-tight">Verified Credential</p>
+                                        <p className="text-[11px] text-dark-muted font-medium leading-relaxed opacity-60">Earn a verified certificate of completion upon validating all curriculum modules within the syllabus matrix.</p>
                                     </div>
                                 </div>
                             </div>
-                        </>
-                    ) : (
-                        <div className="p-8 text-center">
-                            <h3 className="text-xl font-bold text-white mb-2">Course Content Locked</h3>
-                            <p className="text-dark-muted">Purchase the course to view details and resources.</p>
-                        </div>
-                    )}
+                        </aside>
+                    </div>
                 </div>
             </div>
 
-            {/* Resizer Handle */}
-            {sidebarOpen && (
-                <div
-                    className="w-1 bg-dark-layer2 hover:bg-brand-primary cursor-col-resize transition-colors z-50 hidden md:block"
-                    onMouseDown={startResizingSidebar}
-                />
-            )}
-
-            {/* Sidebar (Playlist) */}
+            {/* SYLLABUS MATRIX SIDEBAR */}
             <div
-                className={`fixed inset-y-0 right-0 z-40 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out bg-dark-layer1 border-l border-dark-layer2 flex flex-col`}
-                style={{ width: sidebarOpen ? (window.innerWidth >= 768 ? sidebarWidth : '100%') : 0 }}
+                className={`fixed inset-y-0 right-0 z-40 transform ${sidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:relative md:translate-x-0 transition-all duration-700 ease-in-out bg-[#0a0a0a] border-l border-white/5 flex flex-col shadow-[20px_0_60px_rgba(0,0,0,0.8)]`}
+                style={{ width: sidebarOpen ? sidebarWidth : 0 }}
             >
-                <div className="p-4 border-b border-dark-layer2 flex justify-between items-center">
-                    <h3 className="font-bold text-white">Course Content</h3>
-                    <button onClick={() => setSidebarOpen(false)} className="md:hidden text-dark-muted">
+                <div className="p-10 border-b border-white/5 flex justify-between items-center bg-[#141414]/30">
+                    <div className="space-y-1">
+                        <h3 className="text-xs font-bold text-white uppercase tracking-[0.4em]">Syllabus <span className="text-brand-primary">Matrix</span></h3>
+                        <p className="text-[9px] font-bold text-dark-muted uppercase tracking-widest opacity-40">{course.videos.length} Modules Registered</p>
+                    </div>
+                    <button onClick={() => setSidebarOpen(false)} className="md:hidden p-3 bg-white/5 rounded-xl text-dark-muted">
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto no-scrollbar py-6">
                     {course.videos.map((video, index) => (
                         <div
                             key={video._id}
                             onClick={() => handleVideoSelect(video)}
-                            className={`p-4 border-b border-dark-layer2 cursor-pointer transition-colors flex gap-3 ${activeVideo?._id === video._id ? 'bg-brand-primary/10 border-l-4 border-l-brand-primary' : 'hover:bg-dark-layer2'
-                                } ${!hasAccess ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`px-8 py-8 border-b border-white/5 cursor-pointer transition-all flex gap-5 relative group ${activeVideo?._id === video._id ? 'bg-brand-primary/5' : 'hover:bg-white/[0.03]'
+                                } ${!hasAccess ? 'opacity-30 grayscale cursor-not-allowed' : ''}`}
                         >
-                            <div className="mt-1 flex-shrink-0">
+                            {activeVideo?._id === video._id && (
+                                <div className="absolute left-0 top-0 w-1 h-full bg-brand-primary shadow-[0_0_20px_rgba(255,161,22,0.6)]" />
+                            )}
+                            <div className="flex-shrink-0 pt-1">
                                 {hasAccess ? (
-                                    activeVideo?._id === video._id ? (
-                                        <PlayCircle size={16} className="text-brand-primary" />
-                                    ) : progressMap[video._id]?.completed ? (
-                                        <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                                            <Check size={12} className="text-white" strokeWidth={4} />
+                                    progressMap[video._id]?.completed ? (
+                                        <div className="w-8 h-8 rounded-xl bg-green-500/10 flex items-center justify-center border border-green-500/20">
+                                            <Check size={18} className="text-green-500" strokeWidth={4} />
                                         </div>
                                     ) : (
-                                        <div className="w-4 h-4 rounded-full border border-dark-muted" />
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-colors ${activeVideo?._id === video._id ? 'bg-brand-primary border-brand-primary' : 'bg-[#141414] border-white/10 group-hover:border-brand-primary/40'}`}>
+                                            <PlayCircle size={18} className={activeVideo?._id === video._id ? 'text-dark-bg' : 'text-dark-muted group-hover:text-brand-primary'} />
+                                        </div>
                                     )
                                 ) : (
-                                    <Lock size={16} className="text-dark-muted" />
+                                    <div className="w-8 h-8 rounded-xl bg-[#141414] flex items-center justify-center border border-white/5 opacity-40">
+                                        <Lock size={16} className="text-dark-muted" />
+                                    </div>
                                 )}
                             </div>
-                            <div className="flex-1">
-                                <h4 className={`text-sm font-medium ${activeVideo?._id === video._id ? 'text-brand-primary' : 'text-white'}`}>
-                                    {index + 1}. {video.title}
+                            <div className="min-w-0 space-y-2">
+                                <h4 className={`text-[11px] font-bold uppercase tracking-tight leading-relaxed transition-colors ${activeVideo?._id === video._id ? 'text-brand-primary' : 'text-white group-hover:text-brand-primary/80'}`}>
+                                    <span className="opacity-30 mr-2">{String(index + 1).padStart(2, '0')}</span> {video.title}
                                 </h4>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <p className="text-[10px] text-dark-muted">{video.duration || '10:00'}</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2 text-[9px] font-bold text-dark-muted uppercase tracking-[0.2em] opacity-50">
+                                        <Clock size={12} className="text-brand-primary" /> {video.duration || '12:00'}
+                                    </div>
                                     {progressMap[video._id]?.completed && (
-                                        <span className="text-[10px] text-green-500 font-bold uppercase tracking-widest">Completed</span>
+                                        <span className="text-[8px] font-black text-green-500 uppercase tracking-widest px-2 py-0.5 bg-green-500/10 border border-green-500/20 rounded-md">Validated</span>
                                     )}
                                 </div>
                             </div>
@@ -426,12 +406,12 @@ const CourseDetail = () => {
                 </div>
             </div>
 
-            {/* Mobile Toggle Button */}
+            {/* Mobile Nav Toggle */}
             <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="md:hidden absolute top-4 right-4 z-50 bg-dark-layer1 text-white p-2 rounded-lg border border-dark-layer2 shadow-lg"
+                className="md:hidden absolute bottom-24 right-6 z-50 bg-brand-primary text-dark-bg p-4 rounded-full shadow-2xl"
             >
-                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
         </div>
     );

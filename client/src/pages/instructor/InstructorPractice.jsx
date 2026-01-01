@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../utils/api';
+import { useToast } from '../../context/ToastContext';
 import {
     Plus, Trash2, FileText, Upload, X, Code, Terminal, Check,
     Users, MessageSquare, Award, Clock, ChevronRight, Filter, Play
@@ -7,6 +8,7 @@ import {
 import CodeEditor from '../../components/CodeEditor';
 
 const InstructorPractice = () => {
+    const { addToast } = useToast();
     const [courses, setCourses] = useState([]);
     const [selectedCourse, setSelectedCourse] = useState(null);
     const [problems, setProblems] = useState([]);
@@ -87,6 +89,7 @@ const InstructorPractice = () => {
             setAttachments([...attachments, { name: data.filename, url: data.url, type: 'file' }]);
         } catch (error) {
             console.error('Upload error:', error);
+            addToast('Failed to upload attachment', 'error');
         }
     };
 
@@ -110,8 +113,9 @@ const InstructorPractice = () => {
             // Reset...
             setTitle(''); setDescription(''); setAttachments([]); setType('subjective');
             setStarterCode('// Write your code here\n'); setTestCases([{ input: '', expectedOutput: '', hidden: false }]);
+            addToast('Challenge deployed successfully', 'success');
         } catch (error) {
-            alert('Failed to create problem');
+            addToast('Failed to create problem', 'error');
         }
     };
 
@@ -122,11 +126,11 @@ const InstructorPractice = () => {
                 feedback: gradingFeedback,
                 status: 'Passed'
             });
-            alert('Graded successfully!');
+            addToast('Graded successfully!', 'success');
             fetchSubmissions(selectedCourse._id);
             setSelectedSubmission(null);
         } catch (error) {
-            alert('Failed to grade');
+            addToast('Failed to grade', 'error');
         }
     };
 

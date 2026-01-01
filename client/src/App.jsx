@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import InstructorAssignments from './pages/instructor/InstructorAssignments';
-import StudentAssignments from './pages/student/StudentAssignments';
+import MissionBriefing from './pages/student/MissionBriefing';
+import MissionControl from './pages/instructor/MissionControl';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import RoleSidebar from './components/RoleSidebar';
 import Navbar from './components/Navbar';
@@ -75,6 +75,7 @@ import AnnouncementManagement from './pages/admin/AnnouncementManagement';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 import PlatformSettings from './pages/admin/PlatformSettings';
 import SubscriptionManagement from './pages/admin/SubscriptionManagement';
+import ContentManager from './pages/admin/ContentManager'; // [NEW]
 
 // Shared Pages
 import Notifications from './pages/Notifications';
@@ -84,9 +85,9 @@ import ContactUs from './pages/ContactUs';
 import Referral from './pages/Referral';
 import SubscriptionPlans from './pages/SubscriptionPlans';
 import CourseBundles from './pages/CourseBundles';
-import UnifiedFeed from './pages/UnifiedFeed';
 import TrendingHub from './pages/TrendingHub';
 import YouTubeWatchPage from './pages/student/YouTubeWatchPage';
+import SocialMedia from './pages/SocialMedia'; // [NEW]
 
 // Student Specific
 import Leaderboard from './pages/student/Leaderboard';
@@ -218,17 +219,30 @@ import MobileNav from './components/MobileNav';
 
 import ResizablePanel from './components/ResizablePanel';
 import CommandPalette from './components/CommandPalette';
+import GlobalCreateButton from './components/GlobalCreateButton';
 
 const AppLayout = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+        const saved = localStorage.getItem('sidebar-collapsed');
+        return saved === 'true';
+    });
     const navigate = useNavigate();
+
+    useEffect(() => {
+        localStorage.setItem('sidebar-collapsed', isSidebarCollapsed);
+    }, [isSidebarCollapsed]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 setIsCommandPaletteOpen(prev => !prev);
+            }
+            if (e.key === 'b' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                setIsSidebarCollapsed(prev => !prev);
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -247,20 +261,29 @@ const AppLayout = ({ children }) => {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden relative">
+        <div className="flex flex-col h-screen bg-dark-bg text-dark-text overflow-hidden relative selection:bg-brand-primary selection:text-dark-bg">
+            {/* Global Background Layer */}
+            <div className="fixed inset-0 cyber-grid opacity-[0.03] pointer-events-none z-0" />
+
             <Navbar onOpenCommandPalette={() => setIsCommandPaletteOpen(true)} />
-            <div className="h-[60px] md:h-[72px] flex-shrink-0" /> {/* Spacer for fixed Navbar */}
-            <div className="flex flex-1 overflow-hidden min-h-0 relative">
+            <div className="h-[60px] md:h-[72px] flex-shrink-0" />
+            <div className="flex flex-1 overflow-hidden min-h-0 relative z-10">
                 {user && (
                     <ResizablePanel
                         position="left"
                         minWidth={240}
                         maxWidth={400}
                         defaultWidth={280}
+                        isCollapsed={isSidebarCollapsed}
                         storageKey="main-sidebar-width"
                         className="hidden md:flex flex-col border-r border-white/5"
                     >
-                        <RoleSidebar user={user} onLogout={handleLogout} />
+                        <RoleSidebar
+                            user={user}
+                            onLogout={handleLogout}
+                            isCollapsed={isSidebarCollapsed}
+                            setIsCollapsed={setIsSidebarCollapsed}
+                        />
                     </ResizablePanel>
                 )}
                 <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 flex flex-col min-h-0 custom-scrollbar relative">
@@ -268,6 +291,7 @@ const AppLayout = ({ children }) => {
                 </main>
             </div>
             {user && <MobileNav user={user} />}
+            {user && <GlobalCreateButton user={user} />}
             <CommandPalette
                 isOpen={isCommandPaletteOpen}
                 onClose={() => setIsCommandPaletteOpen(false)}
@@ -306,14 +330,15 @@ function App() {
                 <Route path="/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentAnnouncements /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/categories" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><Categories /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/certificates" element={<PrivateRoute><AppLayout><Certificates /></AppLayout></PrivateRoute>} />
-                <Route path="/course/:id" element={<PrivateRoute><AppLayout><YouTubeWatchPage /></AppLayout></PrivateRoute>} />
+                <Route path="/course/:id" element={<PrivateRoute><AppLayout><CourseDetail /></AppLayout></PrivateRoute>} />
+                <Route path="/course/:id/watch" element={<PrivateRoute><AppLayout><YouTubeWatchPage /></AppLayout></PrivateRoute>} />
                 <Route path="/live" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentLiveSessions /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/my-notes" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyNotes /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/purchase-history" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><PurchaseHistory /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/my-reviews" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MyReviews /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/practice" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentPractice /></AppLayout></RoleRoute></PrivateRoute>} /> {/* [NEW] */}
                 <Route path="/course/:id/assessment" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><TakeAssessment /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><StudentAssignments /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['student', 'instructor', 'superadmin']}><AppLayout><MissionBriefing /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/reels" element={<PrivateRoute><Reels /></PrivateRoute>} /> {/* [NEW] */}
 
                 {/* Instructor Routes */}
@@ -329,7 +354,7 @@ function App() {
                 <Route path="/instructor/promotions" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><PromotionManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/bundles" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><BundleManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/assessments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><AssessmentManagement /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructor/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorAssignments /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/assignments" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><MissionControl /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/reviews" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorReviews /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/settings" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorSettings /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/instructor/live" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin']}><AppLayout><InstructorLiveManager /></AppLayout></RoleRoute></PrivateRoute>} />
@@ -347,6 +372,8 @@ function App() {
                 <Route path="/admin/announcements" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><AnnouncementManagement /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/settings" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformSettings /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/admin/content" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><ContentManager /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/content" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin', 'admin']}><AppLayout><ContentManager /></AppLayout></RoleRoute></PrivateRoute>} />
 
                 {/* Shared Routes */}
                 <Route path="/notifications" element={<PrivateRoute><AppLayout><Notifications /></AppLayout></PrivateRoute>} />
@@ -357,7 +384,7 @@ function App() {
                 <Route path="/referral" element={<AppLayout><Referral /></AppLayout>} />
                 <Route path="/subscriptions" element={<AppLayout><SubscriptionPlans /></AppLayout>} />
                 <Route path="/bundles" element={<AppLayout><CourseBundles /></AppLayout>} />
-                <Route path="/social" element={<PrivateRoute><AppLayout><UnifiedFeed /></AppLayout></PrivateRoute>} />
+                <Route path="/social" element={<PrivateRoute><AppLayout><SocialMedia /></AppLayout></PrivateRoute>} />
                 <Route path="/trending" element={<PrivateRoute><AppLayout><TrendingHub /></AppLayout></PrivateRoute>} />
                 <Route path="/messages" element={<PrivateRoute><AppLayout><DirectMessage /></AppLayout></PrivateRoute>} />
                 <Route path="/messages/:userId" element={<PrivateRoute><AppLayout><DirectMessage /></AppLayout></PrivateRoute>} />

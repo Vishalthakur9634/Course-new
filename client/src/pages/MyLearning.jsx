@@ -19,7 +19,7 @@ const MyLearning = () => {
             // The enrollment.js has /my-courses endpoint which returns exactly what we need!
             const { data } = await api.get('/enrollment/my-courses');
             // The endpoint returns enrollments with populated courseId
-            setCourses(data.map(enrollment => ({
+            setCourses(data.filter(e => e && e.courseId).map(enrollment => ({
                 ...enrollment.courseId,
                 progress: enrollment.progress // Keep progress from enrollment
             })) || []);
@@ -47,8 +47,8 @@ const MyLearning = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {courses.map((course) => (
-                        <Link to={`/course/${course._id}`} key={course._id} className="bg-dark-layer1 border border-dark-layer2 rounded-lg overflow-hidden hover:border-brand-primary transition-all group">
+                    {courses.map((course, index) => (
+                        <Link to={`/course/${course._id || ''}/watch`} key={`course-${index}`} className="bg-dark-layer1 border border-dark-layer2 rounded-lg overflow-hidden hover:border-brand-primary transition-all group">
                             <div className="aspect-video bg-dark-layer2 relative">
                                 <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

@@ -3,10 +3,8 @@ const router = express.Router();
 const Reel = require('../models/Reel');
 const { authenticate: auth, requireInstructor: isInstructor } = require('../middleware/rbac');
 
-// @route   POST /api/reels/upload
-// @desc    Upload a new reel
-// @access  Instructor
-router.post('/upload', [auth, isInstructor], async (req, res) => {
+// @access  Authenticated (Student or Instructor)
+router.post('/upload', auth, async (req, res) => {
     try {
         const { title, videoUrl, thumbnailUrl, category, tags, duration } = req.body;
 
@@ -14,10 +12,10 @@ router.post('/upload', [auth, isInstructor], async (req, res) => {
             title,
             videoUrl,
             thumbnailUrl,
-            category,
-            tags,
-            duration,
-            instructorId: req.user.id
+            category: category || 'General',
+            tags: tags || [],
+            duration: duration || 0,
+            instructorId: req.user._id
         });
 
         await reel.save();
@@ -57,6 +55,19 @@ router.get('/feed', async (req, res) => {
     }
 });
 
+// @route   GET /api/reels/categories
+// @desc    Get distinct reel categories
+// @access  Public
+router.get('/categories', async (req, res) => {
+    try {
+        const categories = await Reel.distinct('category');
+        res.json(categories.filter(c => c)); // Remove null/empty if any
+    } catch (error) {
+        console.error('Error fetching reel categories:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
 // @route   POST /api/reels/:id/like
 // @desc    Like/Unlike a reel
 // @access  Private
@@ -68,12 +79,12 @@ router.post('/:id/like', auth, async (req, res) => {
         }
 
         // Check if already liked
-        if (reel.likes.includes(req.user.id)) {
+        if (reel.likes.includes(req.user._id)) {
             // Unlike
-            reel.likes = reel.likes.filter(id => id.toString() !== req.user.id);
+            reel.likes = reel.likes.filter(id => id.toString() !== req.user._id.toString());
         } else {
             // Like
-            reel.likes.push(req.user.id);
+            reel.likes.push(req.user._id);
         }
 
         await reel.save();
@@ -102,7 +113,7 @@ router.post('/:id/view', async (req, res) => {
 // @access  Instructor
 router.get('/my-reels', [auth, isInstructor], async (req, res) => {
     try {
-        const reels = await Reel.find({ instructorId: req.user.id }).sort({ createdAt: -1 });
+        const reels = await Reel.find({ instructorId: req.user._id }).sort({ createdAt: -1 });
         res.json(reels);
     } catch (error) {
         console.error('Error fetching my reels:', error);
@@ -133,7 +144,7 @@ router.post('/:id/comment', auth, async (req, res) => {
         if (!reel) return res.status(404).json({ message: 'Reel not found' });
 
         reel.comments.push({
-            user: req.user.id,
+            user: req.user._id,
             text
         });
 

@@ -7,6 +7,7 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
     const hlsRef = useRef(null);
     const containerRef = useRef(null);
     const progressIntervalRef = useRef(null);
+    const playPromiseRef = useRef(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -19,12 +20,16 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
     const [currentQuality, setCurrentQuality] = useState('Auto');
     const [availableQualities, setAvailableQualities] = useState([]);
 
-    // Initialize HLS
+    // Initialize HLS or Native Video
     useEffect(() => {
         const video = videoRef.current;
-        if (!video) return;
+        console.log('VideoPlayer: Initializing with src:', src);
+        if (!video || !src) return;
 
-        if (Hls.isSupported()) {
+        // Check if source is HLS
+        const isHLS = src.includes('.m3u8');
+
+        if (isHLS && Hls.isSupported()) {
             const hls = new Hls({
                 enableWorker: true,
                 lowLatencyMode: true,
@@ -35,6 +40,7 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
             hls.attachMedia(video);
 
             hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+                console.log('HLS Manifest Parsed (Ready to play)', data);
                 // Extract quality levels
                 const qualities = data.levels.map((level, index) => ({
                     index,
@@ -46,12 +52,33 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
             });
 
             hls.on(Hls.Events.ERROR, (event, data) => {
-                console.error('HLS error:', data);
+                console.error('HLS error:', data.type, data.details, data.fatal, data);
+                if (data.details === 'manifestParsingError') {
+                    console.warn('HLS Manifest parsing failed. Attempting fallback to native MP4 if available...');
+                    // Logic to switch to mp4 if we had that url
+                }
+                if (data.fatal) {
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.error('Fatal network error encountered, try to recover');
+                            hls.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.error('Fatal media error encountered, try to recover');
+                            hls.recoverMediaError();
+                            break;
+                        default:
+                            console.error('Fatal error, destroying HLS instance');
+                            hls.destroy();
+                            break;
+                    }
+                }
             });
 
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
+        } else {
+            // Native playback (MP4, WebM, or Native HLS on Safari)
             video.src = src;
+            video.load();
         }
 
         return () => {
@@ -63,22 +90,18 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
 
     // Genuine Watch Tracking
     const [watchedDuration, setWatchedDuration] = useState(0);
-    const lastTimeRef = useRef(0);
 
     // Progress Tracking
     useEffect(() => {
         if (isPlaying && onProgress) {
             progressIntervalRef.current = setInterval(() => {
-                if (videoRef.current) {
-                    // Increment watched duration (approx 1 sec per interval check if we ran it every sec, but here we run every 30s)
-                    // Better approach: Update watchedDuration every second
-                }
+                // Interval logic if needed
             }, 1000);
         }
         return () => {
             if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         };
-    }, [isPlaying]);
+    }, [isPlaying, onProgress]);
 
     // Dedicated timer for genuine watch time
     useEffect(() => {
@@ -111,16 +134,40 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
     }, [isPlaying, onProgress, watchedDuration]);
 
     // Play/Pause
-    const togglePlay = () => {
+    const togglePlay = async () => {
         const video = videoRef.current;
+        if (!video) return;
+
         if (isPlaying) {
+            if (playPromiseRef.current) {
+                try {
+                    await playPromiseRef.current;
+                } catch (e) {
+                    // Ignore play errors
+                }
+            }
             video.pause();
-            // Save progress on pause
+            setIsPlaying(false);
             if (onProgress) onProgress(video.currentTime, video.duration);
         } else {
-            video.play();
+            const playPromise = video.play();
+            playPromiseRef.current = playPromise;
+
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    playPromiseRef.current = null;
+                    setIsPlaying(true);
+                }).catch(error => {
+                    playPromiseRef.current = null;
+                    setIsPlaying(false);
+                    if (error.name !== 'AbortError') {
+                        console.log("Playback interrupted or prevented", error);
+                    }
+                });
+            } else {
+                setIsPlaying(true);
+            }
         }
-        setIsPlaying(!isPlaying);
     };
 
     // Update time
@@ -192,7 +239,6 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
     };
 
     const speeds = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-
     const controlsTimeoutRef = useRef(null);
 
     const handleMouseEnter = () => {
@@ -213,7 +259,7 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
     return (
         <div
             ref={containerRef}
-            className="relative bg-black group w-full h-full"
+            className="relative bg-[#0a0a0a] group w-full h-full font-inter overflow-hidden border border-white/5 shadow-3xl"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             onMouseMove={handleMouseEnter}
@@ -227,90 +273,98 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
                 poster={poster}
             />
 
-            {/* Controls Overlay */}
+            {/* CONTROLS */}
             <div
-                className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-4 px-4 transition-opacity duration-300 z-50 ${showControls ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-20 pb-6 px-8 transition-all duration-500 z-50 ${showControls ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}
             >
-                {/* Progress Bar */}
+                {/* PROGRESS BAR */}
                 <div
-                    className="w-full h-1 bg-gray-600 rounded-full cursor-pointer mb-4 hover:h-2 transition-all"
+                    className="w-full h-1 bg-white/20 rounded-full cursor-pointer mb-6 group/progress relative overflow-hidden"
                     onClick={handleSeek}
                 >
                     <div
-                        className="h-full bg-red-600 rounded-full"
+                        className="h-full bg-brand-primary relative rounded-full"
                         style={{ width: `${(currentTime / duration) * 100}%` }}
-                    />
+                    >
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-between text-white">
-                    {/* Left Controls */}
-                    <div className="flex items-center gap-4">
-                        <button onClick={togglePlay} className="hover:scale-110 transition">
-                            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+                    {/* LEFT CONTROLS */}
+                    <div className="flex items-center gap-6">
+                        <button onClick={togglePlay} className="p-2 hover:bg-white/10 rounded-lg transition-all">
+                            {isPlaying ? <Pause size={24} /> : <Play size={24} className="translate-x-0.5" />}
                         </button>
 
-                        <div className="flex items-center gap-2">
-                            <button onClick={toggleMute} className="hover:scale-110 transition">
+                        <div className="flex items-center gap-4">
+                            <button onClick={toggleMute} className="text-white/70 hover:text-white transition-colors">
                                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                             </button>
-                            <input
-                                type="range"
-                                min="0"
-                                max="1"
-                                step="0.1"
-                                value={isMuted ? 0 : volume}
-                                onChange={handleVolumeChange}
-                                className="w-20 h-1"
-                            />
+                            <div className="w-24 h-1 bg-white/10 rounded-full relative overflow-hidden group/volume">
+                                <div
+                                    className="absolute inset-0 bg-brand-primary"
+                                    style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
+                                />
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.1"
+                                    value={isMuted ? 0 : volume}
+                                    onChange={handleVolumeChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                            </div>
                         </div>
 
-                        <span className="text-sm">
-                            {formatTime(currentTime)} / {formatTime(duration)}
-                        </span>
+                        <div className="text-[11px] font-medium text-white/60">
+                            <span className="text-white">{formatTime(currentTime)}</span>
+                            <span className="mx-2">/</span>
+                            <span>{formatTime(duration)}</span>
+                        </div>
                     </div>
 
-                    {/* Right Controls */}
-                    <div className="flex items-center gap-4">
-                        {/* Settings Dropdown */}
+                    {/* RIGHT CONTROLS */}
+                    <div className="flex items-center gap-6">
                         <div className="relative">
                             <button
                                 onClick={() => setShowSettings(!showSettings)}
-                                className="hover:scale-110 transition"
+                                className={`p-3 rounded-2xl transition-all border ${showSettings ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-white/5 border-white/10 text-dark-muted hover:text-white shadow-xl'}`}
                             >
-                                <Settings size={20} />
+                                <Settings size={22} className={showSettings ? 'rotate-90 transition-transform duration-500' : ''} />
                             </button>
 
                             {showSettings && (
-                                <div className="absolute bottom-full right-0 mb-2 bg-gray-900 rounded-lg shadow-lg p-4 min-w-[200px] z-50">
-                                    {/* Playback Speed */}
-                                    <div className="mb-4">
-                                        <div className="text-xs text-gray-400 mb-2 uppercase font-bold">Playback Speed</div>
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {speeds.map(speed => (
-                                                <button
-                                                    key={speed}
-                                                    onClick={() => changeSpeed(speed)}
-                                                    className={`px-2 py-1 text-xs rounded transition-colors ${playbackSpeed === speed ? 'bg-brand-primary text-white' : 'bg-gray-800 hover:bg-gray-700'}`}
-                                                >
-                                                    {speed}x
-                                                </button>
-                                            ))}
+                                <div className="absolute bottom-full right-0 mb-4 bg-[#141414] border border-white/10 rounded-xl shadow-2xl p-6 min-w-[240px] z-[100]">
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <div className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Speed</div>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {speeds.map(speed => (
+                                                    <button
+                                                        key={speed}
+                                                        onClick={() => changeSpeed(speed)}
+                                                        className={`py-1.5 rounded-lg text-[10px] font-medium transition-all border ${playbackSpeed === speed ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-transparent border-white/5 text-white/60 hover:border-white/20'}`}
+                                                    >
+                                                        {speed}x
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    {/* Quality */}
-                                    <div>
-                                        <div className="text-xs text-gray-400 mb-2 uppercase font-bold">Quality</div>
-                                        <div className="space-y-1">
-                                            {availableQualities.map(quality => (
-                                                <button
-                                                    key={quality.index}
-                                                    onClick={() => changeQuality(quality.index)}
-                                                    className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${currentQuality === quality.label ? 'bg-brand-primary text-white' : 'hover:bg-gray-800'}`}
-                                                >
-                                                    {quality.label}
-                                                </button>
-                                            ))}
+                                        <div className="space-y-3">
+                                            <div className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">Quality</div>
+                                            <div className="space-y-1">
+                                                {availableQualities.map(quality => (
+                                                    <button
+                                                        key={quality.index}
+                                                        onClick={() => changeQuality(quality.index)}
+                                                        className={`w-full text-left px-3 py-2 rounded-lg text-[10px] font-medium border transition-all ${currentQuality === quality.label ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-transparent border-white/5 text-white/60 hover:border-white/20'}`}
+                                                    >
+                                                        {quality.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -319,51 +373,45 @@ const VideoPlayer = ({ src, poster, onProgress }) => {
 
                         <button
                             onClick={() => document.pictureInPictureElement ? document.exitPictureInPicture() : videoRef.current.requestPictureInPicture()}
-                            className="hover:scale-110 transition"
-                            title="Picture in Picture"
+                            className="text-white/60 hover:text-white transition-all"
+                            title="Mini Player"
                         >
                             <PictureInPicture size={20} />
                         </button>
 
-                        <button onClick={toggleFullscreen} className="hover:scale-110 transition">
+                        <button onClick={toggleFullscreen} className="text-white/60 hover:text-white transition-all">
                             <Maximize size={20} />
                         </button>
                     </div>
                 </div>
 
-                {/* Center Controls (Skip) */}
+                {/* QUICK ACTIONS */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="flex gap-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-auto">
+                    <div className="flex gap-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
                         <button
                             onClick={(e) => { e.stopPropagation(); videoRef.current.currentTime -= 10; }}
-                            className="bg-black/50 p-3 rounded-full hover:bg-brand-primary/80 transition text-white"
+                            className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-brand-primary hover:text-dark-bg transition-all"
                         >
-                            <span className="text-xs font-bold">-10s</span>
+                            <span className="text-[10px] font-bold">-10s</span>
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-                            className="bg-brand-primary p-4 rounded-full hover:scale-110 transition shadow-lg"
+                            className="w-16 h-16 bg-brand-primary text-dark-bg rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all"
                         >
-                            {isPlaying ? <Pause size={32} fill="white" /> : <Play size={32} fill="white" />}
+                            {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="translate-x-0.5" />}
                         </button>
                         <button
                             onClick={(e) => { e.stopPropagation(); videoRef.current.currentTime += 10; }}
-                            className="bg-black/50 p-3 rounded-full hover:bg-brand-primary/80 transition text-white"
+                            className="w-12 h-12 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-brand-primary hover:text-dark-bg transition-all"
                         >
-                            <span className="text-xs font-bold">+10s</span>
+                            <span className="text-[10px] font-bold">+10s</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Play button overlay for initial state */}
-            {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-brand-primary/90 rounded-full p-6 shadow-lg transform transition-transform group-hover:scale-110">
-                        <Play size={48} fill="white" className="text-white ml-1" />
-                    </div>
-                </div>
-            )}
+            {/* PLAY OVERLAY */}
+
         </div>
     );
 };

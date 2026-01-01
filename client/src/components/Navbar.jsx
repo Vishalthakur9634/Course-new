@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
-    LogOut, User, BookOpen, Heart, Award, Grid3x3,
+    LogOut, User, BookOpen, Award, Grid3x3,
     Users, DollarSign, Search, Bell, ShoppingCart,
-    Book, ChevronDown, Rocket, Sparkles,
-    Package, MessageSquare, HelpCircle, LayoutGrid, Film, // Menu, X removed
-
-    Sun, Moon, TrendingUp, History, Zap, ArrowRight
+    Rocket, Sparkles, Package, MessageSquare, LayoutGrid,
+    Sun, Moon, ArrowRight, Zap, ChevronDown
 } from 'lucide-react';
 import api from '../utils/api';
 import NotificationCenter from './NotificationCenter';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = ({ onOpenCommandPalette }) => {
     const navigate = useNavigate();
@@ -28,18 +27,14 @@ const Navbar = ({ onOpenCommandPalette }) => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     const [popularCourses, setPopularCourses] = useState([]);
-    const [trendingCategories, setTrendingCategories] = useState([]);
 
     useEffect(() => {
         const syncUser = () => {
             setUser(JSON.parse(localStorage.getItem('user')) || {});
             setToken(localStorage.getItem('token'));
         };
-
         window.addEventListener('storage', syncUser);
-        // Custom event for same-window updates
         window.addEventListener('profileUpdate', syncUser);
-
         return () => {
             window.removeEventListener('storage', syncUser);
             window.removeEventListener('profileUpdate', syncUser);
@@ -47,22 +42,15 @@ const Navbar = ({ onOpenCommandPalette }) => {
     }, []);
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 10);
-        };
-
-        const handleClickOutside = (event) => {
-            if (searchRef.current && !searchRef.current.contains(event.target)) {
+        const handleScroll = () => setIsScrolled(window.scrollY > 10);
+        const handleClickOutside = (e) => {
+            if (searchRef.current && !searchRef.current.contains(e.target)) {
                 setIsSearchFocused(false);
             }
         };
 
-        // Theme Initialization
-        if (theme === 'light') {
-            document.documentElement.classList.add('light');
-        } else {
-            document.documentElement.classList.remove('light');
-        }
+        if (theme === 'light') document.documentElement.classList.add('light');
+        else document.documentElement.classList.remove('light');
 
         window.addEventListener('scroll', handleScroll);
         document.addEventListener('mousedown', handleClickOutside);
@@ -72,7 +60,6 @@ const Navbar = ({ onOpenCommandPalette }) => {
         };
     }, [theme]);
 
-    // Search Logic
     useEffect(() => {
         const fetchResults = async () => {
             if (searchQuery.length < 2) {
@@ -81,144 +68,102 @@ const Navbar = ({ onOpenCommandPalette }) => {
             }
             setIsSearching(true);
             try {
-                // Fetching all courses and filtering locally for now, 
-                // or we can update the backend to support 'q'
-                const { data } = await api.get('/courses');
-                const filtered = data.filter(c =>
-                    c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    c.category.toLowerCase().includes(searchQuery.toLowerCase())
-                ).slice(0, 5);
-                setSearchResults(filtered);
+                const { data } = await api.get(`/courses?search=${searchQuery}`);
+                setSearchResults(data.slice(0, 5));
             } catch (error) {
                 console.error('Search error:', error);
             } finally {
                 setIsSearching(false);
             }
         };
-
         const timer = setTimeout(fetchResults, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Fetch popular courses and trending categories on mount
     useEffect(() => {
-        const fetchPopularData = async () => {
+        const fetchGlobalData = async () => {
             try {
                 const { data } = await api.get('/courses');
-                // Get top 3 popular courses by enrollment
                 const popular = data
                     .filter(c => c.isPublished)
                     .sort((a, b) => (b.enrollmentCount || 0) - (a.enrollmentCount || 0))
                     .slice(0, 3);
                 setPopularCourses(popular);
 
-                // Get unique categories with course counts
-                const categoryMap = {};
-                data.forEach(c => {
-                    if (c.category && c.isPublished) {
-                        categoryMap[c.category] = (categoryMap[c.category] || 0) + 1;
-                    }
-                });
-                const trending = Object.entries(categoryMap)
-                    .sort((a, b) => b[1] - a[1])
-                    .slice(0, 4)
-                    .map(([name]) => name);
-                setTrendingCategories(trending);
-            } catch (error) {
-                console.error('Error fetching popular data:', error);
-            }
-        };
-
-        const fetchUnreadCount = async () => {
-            if (token) {
-                try {
-                    const { data } = await api.get('/notifications');
-                    setUnreadCount(data.unreadCount);
-                } catch (error) {
-                    console.error('Error fetching unread count:', error);
+                if (token) {
+                    const notifyData = await api.get('/notifications');
+                    setUnreadCount(notifyData.data.unreadCount);
                 }
+            } catch (error) {
+                console.error('Nav Fetch Error:', error);
             }
         };
-
-        fetchPopularData();
-        fetchUnreadCount();
+        fetchGlobalData();
     }, [token]);
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
-    };
 
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
         localStorage.setItem('theme', newTheme);
-        if (newTheme === 'light') {
-            document.documentElement.classList.add('light');
-        } else {
-            document.documentElement.classList.remove('light');
-        }
     };
 
     const navLinks = {
         student: [
             { name: 'Browse', path: '/browse', icon: LayoutGrid },
-            { name: 'Subscriptions', path: '/subscriptions', icon: Sparkles },
+            { name: 'Social', path: '/social', icon: MessageSquare },
             { name: 'Bundles', path: '/bundles', icon: Package },
-            { name: 'Community', path: '/community', icon: MessageSquare },
-            { name: 'Leaderboard', path: '/leaderboard', icon: Award },
+            { name: 'Community', path: '/community', icon: Users },
         ],
         instructor: [
             { name: 'Dashboard', path: '/instructor', icon: Grid3x3 },
             { name: 'Courses', path: '/instructor/courses', icon: BookOpen },
-
-            { name: 'Students', path: '/instructor/students', icon: Users },
             { name: 'Earnings', path: '/instructor/earnings', icon: DollarSign },
         ],
         admin: [
             { name: 'Overview', path: '/admin', icon: Grid3x3 },
             { name: 'Users', path: '/admin/users', icon: Users },
             { name: 'Courses', path: '/admin/courses', icon: BookOpen },
-            { name: 'Payments', path: '/admin/payments', icon: DollarSign },
         ],
         superadmin: [
             { name: 'Overview', path: '/admin', icon: Grid3x3 },
             { name: 'Users', path: '/admin/users', icon: Users },
             { name: 'Courses', path: '/admin/courses', icon: BookOpen },
-            { name: 'Payments', path: '/admin/payments', icon: DollarSign },
         ]
     };
 
     const currentLinks = user.role ? (navLinks[user.role] || []) : [];
 
-
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 glass-panel ${isScrolled ? 'py-3 border-b-brand-primary/20' : 'py-5 border-none'
+        <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled ? 'py-2 border-b border-white/5 bg-[#1a1a1a]/95' : 'py-3 bg-transparent border-transparent'
             }`}>
-            <div className="max-w-[1440px] mx-auto px-6 flex justify-between items-center">
-                {/* Logo Section */}
-                <div className="flex items-center gap-8">
+            <div className="max-w-[1920px] mx-auto px-8 flex justify-between items-center">
+                {/* Brand Module */}
+                <div className="flex items-center gap-10">
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 bg-gradient-to-br from-brand-primary to-brand-hover rounded-xl flex items-center justify-center group-hover:rotate-12 transition-transform shadow-lg shadow-brand-primary/40">
-                            <Rocket size={22} className="text-dark-bg fill-current" />
+                        <div className="w-9 h-9 bg-brand-primary rounded-lg flex items-center justify-center transition-all duration-300 border border-brand-primary/20 shadow-sm relative overflow-hidden">
+                            <Rocket size={18} className="text-dark-bg fill-current relative z-10" />
                         </div>
-                        <span className="hidden md:inline text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 group-hover:to-brand-primary transition-all">
-                            Orbit<span className="text-brand-primary">Quest</span>
-                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-lg font-bold uppercase tracking-tight leading-none text-white">
+                                Orbit<span className="text-brand-primary">Quest</span>
+                            </span>
+                            <span className="text-[10px] font-medium text-dark-muted uppercase tracking-wider mt-0.5">Learn & Upskill</span>
+                        </div>
                     </Link>
 
-                    {/* Nav Items - Desktop */}
+                    {/* Navigation Matrix */}
                     {token && (
-                        <div className="hidden lg:flex items-center gap-1">
+                        <div className="hidden xl:flex items-center gap-1">
                             {currentLinks.map((link) => (
                                 <Link
                                     key={link.path}
                                     to={link.path}
-                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:bg-brand-primary/10 flex items-center gap-2 ${location.pathname === link.path ? 'text-brand-primary bg-brand-primary/5 border border-brand-primary/20 shadow-[0_0_15px_rgba(0,242,255,0.1)]' : 'text-dark-muted hover:text-white'
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 relative group ${location.pathname === link.path
+                                        ? 'text-brand-primary bg-white/5'
+                                        : 'text-dark-muted hover:text-white hover:bg-white/5'
                                         }`}
                                 >
-                                    <link.icon size={14} className={location.pathname === link.path ? 'animate-pulse' : ''} />
+                                    <link.icon size={14} className={location.pathname === link.path ? '' : 'group-hover:scale-105 transition-transform'} />
                                     {link.name}
                                 </Link>
                             ))}
@@ -226,262 +171,212 @@ const Navbar = ({ onOpenCommandPalette }) => {
                     )}
                 </div>
 
+                {/* Command & Control Center */}
                 <div className="flex items-center gap-4 flex-1 justify-end max-w-2xl">
-                    <div ref={searchRef} className={`hidden md:flex flex-1 max-w-md relative group ${user.role === 'instructor' ? 'invisible pointer-events-none' : ''}`}>
-                        <div className={`flex items-center w-full bg-dark-layer1/50 border rounded-2xl transition-all ${isSearchFocused ? 'border-brand-primary bg-dark-layer1 shadow-lg shadow-brand-primary/20' : 'border-white/5 shadow-none hover:border-white/10'
+                    <div ref={searchRef} className={`hidden md:flex flex-1 max-w-sm relative group ${user.role === 'instructor' ? 'invisible pointer-events-none' : ''}`}>
+                        <div className={`flex items-center w-full bg-white/[0.08] border transition-all h-9 relative z-[100000] ${isSearchFocused
+                            ? 'border-brand-primary/50 bg-[#333] rounded-lg'
+                            : 'border-transparent rounded-lg hover:bg-white/[0.12]'
                             }`}>
-                            <Search className={`ml-4 transition-colors ${isSearchFocused ? 'text-brand-primary' : 'text-dark-muted'}`} size={18} />
+                            <Search className={`ml-3 transition-colors ${isSearchFocused ? 'text-brand-primary' : 'text-dark-muted'}`} size={14} />
                             <input
                                 type="text"
-                                placeholder="INITIALIZE SCAN..."
-                                className="w-full bg-transparent border-none py-2.5 pl-3 pr-4 text-xs focus:outline-none placeholder:text-dark-muted/50 text-white font-black uppercase tracking-widest"
+                                placeholder="Search courses..."
+                                className="w-full bg-transparent border-none py-1 pl-2 pr-3 text-xs focus:outline-none placeholder:text-dark-muted/70 text-white font-medium h-full"
                                 value={searchQuery}
-                                onFocus={() => {
-                                    setIsSearchFocused(true);
-                                    if (onOpenCommandPalette) onOpenCommandPalette();
-                                }}
+                                onFocus={() => setIsSearchFocused(true)}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
-                            <div
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (onOpenCommandPalette) onOpenCommandPalette();
-                                }}
-                                className="mr-4 flex items-center gap-1.5 px-2 py-0.5 rounded border border-brand-primary/20 text-[10px] font-black text-brand-primary select-none bg-brand-primary/10 transition-colors animate-pulse cursor-pointer"
-                            >
-                                <span className="text-xs">⌘</span> K
+                            <div className="mr-2 flex items-center gap-1.5 px-1.5 py-0.5 rounded border border-white/10 text-[10px] font-medium text-dark-muted select-none bg-white/10 cursor-pointer"
+                                onClick={() => onOpenCommandPalette && onOpenCommandPalette()}>
+                                <span>⌘</span> K
                             </div>
                         </div>
 
-                        {isSearchFocused && (searchQuery.length >= 2 || (popularCourses.length > 0 && searchQuery.length === 0)) && (
-                            <div className="absolute top-full left-0 right-0 mt-3 w-full bg-dark-layer1 border border-white/10 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-[99999]">
-                                {isSearching ? (
-                                    <div className="p-8 text-center">
-                                        <div className="w-8 h-8 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                                        <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Scanning Database...</p>
-                                    </div>
-                                ) : searchQuery.length >= 2 ? (
-                                    <>
-                                        {searchResults.length > 0 ? (
-                                            <div className="p-2">
-                                                <div className="px-4 py-2 border-b border-white/5 mb-2">
-                                                    <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Found {searchResults.length} Matches</p>
-                                                </div>
-                                                {searchResults.map(course => (
-                                                    <button
-                                                        key={course._id}
-                                                        onClick={() => {
-                                                            navigate(`/course/${course._id}`);
-                                                            setIsSearchFocused(false);
-                                                            setSearchQuery('');
-                                                        }}
-                                                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-all group"
-                                                    >
-                                                        <div className="w-12 h-12 rounded-lg bg-dark-layer2 overflow-hidden flex-shrink-0 border border-white/5">
-                                                            <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
-                                                        </div>
-                                                        <div className="text-left">
-                                                            <p className="text-sm font-bold text-white group-hover:text-brand-primary transition-colors">{course.title}</p>
-                                                            <p className="text-[10px] text-dark-muted uppercase font-black">{course.category}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                                <Link
-                                                    to="/browse"
-                                                    onClick={() => setIsSearchFocused(false)}
-                                                    className="block text-center py-3 text-[10px] font-black text-brand-primary uppercase tracking-widest hover:bg-brand-primary/10 transition-all mt-2"
-                                                >
-                                                    View All Signals
-                                                </Link>
-                                            </div>
-                                        ) : (
-                                            <div className="p-12 text-center">
-                                                <p className="text-sm text-dark-muted font-bold">No curriculum found for "{searchQuery}"</p>
-                                                <p className="text-[10px] text-dark-muted/50 uppercase font-black mt-2">Try different coordinates</p>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="p-6">
-                                        <div className="px-2 mb-4">
-                                            <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Trending Sectors</p>
+                        {/* Search Results */}
+                        <AnimatePresence>
+                            {isSearchFocused && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute top-full left-0 right-0 w-full bg-[#1a1a1a] border border-white/10 rounded-b-xl shadow-2xl overflow-hidden z-[99999]"
+                                >
+                                    {isSearching ? (
+                                        <div className="p-6 text-center">
+                                            <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                                            <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest animate-pulse">Searching...</p>
                                         </div>
-                                        <div className="flex flex-wrap gap-2 mb-6">
-                                            {trendingCategories.map(cat => (
+                                    ) : searchQuery.length >= 2 ? (
+                                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar relative z-10">
+                                            <div className="px-5 py-2 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                                                <p className="text-[10px] font-bold text-dark-muted uppercase tracking-widest">{searchResults.length} Results Found</p>
+                                            </div>
+                                            {searchResults.map(course => (
                                                 <button
-                                                    key={cat}
-                                                    onClick={() => {
-                                                        navigate(`/browse?category=${cat}`);
-                                                        setIsSearchFocused(false);
-                                                    }}
-                                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs font-bold text-white transition-all border border-white/5"
+                                                    key={course._id}
+                                                    onClick={() => navigate(`/course/${course._id}`)}
+                                                    className="w-full flex items-center gap-4 px-5 py-3 hover:bg-white/5 transition-all group"
                                                 >
-                                                    {cat}
+                                                    <div className="w-8 h-8 rounded-lg bg-dark-layer2 overflow-hidden flex-shrink-0 border border-white/10">
+                                                        <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
+                                                    </div>
+                                                    <div className="text-left min-w-0 flex-1">
+                                                        <p className="text-xs font-bold text-white group-hover:text-brand-primary transition-colors truncate uppercase">{course.title}</p>
+                                                        <p className="text-[10px] text-dark-muted uppercase font-bold tracking-wider leading-none mt-1">{course.category}</p>
+                                                    </div>
                                                 </button>
                                             ))}
+                                            {searchResults.length === 0 && <div className="p-10 text-center text-dark-muted text-[10px] font-bold uppercase tracking-widest">No courses found.</div>}
                                         </div>
-                                        {popularCourses.length > 0 && (
-                                            <>
-                                                <div className="px-2 mb-4">
-                                                    <p className="text-[10px] font-black text-dark-muted uppercase tracking-widest">Popular Transmissions</p>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    {popularCourses.map(course => (
-                                                        <button
-                                                            key={course._id}
-                                                            onClick={() => {
-                                                                navigate(`/course/${course._id}`);
-                                                                setIsSearchFocused(false);
-                                                            }}
-                                                            className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all text-left"
-                                                        >
-                                                            <div className="w-8 h-8 rounded-lg bg-dark-layer2 overflow-hidden border border-white/5">
-                                                                <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
-                                                            </div>
-                                                            <span className="text-xs font-bold text-dark-muted hover:text-white transition-colors truncate">{course.title}</span>
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        {/* Mobile Search Button */}
-                        <button
-                            className="md:hidden p-2 rounded-xl text-dark-text/70 hover:text-white"
-                            onClick={() => navigate('/browse')} // Redirect to browse for mobile search
-                        >
-                            <Search size={22} />
-                        </button>
-
-                        {/* Theme Toggle */}
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2.5 rounded-xl hover:bg-white/5 text-dark-text/70 hover:text-white transition-all relative group"
-                        >
-                            {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} className="text-brand-primary" />}
-                        </button>
-
-                        {token ? (
-                            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                                        className={`p-2.5 rounded-xl transition-all relative group ${isNotificationsOpen ? 'bg-brand-primary text-dark-bg' : 'hover:bg-white/5 text-dark-text/70 hover:text-white'}`}
-                                    >
-                                        <Bell size={20} />
-                                        {unreadCount > 0 && (
-                                            <span className={`absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full border-2 animate-pulse ${isNotificationsOpen ? 'bg-dark-bg border-brand-primary' : 'bg-red-500 border-dark-bg'}`}></span>
-                                        )}
-                                    </button>
-
-                                    <NotificationCenter
-                                        isOpen={isNotificationsOpen}
-                                        onClose={() => setIsNotificationsOpen(false)}
-                                    />
-                                </div>
-
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowProfileMenu(!showProfileMenu)}
-                                        className="flex items-center gap-3 p-1 rounded-full hover:bg-white/5 transition-all group"
-                                    >
-                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-brand-primary transition-all shadow-lg">
-                                            {user.avatar ? (
-                                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span className="text-white font-bold">{user.name?.[0]?.toUpperCase() || 'U'}</span>
-                                            )}
-                                        </div>
-                                    </button>
-
-                                    {/* Dropdown Menu */}
-                                    {showProfileMenu && (
-                                        <div className="absolute top-full right-0 mt-3 w-72 bg-dark-layer1 border border-white/10 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                            <div className="p-6 border-b border-white/5 bg-gradient-to-br from-brand-primary/10 to-transparent">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-12 h-12 rounded-2xl bg-dark-layer2 p-1 border border-white/10">
-                                                        {user.avatar ? (
-                                                            <img src={user.avatar} className="w-full h-full rounded-xl object-cover" alt={user.name} />
-                                                        ) : (
-                                                            <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                                                                <span className="text-white font-black">{user.name?.[0]}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-black text-white tracking-tight truncate">{user.name}</p>
-                                                        <p className="text-[10px] text-dark-muted font-bold truncate uppercase tracking-widest">{user.role}</p>
-                                                    </div>
-                                                </div>
-
-                                                <Link
-                                                    to={user.role === 'instructor' ? `/instructor/profile/${user.id || user._id}` : `/u/${user.id || user._id}`}
-                                                    onClick={() => setShowProfileMenu(false)}
-                                                    className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-dark-bg border border-brand-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all group"
-                                                >
-                                                    View Orbit Profile <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                                                </Link>
+                                    ) : (
+                                        <div className="p-0 relative z-10">
+                                            <div className="px-5 py-2.5 bg-white/5 border-b border-white/5">
+                                                <p className="text-[10px] font-bold text-brand-primary uppercase tracking-widest">Popular Courses</p>
                                             </div>
-
-                                            <div className="p-2">
-                                                <Link
-                                                    to="/profile"
-                                                    onClick={() => setShowProfileMenu(false)}
-                                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-sm text-dark-muted hover:text-white transition-all group"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-all">
-                                                        <User size={16} />
-                                                    </div>
-                                                    <span className="font-bold">Account Settings</span>
-                                                </Link>
-
-                                                {user.role === 'student' && (
-                                                    <Link
-                                                        to="/my-learning"
-                                                        onClick={() => setShowProfileMenu(false)}
-                                                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-sm text-dark-muted hover:text-white transition-all group"
+                                            <div className="py-2">
+                                                {popularCourses.map(course => (
+                                                    <button
+                                                        key={course._id}
+                                                        onClick={() => navigate(`/course/${course._id}`)}
+                                                        className="w-full flex items-center gap-4 px-5 py-2 hover:bg-white/5 transition-all text-left group"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-all">
-                                                            <BookOpen size={16} />
+                                                        <div className="w-6 h-6 rounded-md bg-dark-layer2 overflow-hidden border border-white/10 flex-shrink-0">
+                                                            <img src={course.thumbnail} className="w-full h-full object-cover" alt="" />
                                                         </div>
-                                                        <span className="font-bold">My Learning</span>
-                                                    </Link>
-                                                )}
-
-                                                <button
-                                                    onClick={() => {
-                                                        handleLogout();
-                                                        setShowProfileMenu(false);
-                                                    }}
-                                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-sm text-red-400 transition-all mt-1 group"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center group-hover:bg-red-500/20">
-                                                        <LogOut size={16} />
-                                                    </div>
-                                                    <span className="font-black uppercase tracking-widest text-[11px]">Sign Out</span>
-                                                </button>
+                                                        <span className="text-[10px] font-bold text-dark-muted group-hover:text-white transition-colors truncate uppercase">{course.title}</span>
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 border-l border-white/10 ml-2 pl-4">
-                                <Link to="/login" className="px-5 py-2.5 text-sm font-bold text-dark-text/70 hover:text-white transition-colors">
-                                    Sign In
-                                </Link>
-                                <Link to="/register" className="px-6 py-2.5 bg-brand-primary hover:bg-brand-hover text-dark-bg font-black rounded-xl text-sm transition-all transform hover:scale-105 shadow-xl shadow-brand-primary/30">
-                                    Start Journey
-                                </Link>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Operational Modules */}
+                    <div className="flex items-center gap-2 pr-4 border-r border-white/10 mr-2">
+                        <button onClick={toggleTheme} className="p-3 rounded-2xl hover:bg-white/5 text-dark-muted hover:text-brand-primary transition-all relative overflow-hidden group">
+                            {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                        </button>
+
+                        {token && (
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                                    className={`p-3 rounded-xl transition-all relative group ${isNotificationsOpen ? 'bg-brand-primary text-dark-bg' : 'hover:bg-white/5 text-dark-muted hover:text-white'}`}
+                                >
+                                    <Bell size={18} />
+                                    <AnimatePresence>
+                                        {unreadCount > 0 && (
+                                            <motion.span
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                exit={{ scale: 0 }}
+                                                className={`absolute top-2 right-2 w-2 h-2 rounded-full ${isNotificationsOpen ? 'bg-dark-bg' : 'bg-brand-primary'}`}
+                                            />
+                                        )}
+                                    </AnimatePresence>
+                                </button>
+                                <NotificationCenter isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
                             </div>
                         )}
                     </div>
+
+                    {/* Profile & Auth Module */}
+                    {token ? (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                                className="flex items-center gap-1.5 p-1 rounded-lg hover:bg-white/5 transition-all group border border-transparent hover:border-white/10"
+                            >
+                                <div className="w-8 h-8 rounded-lg bg-dark-layer2 p-0.5 border border-white/10 group-hover:border-brand-primary transition-all overflow-hidden relative">
+                                    <img
+                                        src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=ffcc00&color=000`}
+                                        alt=""
+                                        className="w-full h-full object-cover rounded-md"
+                                    />
+                                </div>
+                                <ChevronDown size={14} className={`text-dark-muted group-hover:text-white transition-transform duration-300 ${showProfileMenu ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {showProfileMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        className="absolute top-full right-0 mt-4 w-72 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-[1000]"
+                                    >
+                                        <div className="p-6 border-b border-white/5 bg-white/5 relative">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-14 h-14 rounded-xl bg-dark-layer2 p-1 border border-white/20 overflow-hidden">
+                                                    <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=ffcc00&color=000`} className="w-full h-full rounded-lg object-cover" alt="" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-bold text-white truncate uppercase tracking-tight">{user.name}</p>
+                                                    <p className="text-[10px] text-brand-primary font-bold truncate uppercase tracking-wider mt-0.5">{user.role}</p>
+                                                </div>
+                                            </div>
+
+                                            <Link
+                                                to={user.role === 'instructor' ? `/instructor/profile/${user.id || user._id}` : `/u/${user.id || user._id}`}
+                                                className="mt-6 flex items-center justify-center gap-2 w-full py-3 bg-brand-primary text-dark-bg rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-brand-hover transition-all"
+                                            >
+                                                View Profile <ArrowRight size={14} />
+                                            </Link>
+                                        </div>
+
+                                        <div className="p-3 space-y-1">
+                                            {[
+                                                { label: 'Account Settings', icon: User, path: '/profile' },
+                                                { label: 'My Learning', icon: BookOpen, path: '/my-learning', role: 'student' }
+                                            ].filter(item => !item.role || item.role === user.role).map((item, idx) => (
+                                                <Link
+                                                    key={idx}
+                                                    to={item.path}
+                                                    onClick={() => setShowProfileMenu(false)}
+                                                    className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 text-dark-muted hover:text-white transition-all group"
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-brand-primary/10 group-hover:text-brand-primary transition-all">
+                                                        <item.icon size={16} />
+                                                    </div>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider">{item.label}</span>
+                                                </Link>
+                                            ))}
+
+                                            <button
+                                                onClick={() => {
+                                                    localStorage.clear();
+                                                    navigate('/login');
+                                                    setShowProfileMenu(false);
+                                                }}
+                                                className="w-full flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-500/70 hover:text-red-500 transition-all mt-4 border border-transparent hover:border-red-500/20"
+                                            >
+                                                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                                                    <LogOut size={16} />
+                                                </div>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Sign Out</span>
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-4 pl-4 border-l border-white/10">
+                            <Link to="/login" className="text-xs font-bold uppercase tracking-wider text-dark-muted hover:text-white transition-colors">
+                                Sign In
+                            </Link>
+                            <Link
+                                to="/register"
+                                className="px-6 py-2.5 bg-brand-primary text-dark-bg font-bold rounded-lg text-xs uppercase tracking-wider hover:bg-brand-hover transition-all"
+                            >
+                                Get Started
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </nav>

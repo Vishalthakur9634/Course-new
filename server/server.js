@@ -96,6 +96,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/practice', practiceRoutes);
 app.use('/api/reels', require('./routes/reels')); // [NEW] Reels routes
 app.use('/api/assignments', require('./routes/assignments')); // [NEW] Assignment routes
+app.use('/api/content', require('./routes/content')); // [NEW] Content routes (Sectors, Skills, Vault, AI)
 
 // Health check
 app.get('/api/health', (req, res) => {

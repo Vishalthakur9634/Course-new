@@ -103,6 +103,10 @@ router.get('/profile/:userId', async (req, res) => {
 // Get Public Profile (Student Resume/Gamification)
 router.get('/:userId/public-profile', async (req, res) => {
     try {
+        if (!req.params.userId || req.params.userId === 'undefined' || !req.params.userId.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ message: 'Invalid User ID' });
+        }
+
         const user = await User.findById(req.params.userId)
             .select('name avatar bio createdAt role enrolledCourses certificates followers following')
             .populate({

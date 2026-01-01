@@ -186,21 +186,28 @@ router.get('/posts', async (req, res) => {
 // Create a post
 router.post('/posts', authenticate, async (req, res) => {
     try {
-        const { communityId, title, content, type, tags } = req.body;
+        const { communityId, title, content, type, tags, media } = req.body;
+        let targetCommunityId = communityId;
 
-        // Verify community exists
-        const community = await Community.findById(communityId);
-        if (!community) {
-            return res.status(404).json({ message: 'Community not found' });
+        // Default to Global Feed if missing
+        if (!targetCommunityId) {
+            const globalFeed = await Community.findOne({ name: 'Global Feed' });
+            if (globalFeed) targetCommunityId = globalFeed._id;
+        }
+
+        if (!targetCommunityId) {
+            return res.status(400).json({ message: 'Community ID required or Global Feed not found.' });
         }
 
         const post = await Post.create({
-            communityId,
+            communityId: targetCommunityId,
             authorId: req.user._id,
             title,
             content,
             type: type || 'discussion',
-            tags: tags || []
+            tags: tags || [],
+            media: media || [],
+            thumbnailUrl: req.body.thumbnailUrl || ''
         });
 
         await post.populate([

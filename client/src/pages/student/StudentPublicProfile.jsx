@@ -18,6 +18,7 @@ const StudentPublicProfile = () => {
     const fileInputRef = useRef(null);
 
     useEffect(() => {
+        if (!studentKey || studentKey === 'undefined') return;
         const userStr = localStorage.getItem('user');
         const currentUser = userStr ? JSON.parse(userStr) : null;
         if (currentUser && (currentUser._id === studentKey || currentUser.id === studentKey)) {
@@ -38,6 +39,10 @@ const StudentPublicProfile = () => {
     }, [profile, isOwner]);
 
     const fetchProfile = async () => {
+        if (!studentKey || studentKey === 'undefined') {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const { data } = await api.get(`/users/${studentKey}/public-profile`);
@@ -126,8 +131,8 @@ const StudentPublicProfile = () => {
     if (loading) return (
         <div className="h-full flex items-center justify-center bg-dark-bg">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-dark-muted font-black uppercase tracking-widest text-xs">Calibrating Public Profile...</p>
+                <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-dark-muted font-bold uppercase tracking-widest text-[10px]">Loading Profile...</p>
             </div>
         </div>
     );
@@ -172,8 +177,8 @@ const StudentPublicProfile = () => {
 
                                 {isOwner && (
                                     <div className="absolute inset-0 bg-brand-primary/20 backdrop-blur-sm opacity-0 group-hover/avatar:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                                        <Camera className="text-white animate-bounce" size={40} />
-                                        <span className="text-white text-[11px] font-black uppercase tracking-[0.3em]">UPDATE CORE</span>
+                                        <Camera className="text-white" size={32} />
+                                        <span className="text-white text-[10px] font-bold uppercase tracking-wider">Update Photo</span>
                                     </div>
                                 )}
                             </div>
@@ -181,43 +186,43 @@ const StudentPublicProfile = () => {
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
 
                         {/* Rank Badge */}
-                        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 cyber-button bg-brand-primary text-dark-bg px-8 py-2.5 rounded-full font-black text-xs uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(255,204,0,0.4)] border-none">
-                            CORE LVL {gamification?.level || 1}
+                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-brand-primary text-dark-bg px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-wider shadow-lg">
+                            Level {gamification?.level || 1}
                         </div>
                     </div>
 
                     <div className="flex-1 text-center md:text-left space-y-6">
                         <div className="space-y-2">
                             <div className="flex flex-col md:flex-row items-center gap-4">
-                                <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter italic uppercase">{profile.name}</h1>
+                                <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight uppercase">{profile.name}</h1>
                                 {gamification?.level >= 10 && (
-                                    <Crown className="text-stellar-gold drop-shadow-[0_0_20px_rgba(255,215,0,0.5)] animate-pulse" size={40} fill="currentColor" />
+                                    <Crown className="text-yellow-500" size={32} fill="currentColor" />
                                 )}
                             </div>
                             <div className="flex items-center justify-center md:justify-start gap-4">
-                                <span className="text-brand-primary font-black text-xs uppercase tracking-[0.5em] px-4 py-1.5 bg-brand-primary/10 border border-brand-primary/30 rounded-xl">
-                                    STELLAR {profile.role}
+                                <span className="text-brand-primary font-bold text-[10px] uppercase tracking-wider px-3 py-1 bg-brand-primary/10 border border-brand-primary/20 rounded-lg">
+                                    {profile.role}
                                 </span>
-                                <span className="text-dark-muted font-black text-[10px] uppercase tracking-[0.2em] opacity-40">NODE SIG: #{profile._id?.slice(-8).toUpperCase()}</span>
+                                <span className="text-dark-muted font-medium text-[10px] uppercase tracking-wider opacity-40">ID: {profile._id?.slice(-8).toUpperCase()}</span>
                             </div>
                         </div>
 
-                        <p className="text-xl text-dark-muted font-bold max-w-2xl leading-relaxed italic opacity-80">
-                            {profile.bio || "INITIALIZING STRATEGIC BIOGRAPHY: EXPLORER IDENTIFIED."}
+                        <p className="text-lg text-dark-muted font-medium max-w-2xl leading-relaxed opacity-80">
+                            {profile.bio || "No bio available."}
                         </p>
 
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-8 pt-4">
-                            <div className="flex items-center gap-3 text-[11px] font-black text-dark-muted uppercase tracking-[0.2em]">
-                                <Calendar size={18} className="text-brand-primary" /> RECORDED {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'INITIALIZING'}
+                            <div className="flex items-center gap-3 text-[10px] font-bold text-dark-muted uppercase tracking-wider">
+                                <Calendar size={16} className="text-brand-primary" /> Joined {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}
                             </div>
                             <div className="flex items-center gap-6 pl-6 border-l border-white/10">
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-white leading-none">{profile.followers?.length || 0}</p>
-                                    <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-2">Force Links</p>
+                                    <p className="text-2xl font-bold text-white">{profile.followers?.length || 0}</p>
+                                    <p className="text-[10px] text-dark-muted font-bold uppercase tracking-wider mt-1">Followers</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-white leading-none">{profile.following?.length || 0}</p>
-                                    <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest mt-2">Neural Links</p>
+                                    <p className="text-2xl font-bold text-white">{profile.following?.length || 0}</p>
+                                    <p className="text-[10px] text-dark-muted font-bold uppercase tracking-wider mt-1">Following</p>
                                 </div>
                             </div>
                         </div>
@@ -232,10 +237,10 @@ const StudentPublicProfile = () => {
                                         : 'bg-brand-primary text-dark-bg hover:scale-105 shadow-brand-primary/40'
                                         }`}
                                 >
-                                    {followLoading ? 'SYNCING...' : isFollowing ? 'DISCONNECT' : 'ESTABLISH LINK'}
+                                    {followLoading ? 'Syncing...' : isFollowing ? 'Unfollow' : 'Follow'}
                                 </button>
-                                <button className="glass-panel px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] text-white hover:bg-brand-primary/10 border border-white/10 transition-all">
-                                    SECURE BEAM
+                                <button className="bg-white/5 px-8 py-3.5 rounded-2xl font-bold uppercase text-[10px] tracking-wider text-white hover:bg-white/10 border border-white/10 transition-all">
+                                    Message
                                 </button>
                             </div>
                         )}

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../../context/ToastContext';
 import api from '../../utils/api';
 import { PenTool, Plus, Trash2, Eye, Layout, Image as ImageIcon, Video, Check, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const InstructorArticleManager = () => {
+    const { addToast } = useToast();
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
@@ -46,9 +48,10 @@ const InstructorArticleManager = () => {
             setFormData({
                 title: '', content: '', category: 'general', tags: '', coverImage: '', videoUrl: '', isPublished: true
             });
+            addToast('Article published successfully!', 'success');
         } catch (error) {
             console.error('Article creation error:', error);
-            alert(error.response?.data?.message || 'Error creating article');
+            addToast(error.response?.data?.message || 'Error creating article', 'error');
         }
     };
 
@@ -172,8 +175,9 @@ const InstructorArticleManager = () => {
                                                     try {
                                                         const { data } = await api.post('/upload', upData);
                                                         setFormData({ ...formData, coverImage: data.url });
+                                                        addToast('Cover image uploaded', 'success');
                                                     } catch (err) {
-                                                        alert('Failed to upload image');
+                                                        addToast('Failed to upload image', 'error');
                                                     }
                                                 }
                                             }}
@@ -204,8 +208,9 @@ const InstructorArticleManager = () => {
                                                 try {
                                                     const { data } = await api.post('/upload', upData);
                                                     setFormData({ ...formData, videoUrl: data.url });
+                                                    addToast('Video transmission uploaded', 'success');
                                                 } catch (err) {
-                                                    alert('Failed to upload video: ' + (err.response?.data?.message || err.message));
+                                                    addToast('Failed to upload video: ' + (err.response?.data?.message || err.message), 'error');
                                                 }
                                             }
                                         }}

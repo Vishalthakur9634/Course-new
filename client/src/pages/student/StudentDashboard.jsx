@@ -136,12 +136,12 @@ const StudentDashboard = () => {
                 {[
                     { label: 'Cumulative Paths', value: stats.total, icon: BookOpen, color: 'text-blue-400', bg: 'bg-blue-500/5', border: 'border-blue-500/10' },
                     { label: 'Active Missions', value: stats.inProgress, icon: Target, color: 'text-yellow-400', bg: 'bg-yellow-500/5', border: 'border-yellow-500/10' },
-                    { label: 'Mastered Skills', value: stats.completed, icon: Award, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/10' },
+                    { label: 'Skills Overview', value: stats.completed, icon: Award, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/10' },
                     { label: 'Learning Streak', value: '4 Days', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/5', border: 'border-orange-500/10' }
                 ].map((stat, i) => (
-                    <div key={i} className={`${stat.bg} ${stat.border} border rounded-[2.5rem] p-8 group hover:scale-[1.02] transition-all duration-300 relative overflow-hidden`}>
+                    <div key={i} className={`${stat.bg} ${stat.border} border rounded-[2.5rem] p-8 group relative overflow-hidden transition-all duration-300 hover:border-brand-primary/30`}>
                         <div className="relative z-10">
-                            <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 ${stat.color} group-hover:scale-110 transition-transform`}>
+                            <div className={`w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mb-6 ${stat.color} transition-transform`}>
                                 <stat.icon size={24} />
                             </div>
                             <p className="text-4xl font-black text-white tracking-tighter">{stat.value}</p>
@@ -159,7 +159,7 @@ const StudentDashboard = () => {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div className="w-1.5 h-10 bg-brand-primary rounded-full"></div>
-                            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Continue Orbit</h2>
+                            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Orbit Log</h2>
                         </div>
                         <Link to="/student/learning" className="text-xs font-black text-brand-primary uppercase tracking-[0.2em] hover:text-white transition-colors flex items-center gap-2">
                             Access All <ChevronRight size={14} />
@@ -229,7 +229,7 @@ const StudentDashboard = () => {
                     <div className="space-y-6">
                         <div className="flex items-center gap-4">
                             <div className="w-1.5 h-10 bg-purple-500 rounded-full"></div>
-                            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Quest Log</h2>
+                            <h2 className="text-3xl font-black text-white italic tracking-tighter uppercase">Daily Ops</h2>
                         </div>
                         <div className="bg-dark-layer1 border border-white/5 rounded-[2.5rem] p-8 space-y-6">
                             {[

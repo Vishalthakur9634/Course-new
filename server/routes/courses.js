@@ -72,9 +72,45 @@ router.get('/', async (req, res) => {
         if (category && category !== 'All') query.category = category;
         if (level && level !== 'all') query.level = level;
 
+        // Search Query Support
+        if (req.query.search) {
+            query.$or = [
+                { title: { $regex: req.query.search, $options: 'i' } },
+                { category: { $regex: req.query.search, $options: 'i' } }
+            ];
+        }
+
+        // Advanced Filters
+        if (req.query.rating) {
+            query.rating = { $gte: parseFloat(req.query.rating) };
+        }
+
+        if (req.query.minPrice || req.query.maxPrice) {
+            query.price = {};
+            if (req.query.minPrice) query.price.$gte = parseFloat(req.query.minPrice);
+            if (req.query.maxPrice) query.price.$lte = parseFloat(req.query.maxPrice);
+        }
+
+        // Sorting
+        let sort = {};
+        if (req.query.sort) {
+            switch (req.query.sort) {
+                case 'newest': sort = { createdAt: -1 }; break;
+                case 'oldest': sort = { createdAt: 1 }; break;
+                case 'popular': sort = { enrollmentCount: -1 }; break;
+                case 'rating': sort = { rating: -1 }; break;
+                case 'price-low': sort = { price: 1 }; break;
+                case 'price-high': sort = { price: -1 }; break;
+                default: sort = { createdAt: -1 };
+            }
+        } else {
+            sort = { createdAt: -1 };
+        }
+
         const courses = await Course.find(query)
             .populate('videos')
-            .populate('instructorId', 'name avatar'); // Also populate instructor details
+            .populate('instructorId', 'name avatar')
+            .sort(sort);
 
         res.json(courses);
     } catch (error) {
@@ -85,7 +121,48 @@ router.get('/', async (req, res) => {
 // Get Single Course
 router.get('/:id', async (req, res) => {
     try {
+        const token = req.headers.authorization?.split(' ')[1];
+        let user = null;
+        if (token) {
+            try {
+                const decoded = require('jsonwebtoken').verify(token, process.env.JWT_SECRET || 'secret');
+                user = await User.findById(decoded.id);
+            } catch (e) {
+                // Ignore invalid token for public view
+            }
+        }
+
         const course = await Course.findById(req.params.id).populate('videos');
+        if (!course) return res.status(404).json({ message: 'Course not found' });
+
+        // Check if user has access to videos
+        let hasAccess = false;
+        if (user) {
+            if (user.role === 'superadmin' || user.role === 'admin') {
+                hasAccess = true;
+            } else if (user.role === 'instructor' && course.instructorId.toString() === user._id.toString()) {
+                hasAccess = true;
+            } else {
+                const Enrollment = require('../models/Enrollment');
+                const enrollment = await Enrollment.findOne({ studentId: user._id, courseId: course._id });
+                if (enrollment) hasAccess = true;
+            }
+        }
+
+        // If no access, strip video URLs/content but keep titles for overview
+        if (!hasAccess) {
+            const publicCourse = course.toObject();
+            if (publicCourse.videos) {
+                publicCourse.videos = publicCourse.videos.map(v => ({
+                    _id: v._id,
+                    title: v.title,
+                    duration: v.duration,
+                    isLocked: true // Frontend can use this
+                }));
+            }
+            return res.json(publicCourse);
+        }
+
         res.json(course);
     } catch (error) {
         if (error.kind === 'ObjectId') {
@@ -256,6 +333,29 @@ router.delete('/:id', async (req, res) => {
         res.json({ message: 'Course deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Error deleting course', error: error.message });
+    }
+});
+
+// Get Course Progress
+router.get('/:id/progress', authenticate, async (req, res) => {
+    try {
+        const Enrollment = require('../models/Enrollment');
+        const enrollment = await Enrollment.findOne({
+            studentId: req.user._id,
+            courseId: req.params.id
+        });
+
+        if (!enrollment) {
+            return res.status(200).json({ completedVideoIds: [], progress: 0 });
+        }
+
+        res.json({
+            completedVideoIds: enrollment.completedVideos.map(v => v.videoId),
+            progress: enrollment.progress
+        });
+    } catch (error) {
+        console.error('Error fetching course progress:', error);
+        res.status(500).json({ message: 'Error fetching progress', error: error.message });
     }
 });
 

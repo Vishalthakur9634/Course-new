@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, CreditCard, Lock, CheckCircle, Zap } from 'lucide-react';
+import { X, CreditCard, Lock, CheckCircle, Zap, ShieldCheck, Activity } from 'lucide-react';
 import api from '../utils/api';
 
 const PaymentModal = ({ course, onClose, onSuccess }) => {
@@ -33,7 +33,7 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
                 onClose();
             }, 2000);
         } catch (err) {
-            setError(err.response?.data?.message || 'Enrollment failed. Please try again.');
+            setError(err.response?.data?.message || 'Transaction failed. Please re-synchronize.');
         } finally {
             setLoading(false);
         }
@@ -50,11 +50,10 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
                 userId,
                 courseId: course._id,
                 paymentDetails: formData,
-                referralCode: localStorage.getItem('currentReferral') // [NEW]
+                referralCode: localStorage.getItem('currentReferral')
             });
 
             if (response.data.success) {
-                // Enroll User using the payment ID
                 await api.post('/enrollment/enroll', {
                     courseId: course._id,
                     paymentId: response.data.paymentId
@@ -67,7 +66,7 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
                 }, 2000);
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Payment failed. Please try again.');
+            setError(err.response?.data?.message || 'Transaction failed. Please re-synchronize.');
         } finally {
             setLoading(false);
         }
@@ -75,136 +74,148 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
 
     if (success) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="bg-dark-layer1 border border-brand-primary/50 p-8 rounded-2xl text-center max-w-md w-full animate-in fade-in zoom-in duration-300">
-                    <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
-                    <h2 className="text-2xl font-bold text-white mb-2">Enrollment Successful!</h2>
-                    <p className="text-dark-muted">You have successfully enrolled in {course.title}.</p>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+                <div className="bg-[#0a0a0a] border border-brand-primary/40 p-12 rounded-[2.5rem] text-center max-w-md w-full animate-in fade-in zoom-in duration-500 shadow-[0_0_80px_rgba(255,161,22,0.15)] relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-brand-primary shadow-[0_0_20px_rgba(255,161,22,0.8)]" />
+                    <div className="bg-brand-primary/10 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-brand-primary/20">
+                        <CheckCircle size={56} className="text-brand-primary" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-4 uppercase tracking-tight">Access Validated</h2>
+                    <p className="text-dark-muted font-medium text-sm leading-relaxed opacity-60">Your credentials have been successfully indexed. Initializing curriculum synchronization for {course.title}.</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-dark-layer1 border border-dark-layer2 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-                {/* Header */}
-                <div className="p-6 border-b border-dark-layer2 flex justify-between items-center bg-dark-layer2/50">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Lock size={20} className="text-brand-primary" />
-                        Checkout
-                    </h2>
-                    <button onClick={onClose} className="text-dark-muted hover:text-white transition-colors">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-6">
+            <div className="bg-[#0a0a0a] border border-white/5 rounded-[2.5rem] w-full max-w-[500px] overflow-hidden shadow-[0_40px_100px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-300 relative">
+                {/* TRANSACTION HEADER */}
+                <div className="p-10 border-b border-white/5 flex justify-between items-center bg-[#141414]/30">
+                    <div className="space-y-1">
+                        <h2 className="text-xs font-black text-brand-primary uppercase tracking-[0.4em]">Investment Registry</h2>
+                        <h3 className="text-2xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
+                            <ShieldCheck size={24} className="text-brand-primary" /> Checkout
+                        </h3>
+                    </div>
+                    <button onClick={onClose} className="p-3 bg-white/5 hover:bg-white/10 text-dark-muted hover:text-white rounded-2xl transition-all border border-white/5">
                         <X size={24} />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="p-6">
-                    <div className="mb-6 flex items-center gap-4 p-4 bg-dark-layer2 rounded-lg">
-                        <img src={course.thumbnail} alt={course.title} className="w-16 h-16 object-cover rounded" />
-                        <div>
-                            <h3 className="text-white font-medium line-clamp-1">{course.title}</h3>
-                            <p className="text-brand-primary font-bold text-lg">${course.price}</p>
+                {/* DOMAIN BODY */}
+                <div className="p-10">
+                    <div className="mb-10 flex items-center gap-6 p-6 bg-[#111] rounded-3xl border border-white/5 group">
+                        <img src={course.thumbnail} alt={course.title} className="w-20 h-20 object-cover rounded-2xl shadow-2xl group-hover:scale-105 transition-transform duration-500" />
+                        <div className="space-y-2">
+                            <h3 className="text-white font-bold uppercase tracking-tight line-clamp-1">{course.title}</h3>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] font-black text-dark-muted uppercase tracking-widest opacity-40">Program Valuation:</span>
+                                <p className="text-brand-primary font-black text-2xl uppercase tracking-tighter">${course.price || '0.00'}</p>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Quick Enroll (Fake Payment) */}
-                    <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                        <div className="flex items-start gap-3">
-                            <Zap className="text-yellow-400 flex-shrink-0 mt-1" size={20} />
-                            <div className="flex-1">
-                                <h4 className="text-yellow-400 font-semibold mb-1">Testing Mode</h4>
-                                <p className="text-sm text-dark-muted mb-3">Skip payment and enroll instantly for testing purposes.</p>
+                    {/* VALIDATION TERMINAL (Test Mode) */}
+                    <div className="mb-10 p-8 bg-brand-primary/5 border border-brand-primary/20 rounded-[2rem] relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 blur-[50px] rounded-full" />
+                        <div className="flex items-start gap-4">
+                            <div className="p-3 bg-brand-primary/10 rounded-xl text-brand-primary border border-brand-primary/20 group-hover:bg-brand-primary group-hover:text-dark-bg transition-all">
+                                <Activity size={20} />
+                            </div>
+                            <div className="flex-1 space-y-2">
+                                <h4 className="text-brand-primary font-black text-[10px] uppercase tracking-[0.4em]">Evaluation Environment</h4>
+                                <p className="text-[11px] text-dark-muted font-medium leading-relaxed opacity-70">Bypass transaction infrastructure to authorize immediate developmental access.</p>
                                 <button
                                     onClick={handleFakePayment}
                                     disabled={loading}
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg transition-all"
+                                    className="w-full mt-4 bg-brand-primary hover:brightness-110 text-dark-bg font-black py-4 px-6 rounded-2xl text-[10px] uppercase tracking-[0.3em] transition-all shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-2 group/btn"
                                 >
-                                    {loading ? 'Processing...' : 'Enroll for Free (Test Mode)'}
+                                    <Zap size={16} className="group-hover:animate-pulse" /> {loading ? 'PROCESSING...' : 'AUTHORIZE ACCESS (BETA)'}
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Separator */}
-                    <div className="relative my-6">
+                    <div className="relative my-10 px-8">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-dark-layer2"></div>
+                            <div className="w-full border-t border-white/5"></div>
                         </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-dark-layer1 text-dark-muted">OR</span>
+                        <div className="relative flex justify-center text-[10px] items-center">
+                            <span className="px-6 bg-[#0a0a0a] text-dark-muted font-black tracking-[0.4em]">OR</span>
                         </div>
                     </div>
 
-                    {/* Real Payment Form */}
+                    {/* SECURE GATEWAY FORM */}
                     {!useRealPayment ? (
                         <button
                             onClick={() => setUseRealPayment(true)}
-                            className="w-full text-brand-primary hover:text-brand-hover transition-colors text-sm font-medium"
+                            className="w-full py-4 bg-white/5 border border-white/5 text-dark-muted hover:text-white hover:border-brand-primary/30 transition-all rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3"
                         >
-                            Use Real Payment Method →
+                            <CreditCard size={18} /> Initialize Secure Gateway
                         </button>
                     ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-dark-muted mb-1 uppercase">Cardholder Name</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    required
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className="w-full bg-dark-bg border border-dark-layer2 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary transition-colors"
-                                    placeholder="John Doe"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-dark-muted mb-1 uppercase">Card Number</label>
-                                <div className="relative">
-                                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-muted" size={18} />
+                        <form onSubmit={handleSubmit} className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-dark-muted mb-2 uppercase tracking-widest opacity-40">Account Holder Identifier</label>
                                     <input
                                         type="text"
-                                        name="cardNumber"
+                                        name="name"
                                         required
-                                        value={formData.cardNumber}
+                                        value={formData.name}
                                         onChange={handleChange}
-                                        className="w-full bg-dark-bg border border-dark-layer2 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-brand-primary transition-colors"
-                                        placeholder="0000 0000 0000 0000"
+                                        className="w-full bg-[#111] border border-white/5 rounded-2xl px-5 py-4 text-sm text-white font-medium focus:outline-none focus:border-brand-primary transition-all placeholder:opacity-20"
+                                        placeholder="ARCHITECT NAME"
                                     />
                                 </div>
-                            </div>
 
-                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-dark-muted mb-1 uppercase">Expiry Date</label>
-                                    <input
-                                        type="text"
-                                        name="expiry"
-                                        required
-                                        value={formData.expiry}
-                                        onChange={handleChange}
-                                        className="w-full bg-dark-bg border border-dark-layer2 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary transition-colors"
-                                        placeholder="MM/YY"
-                                    />
+                                    <label className="block text-[10px] font-black text-dark-muted mb-2 uppercase tracking-widest opacity-40">Registry ID (Card Number)</label>
+                                    <div className="relative">
+                                        <CreditCard className="absolute left-5 top-1/2 -translate-y-1/2 text-dark-muted opacity-40" size={18} />
+                                        <input
+                                            type="text"
+                                            name="cardNumber"
+                                            required
+                                            value={formData.cardNumber}
+                                            onChange={handleChange}
+                                            className="w-full bg-[#111] border border-white/5 rounded-2xl pl-12 pr-5 py-4 text-sm text-white font-medium focus:outline-none focus:border-brand-primary transition-all placeholder:opacity-20"
+                                            placeholder="0000 0000 0000 0000"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-dark-muted mb-1 uppercase">CVC</label>
-                                    <input
-                                        type="text"
-                                        name="cvc"
-                                        required
-                                        value={formData.cvc}
-                                        onChange={handleChange}
-                                        className="w-full bg-dark-bg border border-dark-layer2 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-brand-primary transition-colors"
-                                        placeholder="123"
-                                    />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-dark-muted mb-2 uppercase tracking-widest opacity-40">Validation Window</label>
+                                        <input
+                                            type="text"
+                                            name="expiry"
+                                            required
+                                            value={formData.expiry}
+                                            onChange={handleChange}
+                                            className="w-full bg-[#111] border border-white/5 rounded-2xl px-5 py-4 text-sm text-white font-medium focus:outline-none focus:border-brand-primary transition-all placeholder:opacity-20"
+                                            placeholder="MM / YY"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-dark-muted mb-2 uppercase tracking-widest opacity-40">Security Access Code</label>
+                                        <input
+                                            type="password"
+                                            name="cvc"
+                                            required
+                                            value={formData.cvc}
+                                            onChange={handleChange}
+                                            className="w-full bg-[#111] border border-white/5 rounded-2xl px-5 py-4 text-sm text-white font-medium focus:outline-none focus:border-brand-primary transition-all placeholder:opacity-20"
+                                            placeholder="CVC"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             {error && (
-                                <div className="text-red-500 text-sm bg-red-500/10 p-3 rounded border border-red-500/20">
+                                <div className="text-red-500 text-[11px] font-bold bg-red-500/10 p-4 rounded-2xl border border-red-500/20 uppercase tracking-widest">
                                     {error}
                                 </div>
                             )}
@@ -212,28 +223,28 @@ const PaymentModal = ({ course, onClose, onSuccess }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-brand-primary hover:bg-brand-hover text-white font-bold py-3 rounded-lg transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+                                className="w-full bg-brand-primary hover:brightness-110 text-dark-bg font-black py-5 rounded-2xl transition-all shadow-2xl shadow-brand-primary/20 flex items-center justify-center gap-3 text-xs uppercase tracking-[0.4em] active:scale-[0.98]"
                             >
                                 {loading ? (
-                                    <span className="animate-pulse">Processing...</span>
+                                    <span className="animate-pulse">SYNCHRONIZING...</span>
                                 ) : (
-                                    <>Pay ${course.price}</>
+                                    <>Commit Investment</>
                                 )}
                             </button>
 
                             <button
                                 type="button"
                                 onClick={() => setUseRealPayment(false)}
-                                className="w-full text-dark-muted hover:text-white transition-colors text-sm"
+                                className="w-full text-[10px] font-black text-dark-muted hover:text-white transition-all uppercase tracking-[0.3em] pt-2"
                             >
-                                ← Back to test mode
+                                ← Return to Beta Terminal
                             </button>
                         </form>
                     )}
 
-                    <div className="mt-4 text-center">
-                        <p className="text-xs text-dark-muted flex items-center justify-center gap-1">
-                            <Lock size={12} /> Payments are secure and encrypted.
+                    <div className="mt-10 pt-8 border-t border-white/5 text-center">
+                        <p className="text-[9px] font-black text-dark-muted uppercase tracking-[0.3em] flex items-center justify-center gap-2 opacity-30">
+                            <Lock size={12} className="text-brand-primary" /> End-to-End Encryption Enabled
                         </p>
                     </div>
                 </div>

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Plus, Trash2, Edit2, Package, Search, Flame, Loader2, Sparkles, Check, X,
     Info, MessageSquare, FileText, BookOpen, PenTool, Share2, Send, ThumbsUp,
-    Reply, Save, Paperclip, Award
+    Reply, Save, Paperclip, Award, Target, Activity, ShieldCheck, Sparkles, Star
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import UserLink from './UserLink';
+import Reviews from './Reviews';
 
 const VideoTabs = ({ video, course, currentTime }) => {
     const navigate = useNavigate();
@@ -169,109 +169,83 @@ const VideoTabs = ({ video, course, currentTime }) => {
         }
     };
 
+    const tabs = [
+        { id: 'overview', label: 'Overview', icon: Info, enabledKey: 'enableOverview' },
+        { id: 'reviews', label: 'Reviews', icon: Star },
+        { id: 'qa', label: 'Q&A', icon: MessageSquare, enabledKey: 'enableQA' },
+        { id: 'notes', label: 'Notes', icon: FileText, enabledKey: 'enableSummary' },
+        { id: 'studentNotes', label: 'My Notes', icon: PenTool, enabledKey: 'enableNotes' },
+        { id: 'assignments', label: 'Assignments', icon: BookOpen },
+        { id: 'articles', label: 'Articles', icon: FileText }
+    ];
+
     return (
-        <div className="flex flex-col h-full bg-dark-layer1 border border-dark-layer2 rounded-lg overflow-hidden">
-            {/* Tab Headers */}
-            <div className="flex border-b border-dark-layer2 overflow-x-auto scrollbar-hide">
-                {/* Only show tabs if enabled by instructor */}
-                {(course.instructorAdminSettings?.enableOverview !== false) && (
-                    <button
-                        onClick={() => setActiveTab('overview')}
-                        className={`flex-1 min-w-[100px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'overview' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                            }`}
-                    >
-                        <Info size={16} /> Overview
-                    </button>
-                )}
-                {(course.instructorAdminSettings?.enableQA !== false) && (
-                    <button
-                        onClick={() => setActiveTab('qa')}
-                        className={`flex-1 min-w-[100px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'qa' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                            }`}
-                    >
-                        <MessageSquare size={16} /> Q&A
-                    </button>
-                )}
-                {(course.instructorAdminSettings?.enableSummary !== false) && (
-                    <button
-                        onClick={() => setActiveTab('notes')}
-                        className={`flex-1 min-w-[100px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'notes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                            }`}
-                    >
-                        <FileText size={16} /> Summary
-                    </button>
-                )}
-                {(course.instructorAdminSettings?.enableNotes !== false) && (
-                    <button
-                        onClick={() => setActiveTab('studentNotes')}
-                        className={`flex-1 min-w-[100px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'studentNotes' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                            }`}
-                    >
-                        <FileText size={16} /> Notes
-                    </button>
-                )}
+        <div className="flex flex-col h-full bg-[#111] border border-white/5 rounded-[2rem] overflow-hidden shadow-3xl">
+            {/* TAB REGISTRY */}
+            <div className="flex border-b border-white/5 overflow-x-auto no-scrollbar bg-[#0a0a0a]/50 p-1">
+                {tabs.map(tab => {
+                    const isEnabled = tab.enabledKey ? course.instructorAdminSettings?.[tab.enabledKey] !== false : true;
+                    if (!isEnabled) return null;
 
-                {/* New Tabs: Assignments & Articles */}
-                <button
-                    onClick={() => setActiveTab('assignments')}
-                    className={`flex-1 min-w-[120px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'assignments' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                        }`}
-                >
-                    <BookOpen size={16} /> Assignments
-                </button>
-
-                <button
-                    onClick={() => setActiveTab('articles')}
-                    className={`flex-1 min-w-[100px] py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${activeTab === 'articles' ? 'bg-dark-layer2 text-white border-b-2 border-brand-primary' : 'text-dark-muted hover:text-white'
-                        }`}
-                >
-                    <PenTool size={16} /> Articles
-                </button>
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex-1 min-w-[140px] py-5 px-6 text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all relative ${activeTab === tab.id ? 'text-brand-primary' : 'text-dark-muted hover:text-white'
+                                }`}
+                        >
+                            <tab.icon size={16} /> {tab.label}
+                            {activeTab === tab.id && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-primary shadow-[0_0_15px_rgba(255,161,22,0.6)]" />
+                            )}
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-4">
+            {/* DOMAIN CONTENT */}
+            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
                 {activeTab === 'overview' && (
-                    <div className="space-y-6">
-                        <div>
-                            <div className="flex items-start justify-between gap-4">
-                                <div className="flex-1">
-                                    <h2 className="text-xl font-bold text-white mb-2">{video.title}</h2>
-                                    <p className="text-dark-muted">{video.description || 'No description available for this video.'}</p>
+                    <div className="space-y-12 animate-in fade-in duration-700">
+                        <div className="space-y-6">
+                            <div className="flex items-start justify-between gap-8">
+                                <div className="flex-1 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <h2 className="text-2xl font-bold text-white line-clamp-2">{video.title}</h2>
+                                    </div>
+                                    <p className="text-dark-muted text-sm leading-relaxed">{video.description || 'No description available.'}</p>
                                 </div>
                                 <button
                                     onClick={() => {
                                         const shareLink = `${window.location.origin}/course/${course._id}${currentUser?.referralCode ? `?ref=${currentUser.referralCode}` : ''}`;
                                         navigator.clipboard.writeText(shareLink);
-                                        alert('Course link copied to clipboard!');
+                                        alert('Course link copied!');
                                     }}
-                                    className="p-2 rounded-xl bg-dark-layer2 hover:bg-brand-primary/10 text-dark-muted hover:text-brand-primary transition-all border border-white/5"
-                                    title="Share Course"
+                                    className="p-4 rounded-2xl bg-[#1a1a1a] border border-white/5 text-dark-muted hover:text-brand-primary hover:border-brand-primary/40 transition-all shadow-xl"
                                 >
-                                    <Share2 size={20} />
+                                    <Share2 size={24} />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Instructor Info */}
                         {course.instructorId && (
-                            <div className="border-t border-dark-layer2 pt-4">
-                                <h3 className="font-semibold text-white mb-3">Instructor</h3>
-                                <div className="flex items-start gap-4">
+                            <div className="bg-[#0a0a0a]/50 p-6 rounded-2xl border border-white/5 space-y-4">
+                                <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-wider opacity-40">Instructor</h3>
+                                <div className="flex items-center gap-6">
                                     <UserLink
                                         user={course.instructorId}
-                                        avatarSize="w-16 h-16"
-                                        nameClass="text-lg font-bold text-white"
+                                        avatarSize="w-20 h-20"
+                                        nameClass="text-xl font-bold text-white uppercase tracking-tight"
                                     />
-                                    <div className="flex-1">
+                                    <div className="flex-1 space-y-2">
                                         {course.instructorId.instructorProfile?.headline && (
-                                            <p className="text-sm text-dark-muted mt-1">
+                                            <p className="text-xs text-brand-primary font-bold uppercase tracking-widest">
                                                 {course.instructorId.instructorProfile.headline}
                                             </p>
                                         )}
                                         {course.instructorId.instructorProfile?.bio && (
-                                            <p className="text-sm text-dark-muted mt-2">
-                                                {course.instructorId.instructorProfile.bio}
+                                            <p className="text-[13px] text-dark-muted font-medium leading-relaxed opacity-70 italic max-w-2xl">
+                                                "{course.instructorId.instructorProfile.bio}"
                                             </p>
                                         )}
                                     </div>
@@ -279,34 +253,35 @@ const VideoTabs = ({ video, course, currentTime }) => {
                             </div>
                         )}
 
-                        <div className="border-t border-dark-layer2 pt-4">
-                            <h3 className="font-semibold text-white mb-2">About this Course</h3>
-                            <p className="text-sm text-dark-muted">{course.description}</p>
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-bold text-dark-muted uppercase tracking-wider opacity-40">About this Course</h3>
+                            <p className="text-sm text-dark-muted leading-relaxed opacity-70 border-l border-white/10 pl-4">{course.description}</p>
                         </div>
 
-                        {/* Video Resources */}
                         {video.resources && video.resources.length > 0 && (
-                            <div className="border-t border-dark-layer2 pt-4">
-                                <h3 className="font-semibold text-white mb-3">Downloadable Resources</h3>
-                                <div className="space-y-2">
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-bold text-dark-muted uppercase tracking-wider opacity-40">Resources</h3>
+                                <div className="grid gap-4">
                                     {video.resources.map((resource, idx) => (
                                         <a
                                             key={idx}
                                             href={resource.url}
                                             download
-                                            className="flex items-center justify-between p-3 bg-dark-layer2 rounded hover:bg-dark-layer1 transition-colors group"
+                                            className="flex items-center justify-between p-6 bg-[#0a0a0a] rounded-2xl border border-white/5 hover:border-brand-primary/40 transition-all group"
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <FileText size={20} className="text-brand-primary" />
+                                            <div className="flex items-center gap-5">
+                                                <div className="p-3 bg-brand-primary/10 rounded-xl text-brand-primary border border-brand-primary/20">
+                                                    <FileText size={24} />
+                                                </div>
                                                 <div>
-                                                    <p className="text-white font-medium">{resource.title}</p>
-                                                    <p className="text-xs text-dark-muted">
-                                                        {resource.fileType} • {(resource.fileSize / 1024).toFixed(2)} KB
+                                                    <p className="text-white font-bold text-sm uppercase tracking-tight group-hover:text-brand-primary transition-colors">{resource.title}</p>
+                                                    <p className="text-[10px] text-dark-muted font-bold uppercase tracking-widest opacity-50 mt-1">
+                                                        {resource.fileType} • {(resource.fileSize / 1024).toFixed(1)} KB
                                                     </p>
                                                 </div>
                                             </div>
-                                            <span className="text-brand-primary group-hover:text-brand-hover">
-                                                Download
+                                            <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest px-4 py-2 bg-brand-primary/5 border border-brand-primary/20 rounded-xl group-hover:bg-brand-primary group-hover:text-dark-bg transition-all">
+                                                Download Artifact
                                             </span>
                                         </a>
                                     ))}
@@ -317,109 +292,123 @@ const VideoTabs = ({ video, course, currentTime }) => {
                 )}
 
                 {activeTab === 'qa' && (
-                    <div className="flex flex-col h-full">
-                        {/* Comment Input */}
-                        <form onSubmit={handlePostComment} className="mb-6">
-                            <div className="relative">
+                    <div className="flex flex-col h-full animate-in slide-in-from-bottom-5 duration-700">
+                        {/* Discussion Input */}
+                        <form onSubmit={handlePostComment} className="mb-12">
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                    <MessageSquare size={20} className="text-dark-muted group-focus-within:text-brand-primary transition-colors" />
+                                </div>
                                 <input
                                     type="text"
                                     value={newComment}
                                     onChange={(e) => setNewComment(e.target.value)}
                                     placeholder="Ask a question..."
-                                    className="w-full bg-dark-layer2 border border-dark-layer2 rounded-lg py-3 pl-4 pr-12 text-white focus:border-brand-primary focus:outline-none"
+                                    className="w-full bg-[#0a0a0a] border border-white/10 rounded-2xl py-4 pl-14 pr-16 text-white text-sm focus:border-brand-primary outline-none transition-all"
                                 />
                                 <button
                                     type="submit"
-                                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-brand-primary hover:text-brand-hover p-1"
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-brand-primary text-dark-bg p-3 rounded-xl hover:scale-110 transition-transform shadow-lg shadow-brand-primary/20"
                                 >
                                     <Send size={20} />
                                 </button>
                             </div>
                         </form>
 
-                        {/* Comments List */}
+                        {/* Discussions List */}
                         {loadingComments ? (
-                            <div className="text-center text-dark-muted">Loading discussions...</div>
+                            <div className="flex flex-col items-center justify-center py-20 opacity-30">
+                                <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
+                                <p className="text-[10px] font-bold uppercase tracking-[0.4em]">Synchronizing Discussions...</p>
+                            </div>
                         ) : comments.length === 0 ? (
-                            <div className="text-center text-dark-muted mt-10">
-                                <MessageSquare size={40} className="mx-auto mb-2 opacity-20" />
-                                <p>No discussions yet. Be the first to ask!</p>
+                            <div className="text-center py-20 bg-[#0a0a0a]/30 rounded-3xl border border-white/5 border-dashed">
+                                <MessageSquare size={48} className="mx-auto mb-6 opacity-20 text-brand-primary" />
+                                <p className="text-dark-muted font-bold text-[11px] uppercase tracking-widest opacity-50">No discussions indexed within this module registry.</p>
                             </div>
                         ) : (
-                            <div className="space-y-6">
+                            <div className="space-y-12">
                                 {comments.map((comment) => (
-                                    <div key={comment._id} className="flex gap-4">
-                                        <UserLink
-                                            user={comment.user}
-                                            showAvatar={true}
-                                            avatarSize="w-10 h-10"
-                                            nameClass="hidden"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
+                                    <div key={comment._id} className="flex gap-6 group">
+                                        <div className="relative">
+                                            <UserLink
+                                                user={comment.user}
+                                                showAvatar={true}
+                                                avatarSize="w-14 h-14"
+                                                nameClass="hidden"
+                                            />
+                                            {comment.user?.role === 'instructor' && (
+                                                <div className="absolute -bottom-1 -right-1 bg-brand-primary text-dark-bg p-1 rounded-full border-2 border-[#111]">
+                                                    <ShieldCheck size={12} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-4">
+                                            <div className="flex items-center gap-3">
                                                 <UserLink
                                                     user={comment.user}
                                                     showAvatar={false}
-                                                    nameClass="font-bold text-white text-sm"
+                                                    nameClass={`font-bold uppercase tracking-tight text-sm ${comment.user?.role === 'instructor' ? 'text-brand-primary' : 'text-white'}`}
                                                 />
-                                                <span className="text-[10px] text-dark-muted font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-white/10" />
+                                                <span className="text-[9px] text-dark-muted font-black uppercase tracking-[0.2em] opacity-40">{new Date(comment.createdAt).toLocaleDateString()}</span>
                                             </div>
-                                            <p className="text-dark-text text-sm leading-relaxed mb-3">{comment.text}</p>
+                                            <p className="text-dark-muted text-[14px] leading-loose font-medium opacity-90 pre-wrap">{comment.text}</p>
 
-                                            <div className="flex items-center gap-6 text-xs text-dark-muted mb-4">
+                                            <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-widest">
                                                 <button
                                                     onClick={() => handleLike(comment._id)}
-                                                    className={`flex items-center gap-1.5 hover:text-white transition-colors ${comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'text-brand-primary' : ''}`}
+                                                    className={`flex items-center gap-2 hover:text-brand-primary transition-all ${comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'text-brand-primary scale-110' : 'text-dark-muted'}`}
                                                 >
-                                                    <ThumbsUp size={14} className={comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'fill-current' : ''} />
-                                                    <span className="font-black">{comment.likes?.length || 0}</span>
+                                                    <ThumbsUp size={16} className={comment.likes?.includes(currentUser?._id || currentUser?.id) ? 'fill-current' : ''} />
+                                                    <span>{comment.likes?.length || 0}</span>
                                                 </button>
                                                 <button
                                                     onClick={() => setActiveReplyId(activeReplyId === comment._id ? null : comment._id)}
-                                                    className="flex items-center gap-1.5 hover:text-white transition-colors"
+                                                    className={`flex items-center gap-2 transition-all ${activeReplyId === comment._id ? 'text-brand-primary' : 'text-dark-muted hover:text-white'}`}
                                                 >
-                                                    <Reply size={14} /> <span className="font-black">REPLY</span>
+                                                    <Reply size={16} /> REPLY
                                                 </button>
                                             </div>
 
                                             {activeReplyId === comment._id && (
-                                                <div className="flex gap-2 mb-6 animate-in slide-in-from-top-2 duration-300">
+                                                <div className="flex gap-3 pt-6 animate-in slide-in-from-left-5 duration-500">
                                                     <input
                                                         type="text"
                                                         value={replyText}
                                                         onChange={(e) => setReplyText(e.target.value)}
-                                                        placeholder="Write a reply..."
-                                                        className="flex-1 bg-dark-layer2 border border-dark-layer2 rounded-xl px-4 py-2 text-sm text-white focus:border-brand-primary focus:outline-none"
+                                                        placeholder="Draft your reply..."
+                                                        className="flex-1 bg-[#0a0a0a] border border-white/5 rounded-xl px-5 py-3 text-sm text-white focus:border-brand-primary focus:outline-none"
                                                         autoFocus
                                                     />
                                                     <button
                                                         onClick={() => handleReply(comment._id)}
-                                                        className="bg-brand-primary text-dark-bg px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-brand-hover transition-all"
+                                                        className="bg-brand-primary text-dark-bg px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-brand-primary/20"
                                                     >
-                                                        Post
+                                                        Post Response
                                                     </button>
                                                 </div>
                                             )}
 
                                             {comment.replies && comment.replies.length > 0 && (
-                                                <div className="space-y-4 mt-2 pl-4 border-l-2 border-dark-layer2">
+                                                <div className="space-y-6 mt-8 pl-8 border-l-2 border-white/5">
                                                     {comment.replies.map((reply, idx) => (
-                                                        <div key={idx} className="flex gap-3">
+                                                        <div key={idx} className="flex gap-4">
                                                             <UserLink
                                                                 user={reply.user}
-                                                                avatarSize="w-8 h-8"
+                                                                avatarSize="w-10 h-10"
                                                                 nameClass="hidden"
                                                             />
                                                             <div className="flex-1">
-                                                                <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-3 mb-1">
                                                                     <UserLink
                                                                         user={reply.user}
                                                                         showAvatar={false}
-                                                                        nameClass="font-bold text-white text-xs"
+                                                                        nameClass={`font-bold uppercase tracking-tight text-xs ${reply.user?.role === 'instructor' ? 'text-brand-primary' : 'text-white'}`}
                                                                     />
-                                                                    <span className="text-[9px] text-dark-muted font-bold uppercase tracking-widest">{new Date(reply.createdAt).toLocaleDateString()}</span>
+                                                                    <span className="text-[8px] text-dark-muted font-black uppercase tracking-[0.2em] opacity-40">{new Date(reply.createdAt).toLocaleDateString()}</span>
                                                                 </div>
-                                                                <p className="text-dark-text text-xs mt-1 leading-relaxed">{reply.text}</p>
+                                                                <p className="text-dark-muted text-xs leading-relaxed opacity-80">{reply.text}</p>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -433,256 +422,294 @@ const VideoTabs = ({ video, course, currentTime }) => {
                     </div>
                 )}
 
-                {
-                    activeTab === 'studentNotes' && (
-                        <div className="flex flex-col h-full space-y-6">
-                            {/* Note Input */}
-                            <div className="bg-dark-layer2 p-4 rounded-xl border border-white/5">
-                                <div className="flex items-center justify-between mb-3 px-1">
-                                    <span className="text-xs font-bold text-dark-muted flex items-center gap-2">
-                                        <FileText size={14} className="text-brand-primary" />
-                                        Note at {formatTime(currentTime)}
-                                    </span>
-                                    <span className="text-[10px] text-dark-muted uppercase font-black tracking-widest">Auto-timestamp</span>
+                {activeTab === 'studentNotes' && (
+                    <div className="flex flex-col h-full space-y-12 animate-in fade-in duration-700">
+                        {/* Research Note Input */}
+                        <div className="bg-[#0a0a0a] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 blur-[50px] rounded-full" />
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+                                        <PenTool size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-white">Add a Note</h3>
+                                        <p className="text-[10px] text-dark-muted uppercase tracking-wider mt-1">Timestamp: {formatTime(currentTime)}</p>
+                                    </div>
                                 </div>
-                                <form onSubmit={handleAddNote} className="space-y-3">
-                                    <textarea
-                                        value={newNoteContent}
-                                        onChange={(e) => setNewNoteContent(e.target.value)}
-                                        placeholder="Add a private note at this moment..."
-                                        className="w-full bg-dark-layer1 border border-white/5 rounded-lg p-3 text-sm text-white focus:border-brand-primary focus:outline-none min-h-[100px] resize-none"
-                                    />
-                                    <div className="flex gap-2">
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                id="note-attachment"
-                                                className="hidden"
-                                                onChange={(e) => setNoteAttachment(e.target.files[0])}
-                                            />
-                                            <label
-                                                htmlFor="note-attachment"
-                                                className={`p-2.5 rounded-lg cursor-pointer transition-colors flex items-center justify-center h-full border ${noteAttachment ? 'bg-brand-primary text-dark-bg border-brand-primary' : 'bg-dark-layer1 text-dark-text hover:bg-dark-layer3 border-white/5'}`}
-                                                title={noteAttachment ? noteAttachment.name : "Add attachment"}
-                                            >
-                                                <Paperclip size={18} />
-                                            </label>
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            disabled={!newNoteContent.trim() || isSavingNote}
-                                            className="flex-1 bg-brand-primary hover:bg-brand-hover disabled:opacity-50 text-dark-bg px-6 py-2 rounded-lg text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-                                        >
-                                            <Save size={16} />
-                                            {isSavingNote ? 'Saving...' : 'Save Note'}
-                                        </button>
-                                    </div>
-                                    {noteAttachment && (
-                                        <div className="flex items-center gap-2 text-[10px] text-brand-primary mt-2 bg-brand-primary/10 px-2 py-1 rounded w-fit border border-brand-primary/20">
-                                            <FileText size={10} />
-                                            <span className="max-w-[150px] truncate">{noteAttachment.name}</span>
-                                            <button type="button" onClick={() => setNoteAttachment(null)} className="hover:text-white transition-colors">
-                                                <X size={10} />
-                                            </button>
-                                        </div>
-                                    )}
-                                </form>
                             </div>
-
-                            {/* Notes List */}
-                            <div className="space-y-4">
-                                {studentNotes.length === 0 ? (
-                                    <div className="py-12 text-center">
-                                        <FileText className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                        <p className="text-sm text-dark-muted">Your private notes will appear here.</p>
+                            <form onSubmit={handleAddNote} className="space-y-6">
+                                <textarea
+                                    value={newNoteContent}
+                                    onChange={(e) => setNewNoteContent(e.target.value)}
+                                    placeholder="Document critical observations at this curriculum node..."
+                                    className="w-full bg-[#111] border border-white/10 rounded-2xl p-6 text-sm text-white font-medium focus:border-brand-primary focus:ring-1 focus:ring-brand-primary/20 focus:outline-none min-h-[160px] resize-none transition-all placeholder:opacity-30"
+                                />
+                                <div className="flex gap-4">
+                                    <div className="relative">
+                                        <input
+                                            type="file"
+                                            id="note-attachment"
+                                            className="hidden"
+                                            onChange={(e) => setNoteAttachment(e.target.files[0])}
+                                        />
+                                        <label
+                                            htmlFor="note-attachment"
+                                            className={`p-4 rounded-2xl cursor-pointer transition-all flex items-center justify-center h-full border ${noteAttachment ? 'bg-brand-primary text-dark-bg border-brand-primary shadow-xl shadow-brand-primary/20' : 'bg-[#111] text-dark-muted hover:text-white hover:border-brand-primary/40 border-white/10 shadow-lg'}`}
+                                            title={noteAttachment ? noteAttachment.name : "Attach Artifact"}
+                                        >
+                                            <Paperclip size={24} />
+                                            {noteAttachment && <span className="ml-3 text-[10px] font-black uppercase tracking-widest">{noteAttachment.name.slice(0, 10)}...</span>}
+                                        </label>
                                     </div>
-                                ) : (
-                                    studentNotes.map((note) => (
-                                        <div key={note._id} className="group bg-dark-layer2/50 border border-white/5 rounded-xl p-4 hover:border-brand-primary/30 transition-all">
-                                            <div className="flex justify-between items-start mb-2">
+                                    <button
+                                        type="submit"
+                                        disabled={!newNoteContent.trim() || isSavingNote}
+                                        className="flex-1 bg-brand-primary hover:brightness-110 disabled:opacity-30 text-dark-bg px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-2xl shadow-brand-primary/20 group/btn"
+                                    >
+                                        <Save size={18} className="group-hover:scale-110 transition-transform" />
+                                        {isSavingNote ? 'INDEXING...' : 'ARCHIVE RESEARCH'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Notes Registry */}
+                        <div className="space-y-6">
+                            <h3 className="text-xs font-bold text-dark-muted uppercase tracking-[0.4em] opacity-40 flex items-center gap-4">
+                                Indexed Research Archive <div className="flex-1 h-px bg-white/5" />
+                            </h3>
+                            {studentNotes.length === 0 ? (
+                                <div className="py-20 text-center opacity-30">
+                                    <FileText className="mx-auto mb-6" size={56} />
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.4em]">No research artifacts archived.</p>
+                                </div>
+                            ) : (
+                                <div className="grid gap-6">
+                                    {studentNotes.map((note) => (
+                                        <div key={note._id} className="group bg-[#111] border border-white/5 rounded-3xl p-8 hover:border-brand-primary/30 transition-all shadow-xl relative overflow-hidden">
+                                            <div className="absolute top-0 left-0 w-1 h-full bg-brand-primary/0 group-hover:bg-brand-primary transition-all duration-500" />
+                                            <div className="flex justify-between items-start mb-6">
                                                 <button
                                                     onClick={() => {
                                                         const player = document.querySelector('video');
                                                         if (player) player.currentTime = note.timestamp;
                                                     }}
-                                                    className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider hover:bg-brand-primary hover:text-white transition-all"
+                                                    className="bg-brand-primary/10 text-brand-primary px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] border border-brand-primary/20 hover:bg-brand-primary hover:text-dark-bg transition-all shadow-lg"
                                                 >
-                                                    {formatTime(note.timestamp)}
+                                                    MATRIX OFFSET: {formatTime(note.timestamp)}
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteNote(note._id)}
-                                                    className="text-dark-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                                    className="p-3 text-dark-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
                                                 >
-                                                    <X size={14} />
-                                                    {/* X icon helper not imported, just using text for now if missing, but likely covered by handleDeleteNote usage elsewhere */}
+                                                    <Trash2 size={18} />
                                                 </button>
                                             </div>
-                                            <p className="text-sm text-dark-text leading-relaxed whitespace-pre-wrap">{note.content}</p>
+                                            <p className="text-dark-muted text-[15px] leading-relaxed font-medium opacity-90 whitespace-pre-wrap">{note.content}</p>
 
                                             {note.attachments && note.attachments.length > 0 && (
-                                                <div className="mt-3 space-y-2">
+                                                <div className="mt-8 pt-8 border-t border-white/5 flex flex-wrap gap-4">
                                                     {note.attachments.map((file, idx) => (
                                                         <a
                                                             key={idx}
                                                             href={file.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="flex items-center gap-2 text-[10px] text-dark-muted bg-dark-layer1 p-2 rounded hover:bg-dark-layer3 border border-white/5 transition-all w-fit group/file"
+                                                            className="flex items-center gap-3 text-[10px] font-bold text-dark-muted bg-[#0a0a0a] px-4 py-3 rounded-xl border border-white/10 hover:border-brand-primary/40 hover:text-brand-primary transition-all shadow-md group/artifact"
                                                         >
-                                                            <Paperclip size={12} className="text-brand-primary" />
-                                                            <span className="group-hover/file:text-white transition-colors">{file.filename}</span>
+                                                            <Package size={16} className="opacity-40" />
+                                                            <span className="uppercase tracking-widest">{file.filename}</span>
                                                         </a>
                                                     ))}
                                                 </div>
                                             )}
 
-                                            <div className="mt-3 text-[10px] text-dark-muted font-medium">
-                                                Last edited: {new Date(note.updatedAt).toLocaleDateString()}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-
-                {
-                    activeTab === 'notes' && (
-                        <div className="space-y-4 text-white">
-                            <div className="flex items-center gap-2 mb-4">
-                                <FileText className="text-brand-primary" size={24} />
-                                <h2 className="text-xl font-bold">Video Summary</h2>
-                            </div>
-
-                            {/* PDF Note Download */}
-                            {video.notePdf && (
-                                <div className="bg-dark-layer2 p-4 rounded-lg border border-dark-layer2 mb-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-red-500/20 p-2 rounded text-red-400">
-                                            <FileText size={24} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-white font-medium">Lecture Notes</h3>
-                                            <p className="text-xs text-dark-muted">PDF Document</p>
-                                        </div>
-                                    </div>
-                                    <a
-                                        href={video.notePdf}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="px-4 py-2 bg-brand-primary text-white text-sm rounded hover:bg-brand-hover transition-colors"
-                                    >
-                                        View / Download
-                                    </a>
-                                </div>
-                            )}
-
-                            <div className="bg-dark-layer2 p-6 rounded-lg border border-dark-layer2">
-                                {video.summary ? (
-                                    <p className="text-dark-text leading-relaxed whitespace-pre-wrap">{video.summary}</p>
-                                ) : (
-                                    <p className="text-dark-muted italic">No text summary available for this video.</p>
-                                )}
-                            </div>
-                        </div>
-                    )
-                }
-
-                {/* Assignments Tab */}
-                {
-                    activeTab === 'assignments' && (
-                        <div className="space-y-6 text-white">
-                            <div className="flex items-center gap-2 mb-4">
-                                <BookOpen className="text-brand-primary" size={24} />
-                                <h2 className="text-xl font-bold">Course Assignments & Quizzes</h2>
-                            </div>
-
-                            {assessment ? (
-                                <div className="bg-dark-layer2 p-6 rounded-xl border border-dark-layer2">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white mb-2">{assessment.title}</h3>
-                                            <p className="text-dark-muted mb-4">
-                                                Test your knowledge with this comprehensive assessment.
-                                            </p>
-                                            <div className="flex gap-4 text-sm text-dark-muted mb-6">
-                                                <span className="bg-dark-layer1 px-3 py-1 rounded">Questions: {assessment.questions.length}</span>
-                                                <span className="bg-dark-layer1 px-3 py-1 rounded">Passing Score: {assessment.passingScore}%</span>
-                                                {assessment.durationLimit > 0 && (
-                                                    <span className="bg-dark-layer1 px-3 py-1 rounded">Time Limit: {assessment.durationLimit} mins</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="bg-brand-primary/10 p-4 rounded-full">
-                                            <Award size={32} className="text-brand-primary" />
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => navigate(`/course/${course._id}/assessment`)}
-                                        className="w-full bg-brand-primary hover:bg-brand-hover text-dark-bg font-black py-4 rounded-2xl transition-all shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-2 group"
-                                    >
-                                        <Sparkles size={18} className="group-hover:animate-spin" /> START MASTERY TEST
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
-                                    <BookOpen className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                    <p className="text-dark-muted">No assignments have been assigned for this course yet.</p>
-                                </div>
-                            )}
-                        </div>
-                    )
-                }
-
-                {/* Articles Tab */}
-                {
-                    activeTab === 'articles' && (
-                        <div className="space-y-6 text-white">
-                            <div className="flex items-center gap-2 mb-4">
-                                <PenTool className="text-brand-primary" size={24} />
-                                <h2 className="text-xl font-bold">From the Instructor's Blog</h2>
-                            </div>
-
-                            {instructorArticles.length > 0 ? (
-                                <div className="grid gap-4">
-                                    {instructorArticles.map(article => (
-                                        <div
-                                            key={article._id}
-                                            onClick={() => navigate(`/blog/${article.slug}`)}
-                                            className="bg-dark-layer2 p-4 rounded-xl border border-dark-layer2 hover:border-brand-primary transition-all cursor-pointer flex gap-4"
-                                        >
-                                            <div className="w-24 h-24 bg-dark-layer1 rounded-lg overflow-hidden flex-shrink-0">
-                                                {article.coverImage ? (
-                                                    <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-dark-muted bg-dark-layer1">
-                                                        <FileText size={24} />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-bold text-white mb-1 line-clamp-1">{article.title}</h3>
-                                                <div className="text-xs text-brand-primary mb-2 uppercase font-bold tracking-wider">{article.category}</div>
-                                                <p className="text-sm text-dark-muted line-clamp-2 mb-3">
-                                                    {article.content.substring(0, 100).replace(/<[^>]*>/g, '')}...
-                                                </p>
-                                                <span className="text-xs text-dark-muted">{new Date(article.createdAt).toLocaleDateString()}</span>
+                                            <div className="mt-8 flex items-center justify-between text-[9px] font-black text-dark-muted uppercase tracking-[0.3em] opacity-30">
+                                                <span>Registry Date: {new Date(note.updatedAt).toLocaleDateString()}</span>
+                                                <span className="flex items-center gap-2"><Check size={12} /> Verified Artifact</span>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'notes' && (
+                    <div className="space-y-8 animate-in fade-in duration-700">
+                        <div className="flex items-center gap-5 border-b border-white/5 pb-8">
+                            <div className="p-4 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+                                <FileText size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Knowledge Summary</h2>
+                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-1">Official Module Documentation</p>
+                            </div>
+                        </div>
+
+                        {video.notePdf && (
+                            <div className="bg-[#0a0a0a] p-8 rounded-3xl border border-white/5 flex items-center justify-between group hover:border-brand-primary/30 transition-all shadow-2xl overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-[50px] rounded-full" />
+                                <div className="flex items-center gap-6">
+                                    <div className="bg-red-500/10 p-4 rounded-2xl text-red-500 border border-red-500/20 shadow-xl">
+                                        <FileText size={32} />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <h3 className="text-white font-bold uppercase tracking-tight text-lg">Detailed Lecture Notes</h3>
+                                        <p className="text-[10px] text-dark-muted font-black uppercase tracking-widest opacity-50">High-Resolution PDF Artifact</p>
+                                    </div>
+                                </div>
+                                <a
+                                    href={video.notePdf}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-8 py-4 bg-[#111] text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-2xl border border-white/10 hover:bg-brand-primary hover:text-dark-bg hover:border-brand-primary transition-all shadow-xl"
+                                >
+                                    Download Matrix
+                                </a>
+                            </div>
+                        )}
+
+                        <div className="bg-[#0a0a0a] p-12 rounded-[2.5rem] border border-white/5 shadow-inner">
+                            {video.summary ? (
+                                <p className="text-dark-muted text-[16px] leading-loose font-medium opacity-80 whitespace-pre-wrap">{video.summary}</p>
                             ) : (
-                                <div className="py-12 text-center bg-dark-layer2 rounded-xl border border-dark-layer2 border-dashed">
-                                    <PenTool className="mx-auto text-dark-muted opacity-20 mb-3" size={48} />
-                                    <p className="text-dark-muted">The instructor hasn't published any articles yet.</p>
+                                <div className="py-20 text-center opacity-30 italic">
+                                    <Info className="mx-auto mb-6" size={48} />
+                                    <p className="text-[11px] font-bold uppercase tracking-[0.4em]">No technical summary indexed for this coordinate.</p>
                                 </div>
                             )}
                         </div>
-                    )
-                }
-            </div >
-        </div >
+                    </div>
+                )}
+
+                {activeTab === 'assignments' && (
+                    <div className="space-y-12 animate-in slide-in-from-right-5 duration-700">
+                        <div className="flex items-center gap-5 border-b border-white/5 pb-8">
+                            <div className="p-4 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+                                <Target size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight leading-none">Validation Tests</h2>
+                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-2">Competency Mastery Assessment</p>
+                            </div>
+                        </div>
+
+                        {assessment ? (
+                            <div className="bg-[#0a0a0a] p-12 rounded-[3rem] border border-white/5 shadow-3xl space-y-10 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 blur-[100px] rounded-full group-hover:bg-brand-primary/10 transition-colors" />
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-4">
+                                        <h3 className="text-4xl font-black text-white uppercase tracking-tighter">{assessment.title}</h3>
+                                        <p className="text-dark-muted text-sm font-medium leading-relaxed opacity-70 max-w-xl">
+                                            Execute this high-fidelity assessment to validate your mastery over the curriculum nodes. Verifies strategic and tactical comprehension.
+                                        </p>
+                                    </div>
+                                    <div className="bg-brand-primary/10 p-6 rounded-[2rem] border border-brand-primary/20 shadow-2xl shadow-brand-primary/10">
+                                        <Award size={48} className="text-brand-primary" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-[#111] p-6 rounded-2xl border border-white/5 flex flex-col gap-2">
+                                        <span className="text-[9px] font-black text-dark-muted uppercase tracking-[0.4em]">Question Nodes</span>
+                                        <span className="text-2xl font-bold text-white">{assessment.questions.length || 0}</span>
+                                    </div>
+                                    <div className="bg-[#111] p-6 rounded-2xl border border-white/5 flex flex-col gap-2">
+                                        <span className="text-[9px] font-black text-dark-muted uppercase tracking-[0.4em]">Threshold</span>
+                                        <span className="text-2xl font-bold text-brand-primary">{assessment.passingScore}%</span>
+                                    </div>
+                                    <div className="bg-[#111] p-6 rounded-2xl border border-white/5 flex flex-col gap-2">
+                                        <span className="text-[9px] font-black text-dark-muted uppercase tracking-[0.4em]">Chronometer</span>
+                                        <span className="text-2xl font-bold text-white">{assessment.durationLimit > 0 ? `${assessment.durationLimit} MIN` : 'UNLIMITED'}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => navigate(`/course/${course._id}/assessment`)}
+                                    className="w-full bg-brand-primary hover:brightness-110 text-dark-bg font-black py-6 rounded-[1.5rem] transition-all shadow-2xl shadow-brand-primary/30 flex items-center justify-center gap-4 text-xs uppercase tracking-[0.4em] group/start"
+                                >
+                                    <Sparkles size={20} className="group-hover:animate-spin" /> INITIATE MASTERY VALIDATION
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="py-24 text-center bg-[#0a0a0a]/30 rounded-[3rem] border border-white/5 border-dashed">
+                                <Target className="mx-auto text-dark-muted opacity-20 mb-8" size={64} />
+                                <p className="text-dark-muted font-bold text-sm uppercase tracking-[0.4em] opacity-40">No validation tests have been indexed for this curriculum matrix.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'articles' && (
+                    <div className="space-y-12 animate-in fade-in duration-700">
+                        <div className="flex items-center gap-5 border-b border-white/5 pb-8">
+                            <div className="p-4 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+                                <PenTool size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Domain Articles</h2>
+                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-2">Professional Architect Insights</p>
+                            </div>
+                        </div>
+
+                        {instructorArticles.length > 0 ? (
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {instructorArticles.map(article => (
+                                    <div
+                                        key={article._id}
+                                        onClick={() => navigate(`/blog/${article.slug}`)}
+                                        className="bg-[#0a0a0a] rounded-[2rem] border border-white/5 hover:border-brand-primary/40 transition-all cursor-pointer flex gap-8 p-6 group shadow-xl"
+                                    >
+                                        <div className="w-32 h-32 bg-[#111] rounded-2xl overflow-hidden flex-shrink-0 shadow-lg border border-white/5">
+                                            {article.coverImage ? (
+                                                <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-dark-muted bg-[#111]">
+                                                    <FileText size={32} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-3 py-2">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] bg-brand-primary/10 px-2 py-1 rounded border border-brand-primary/20">{article.category}</span>
+                                                <span className="text-[8px] text-dark-muted font-bold uppercase tracking-widest opacity-40">{new Date(article.createdAt).toLocaleDateString()}</span>
+                                            </div>
+                                            <h3 className="text-lg font-bold text-white uppercase tracking-tight group-hover:text-brand-primary transition-colors line-clamp-1">{article.title}</h3>
+                                            <p className="text-[12px] text-dark-muted line-clamp-2 leading-relaxed opacity-70">
+                                                {article.content.substring(0, 100).replace(/<[^>]*>/g, '')}...
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="py-24 text-center bg-[#0a0a0a]/30 rounded-[3rem] border border-white/5 border-dashed">
+                                <PenTool className="mx-auto text-dark-muted opacity-20 mb-8" size={64} />
+                                <p className="text-dark-muted font-bold text-sm uppercase tracking-[0.4em] opacity-40">The lead architect hasn't published any domain articles yet.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'reviews' && (
+                    <div className="animate-in fade-in duration-700">
+                        <div className="flex items-center gap-5 border-b border-white/5 pb-8 mb-8">
+                            <div className="p-4 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+                                <Star size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Course Reviews</h2>
+                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-1">Student Feedback Matrix</p>
+                            </div>
+                        </div>
+                        <Reviews courseId={course._id} />
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 
