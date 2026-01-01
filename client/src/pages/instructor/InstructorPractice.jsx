@@ -134,6 +134,18 @@ const InstructorPractice = () => {
         }
     };
 
+    const handleDelete = async (problemId) => {
+        if (!window.confirm('Delete this practice problem? This action cannot be undone.')) return;
+        try {
+            await api.delete(`/practice/${problemId}`);
+            addToast('Problem deleted successfully', 'success');
+            fetchProblems(selectedCourse._id);
+        } catch (error) {
+            console.error('Error deleting problem:', error);
+            addToast('Failed to delete problem', 'error');
+        }
+    };
+
     return (
         <div className="space-y-6 flex flex-col h-full overflow-hidden p-6 bg-dark-bg">
             {/* Header */}

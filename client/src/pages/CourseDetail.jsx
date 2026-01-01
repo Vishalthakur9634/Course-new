@@ -295,51 +295,6 @@ const CourseDetail = () => {
                         </div>
 
                         <aside className="space-y-12">
-                            {course.instructorId && (
-                                <div className="bg-[#141414] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8 relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 blur-[60px] rounded-full group-hover:bg-brand-primary/10 transition-colors" />
-                                    <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-[0.4em] border-b border-white/5 pb-4 opacity-40">Lead Architect</h3>
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-20 h-20 rounded-[1.5rem] bg-[#0a0a0a] border border-white/10 overflow-hidden flex-shrink-0 p-0.5 group-hover:border-brand-primary/40 transition-all shadow-xl">
-                                            {course.instructorId.avatar ? (
-                                                <img src={course.instructorId.avatar} alt={course.instructorId.name} className="w-full h-full object-cover rounded-[1.25rem]" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-brand-primary font-bold text-3xl uppercase bg-[#0a0a0a] rounded-[1.25rem]">
-                                                    {course.instructorId.name?.charAt(0)}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="min-w-0 space-y-1">
-                                            <h4 className="text-lg font-bold text-white uppercase tracking-tight truncate flex items-center gap-2">
-                                                {course.instructorId.name} <ShieldCheck size={16} className="text-brand-primary" />
-                                            </h4>
-                                            <p className="text-brand-primary text-[10px] font-bold uppercase tracking-widest truncate">{course.instructorId.instructorProfile?.headline || 'Expert Architect'}</p>
-                                        </div>
-                                    </div>
-                                    <p className="text-dark-muted text-[13px] font-medium leading-relaxed line-clamp-4 opacity-70">
-                                        {course.instructorId.bio || 'Professional educator dedicated to high-impact technical curriculum and strategic domain mastery.'}
-                                    </p>
-                                    <button
-                                        onClick={() => navigate(`/instructor/profile/${course.instructorId._id}`)}
-                                        className="w-full py-4 rounded-2xl border border-white/10 text-[10px] font-bold uppercase tracking-[0.3em] hover:bg-white/5 hover:border-brand-primary/30 transition-all shadow-xl"
-                                    >
-                                        Architect Profile
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="bg-[#141414] p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8 relative overflow-hidden">
-                                <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-[0.4em] border-b border-white/5 pb-4 opacity-40">Validation Credential</h3>
-                                <div className="flex items-start gap-5">
-                                    <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary flex-shrink-0 border border-brand-primary/20 shadow-xl">
-                                        <Award size={24} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-base font-bold text-white uppercase tracking-tight">Verified Credential</p>
-                                        <p className="text-[11px] text-dark-muted font-medium leading-relaxed opacity-60">Earn a verified certificate of completion upon validating all curriculum modules within the syllabus matrix.</p>
-                                    </div>
-                                </div>
-                            </div>
                         </aside>
                     </div>
                 </div>

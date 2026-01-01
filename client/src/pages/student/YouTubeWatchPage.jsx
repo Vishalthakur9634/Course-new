@@ -40,10 +40,15 @@ const YouTubeWatchPage = () => {
                 setActiveVideo(data.videos[0]);
             }
             try {
-                const progressRes = await api.get(`/courses/${id}/progress`);
-                setCompletedVideos(progressRes.data.completedVideoIds || []);
+                const progressRes = await api.get(`/enrollment/${id}`);
+                // Extract completed videos from enrollment progress
+                const completed = progressRes.data.progress
+                    ?.filter(p => p.completed)
+                    .map(p => p.videoId) || [];
+                setCompletedVideos(completed);
+                console.log('Loaded completed videos:', completed);
             } catch (e) {
-                console.log('Progress fetch failed');
+                console.log('Progress fetch failed:', e);
             }
         } catch (error) {
             console.error('Error fetching course:', error);
@@ -109,12 +114,36 @@ const YouTubeWatchPage = () => {
                 <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#0a0a0a]">
                     {/* PLAYER */}
                     <div className="w-full bg-black/20 p-4 lg:p-8">
-                        <div className="max-w-5xl mx-auto w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/5 relative">
+                        <div className="max-w-7xl mx-auto w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/5 relative">
                             {activeVideo ? (
                                 <VideoPlayer
                                     src={activeVideo.videoUrl}
                                     poster={course.thumbnail}
-                                    onProgress={(p) => console.log('Progress:', p)}
+                                    onProgress={async (currentTime, duration, isGenuineComplete) => {
+                                        // Update progress every time this is called (every 5 seconds from VideoPlayer)
+                                        if (currentTime && duration) {
+                                            const progressPercent = (currentTime / duration) * 100;
+
+                                            // Mark as complete if watched 90% or more
+                                            if (progressPercent >= 90 && !completedVideos.includes(activeVideo._id)) {
+                                                // Will be marked complete via progress endpoint
+                                                setCompletedVideos([...completedVideos, activeVideo._id]);
+                                                console.log('✅ Video completed:', activeVideo.title);
+                                            }
+
+                                            // Save progress periodically
+                                            try {
+                                                await api.put(`/enrollment/${course._id}/progress`, {
+                                                    videoId: activeVideo._id,
+                                                    progress: currentTime,
+                                                    completed: progressPercent >= 90,
+                                                    timeSpent: 5
+                                                });
+                                            } catch (error) {
+                                                console.error('Error saving progress:', error);
+                                            }
+                                        }
+                                    }}
                                 />
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-dark-muted">
@@ -125,9 +154,8 @@ const YouTubeWatchPage = () => {
                         </div>
                     </div>
 
-                    {/* INTERACTIVE DATA TABS */}
-                    <div className="flex-1 bg-[#0a0a0a] min-h-[600px]">
-                        <div className="max-w-6xl mx-auto w-full px-6 py-10">
+                    <div className="flex-1 bg-[#0a0a0a] w-full">
+                        <div className="w-full">
                             <VideoTabs
                                 video={activeVideo || {}}
                                 course={course}

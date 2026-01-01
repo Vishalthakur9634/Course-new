@@ -76,6 +76,7 @@ import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 import PlatformSettings from './pages/admin/PlatformSettings';
 import SubscriptionManagement from './pages/admin/SubscriptionManagement';
 import ContentManager from './pages/admin/ContentManager'; // [NEW]
+import InstructorContentManager from './pages/instructor/InstructorContentManager'; // Enhanced for instructors
 
 // Shared Pages
 import Notifications from './pages/Notifications';
@@ -373,7 +374,7 @@ function App() {
                 <Route path="/admin/analytics" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformAnalytics /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/settings" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><PlatformSettings /></AppLayout></RoleRoute></PrivateRoute>} />
                 <Route path="/admin/content" element={<PrivateRoute><RoleRoute allowedRoles={['superadmin', 'admin']}><AppLayout><ContentManager /></AppLayout></RoleRoute></PrivateRoute>} />
-                <Route path="/instructor/content" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin', 'admin']}><AppLayout><ContentManager /></AppLayout></RoleRoute></PrivateRoute>} />
+                <Route path="/instructor/content" element={<PrivateRoute><RoleRoute allowedRoles={['instructor', 'superadmin', 'admin']}><AppLayout><InstructorContentManager /></AppLayout></RoleRoute></PrivateRoute>} />
 
                 {/* Shared Routes */}
                 <Route path="/notifications" element={<PrivateRoute><AppLayout><Notifications /></AppLayout></PrivateRoute>} />

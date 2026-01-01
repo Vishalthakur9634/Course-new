@@ -180,7 +180,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
     ];
 
     return (
-        <div className="flex flex-col h-full bg-[#111] border border-white/5 rounded-[2rem] overflow-hidden shadow-3xl">
+        <div className="w-full bg-[#111] border border-white/5 rounded-[2rem] overflow-hidden shadow-3xl">
             {/* TAB REGISTRY */}
             <div className="flex border-b border-white/5 overflow-x-auto no-scrollbar bg-[#0a0a0a]/50 p-1">
                 {tabs.map(tab => {
@@ -204,7 +204,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
             </div>
 
             {/* DOMAIN CONTENT */}
-            <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+            <div className="overflow-y-auto p-10 custom-scrollbar max-h-[600px]">
                 {activeTab === 'overview' && (
                     <div className="space-y-12 animate-in fade-in duration-700">
                         <div className="space-y-6">
@@ -230,22 +230,17 @@ const VideoTabs = ({ video, course, currentTime }) => {
 
                         {course.instructorId && (
                             <div className="bg-[#0a0a0a]/50 p-6 rounded-2xl border border-white/5 space-y-4">
-                                <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-wider opacity-40">Instructor</h3>
+                                <h3 className="text-xs font-bold text-dark-muted uppercase tracking-wider opacity-40">Instructor</h3>
                                 <div className="flex items-center gap-6">
                                     <UserLink
                                         user={course.instructorId}
-                                        avatarSize="w-20 h-20"
-                                        nameClass="text-xl font-bold text-white uppercase tracking-tight"
+                                        avatarSize="w-16 h-16"
+                                        nameClass="text-lg font-bold text-white"
                                     />
-                                    <div className="flex-1 space-y-2">
-                                        {course.instructorId.instructorProfile?.headline && (
-                                            <p className="text-xs text-brand-primary font-bold uppercase tracking-widest">
-                                                {course.instructorId.instructorProfile.headline}
-                                            </p>
-                                        )}
+                                    <div className="flex-1 space-y-1">
                                         {course.instructorId.instructorProfile?.bio && (
-                                            <p className="text-[13px] text-dark-muted font-medium leading-relaxed opacity-70 italic max-w-2xl">
-                                                "{course.instructorId.instructorProfile.bio}"
+                                            <p className="text-sm text-dark-muted leading-relaxed">
+                                                {course.instructorId.instructorProfile.bio}
                                             </p>
                                         )}
                                     </div>
@@ -592,8 +587,8 @@ const VideoTabs = ({ video, course, currentTime }) => {
                                 <Target size={32} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight leading-none">Validation Tests</h2>
-                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-2">Competency Mastery Assessment</p>
+                                <h2 className="text-2xl font-bold text-white">Course Assessments</h2>
+                                <p className="text-sm text-dark-muted mt-1">Test your knowledge</p>
                             </div>
                         </div>
 
@@ -650,8 +645,8 @@ const VideoTabs = ({ video, course, currentTime }) => {
                                 <PenTool size={32} />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-bold text-white uppercase tracking-tight">Domain Articles</h2>
-                                <p className="text-[11px] font-bold text-dark-muted uppercase tracking-[0.4em] mt-2">Professional Architect Insights</p>
+                                <h2 className="text-2xl font-bold text-white">Instructor Articles</h2>
+                                <p className="text-sm text-dark-muted mt-1">Additional reading from your instructor</p>
                             </div>
                         </div>
 
@@ -688,7 +683,7 @@ const VideoTabs = ({ video, course, currentTime }) => {
                         ) : (
                             <div className="py-24 text-center bg-[#0a0a0a]/30 rounded-[3rem] border border-white/5 border-dashed">
                                 <PenTool className="mx-auto text-dark-muted opacity-20 mb-8" size={64} />
-                                <p className="text-dark-muted font-bold text-sm uppercase tracking-[0.4em] opacity-40">The lead architect hasn't published any domain articles yet.</p>
+                                <p className="text-dark-muted text-sm">No articles published yet</p>
                             </div>
                         )}
                     </div>
